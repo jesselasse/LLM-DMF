@@ -1,0 +1,168 @@
+:root {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --line: #d9dee7;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --primary: #2563eb;
+  --danger: #dc2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.app {
+  height: 100%;
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 280px 1fr 240px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.controls-panel {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.controls-panel h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.muted,
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+label {
+  font-size: 13px;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 14px;
+  background: #fff;
+}
+
+button {
+  cursor: pointer;
+}
+
+.stage-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+}
+
+.status-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+}
+
+.warning {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.canvas-container {
+  position: relative;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #eef2f7;
+  min-height: 320px;
+}
+
+.canvas-container canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.steps-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 8px;
+}
+
+.steps-panel h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.empty-steps {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.step-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: auto;
+  padding: 6px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.step-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  height: auto;
+  min-height: 40px;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+
+.step-item.active {
+  border-color: var(--primary);
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+@media (max-width: 980px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .canvas-container {
+    min-height: 420px;
+  }
+}
