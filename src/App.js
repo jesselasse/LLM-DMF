@@ -17,6 +17,10 @@ export default function App() {
   const [steps, setSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [warningText, setWarningText] = useState("");
+  const [backendMessage, setBackendMessage] = useState("");
+  const [backendResultText, setBackendResultText] = useState("");
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState("");
 
   const canvasRef = useRef(null);
   const canvasContainerRef = useRef(null);
@@ -101,6 +105,40 @@ export default function App() {
     setCurrentStep(parsedSteps.length ? 0 : -1);
   }
 
+  // New: send message to backend and parse returned TXT content
+  async function handleGenerateFromBackend() {
+    const message = backendMessage.trim();
+    if (!message) {
+      setBackendError("Please enter some message first.");
+      return;
+    }
+
+    setBackendLoading(true);
+    setBackendError("");
+
+    try {
+      const response = await fetch("/api/steps-from-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      const txt = await response.text();
+      setBackendResultText(txt);
+      const parsedSteps = parseStepsTxt(txt);
+      setSteps(parsedSteps);
+      setCurrentStep(parsedSteps.length ? 0 : -1);
+    } catch (error) {
+      setBackendError(error.message || "Request failed.");
+    } finally {
+      setBackendLoading(false);
+    }
+  }
+
   return (
     <div className="app">
       <section className="panel controls-panel">
@@ -146,6 +184,24 @@ export default function App() {
         <p className="hint">
           Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
         </p>
+
+        <label htmlFor="backendMessageInput">Send Message To Backend</label>
+        <textarea
+          id="backendMessageInput"
+          rows={4}
+          value={backendMessage}
+          onChange={(e) => setBackendMessage(e.target.value)}
+          placeholder="Example: create 2 steps from (10,12) size (6,4), 800ms"
+        />
+        <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
+          {backendLoading ? "Generating..." : "Generate Steps From Backend"}
+        </button>
+        {backendError ? <p className="warning">{backendError}</p> : null}
+        {backendResultText ? (
+          <pre className="backend-result" aria-label="Backend Result Text">
+            {backendResultText}
+          </pre>
+        ) : null}
       </section>
 
       <section className="panel stage-panel">
