@@ -5,6 +5,28 @@ import { drawGridAndDroplets } from "./features/drawGridAndDroplets";
 import StepList from "./components/StepList";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const STEP_LINE_REGEX =
+  /\(([-+]?\d+)\s*,\s*([-+]?\d+)\)\s*\(([-+]?\d+)\s*,\s*([-+]?\d+)\)\s*-\s*(\d+)/;
+const createSessionId = () =>
+  `dmf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+function extractStepsTextFromRaw(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.stepsText === "string" && parsed.stepsText.trim()) {
+      return parsed.stepsText.trim();
+    }
+  } catch (_err) {
+    // Ignore JSON parse failure and fallback to regex extraction from raw text.
+  }
+
+  const matchedLines = String(raw || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => STEP_LINE_REGEX.test(line));
+
+  return matchedLines.join("\n");
+}
 
 export default function App() {
   // Feature 1: grid settings + fit-to-view scale
@@ -18,12 +40,15 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(-1);
   const [warningText, setWarningText] = useState("");
   const [backendMessage, setBackendMessage] = useState("");
+  const [backendRawOutput, setBackendRawOutput] = useState("");
   const [backendResultText, setBackendResultText] = useState("");
   const [backendLoading, setBackendLoading] = useState(false);
-  const [backendError, setBackendError] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [sessionId, setSessionId] = useState(createSessionId);
 
   const canvasRef = useRef(null);
   const canvasContainerRef = useRef(null);
+  const chatListRef = useRef(null);
 
   const statusText = useMemo(() => {
     if (!steps.length || currentStep < 0) return "No step selected";
@@ -95,6 +120,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (chatListRef.current) {
+      chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+    }
+  }, [chatMessages, backendLoading]);
+
   // Feature 2: parse TXT file
   async function handleFileChange(event) {
     const file = event.target.files && event.target.files[0];
@@ -109,31 +140,65 @@ export default function App() {
   async function handleGenerateFromBackend() {
     const message = backendMessage.trim();
     if (!message) {
-      setBackendError("Please enter some message first.");
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "错误：输入不能为空。", error: true },
+      ]);
       return;
     }
 
+    setChatMessages((prev) => [...prev, { role: "user", text: message }]);
+    setBackendMessage("");
     setBackendLoading(true);
-    setBackendError("");
+    setBackendRawOutput("");
+    setBackendResultText("");
 
     try {
       const response = await fetch("/api/steps-from-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, sessionId }),
       });
 
+      const payload = await response.json().catch(() => ({}));
+      const rawOutput = JSON.stringify(payload, null, 2);
       if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
+        throw new Error(payload.error || `Backend error: ${response.status}`);
+      }
+      setBackendRawOutput(rawOutput);
+
+      const reply =
+        typeof payload.assistantReply === "string" ? payload.assistantReply : "";
+      if (reply.trim()) {
+        setChatMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+      } else {
+        setChatMessages((prev) => [...prev, { role: "assistant", text: rawOutput }]);
       }
 
-      const txt = await response.text();
+      const txt = extractStepsTextFromRaw(
+        typeof payload.stepsText === "string" ? payload.stepsText : rawOutput
+      );
+      if (!txt.trim()) {
+        throw new Error("后端输出中没有找到可解析序列。");
+      }
+
       setBackendResultText(txt);
       const parsedSteps = parseStepsTxt(txt);
+      const totalRects = parsedSteps.reduce((sum, step) => sum + step.rects.length, 0);
+      if (!parsedSteps.length || totalRects === 0) {
+        throw new Error(
+          `返回文本无法解析为可绘制液滴。steps=${parsedSteps.length}, rects=${totalRects}`
+        );
+      }
+
       setSteps(parsedSteps);
       setCurrentStep(parsedSteps.length ? 0 : -1);
+      requestAnimationFrame(() => redrawCanvas());
     } catch (error) {
-      setBackendError(error.message || "Request failed.");
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: `错误：${error.message || "Request failed."}`, error: true },
+      ]);
     } finally {
       setBackendLoading(false);
     }
@@ -144,6 +209,20 @@ export default function App() {
       <section className="panel controls-panel">
         <h1>Digital Microfluidics Grid Basics</h1>
         <p className="muted">Only core features are kept in this base project.</p>
+        <p className="hint">Session: <code>{sessionId}</code></p>
+        <button
+          type="button"
+          onClick={() => {
+            setSessionId(createSessionId());
+            setSteps([]);
+            setCurrentStep(-1);
+            setChatMessages([]);
+            setBackendRawOutput("");
+            setBackendResultText("");
+          }}
+        >
+          New Session (Clear Context)
+        </button>
 
         <label htmlFor="rowsInput">Rows</label>
         <input
@@ -185,18 +264,40 @@ export default function App() {
           Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
         </p>
 
-        <label htmlFor="backendMessageInput">Send Message To Backend</label>
+        <label htmlFor="backendMessageInput">Send Natural Language To Backend (LLM + Move)</label>
         <textarea
           id="backendMessageInput"
-          rows={4}
+          rows={3}
           value={backendMessage}
           onChange={(e) => setBackendMessage(e.target.value)}
-          placeholder="Example: create 2 steps from (10,12) size (6,4), 800ms"
+          placeholder="示例：现在在(10,12)有一个液滴(6,4)，它向上移动5格"
         />
         <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
-          {backendLoading ? "Generating..." : "Generate Steps From Backend"}
+          {backendLoading ? "Generating..." : "Generate Steps (LLM)"}
         </button>
-        {backendError ? <p className="warning">{backendError}</p> : null}
+
+        <div className="chat-wrap">
+          <div className="chat-list" ref={chatListRef} aria-label="LLM Chat">
+            {chatMessages.map((msg, idx) => (
+              <div
+                key={`${idx}-${msg.role}`}
+                className={`chat-bubble ${msg.role} ${msg.error ? "error" : ""}`}
+              >
+                {msg.text}
+              </div>
+            ))}
+            {backendLoading ? (
+              <div className="chat-bubble assistant">正在请求 LLM...</div>
+            ) : null}
+          </div>
+        </div>
+
+        {backendRawOutput ? (
+          <pre className="backend-result" aria-label="Backend Raw Output">
+            {`raw backend output:\n${backendRawOutput}`}
+          </pre>
+        ) : null}
+
         {backendResultText ? (
           <pre className="backend-result" aria-label="Backend Result Text">
             {backendResultText}
