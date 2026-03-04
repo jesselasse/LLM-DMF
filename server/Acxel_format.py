@@ -1,13 +1,8 @@
 """
 Activation sequence format conversion utilities
 """
-from scipy.ndimage import distance_transform_edt
-try:
-    from skimage.measure import label, regionprops
-    HAS_SKIMAGE = True
-except ImportError:
-    HAS_SKIMAGE = False
-    print("Warning: skimage not available. Mask interpolation will not work.")
+import sys
+
 
 
 def scale_activation_sequence(activation_sequence, scale_factor):
@@ -81,6 +76,69 @@ def translate_activation_sequence(activation_sequence, offset_x=0, offset_y=0):
     
     return translated
 
+def translate_sequence(sequence, offset_x: int, offset_y: int):
+    """
+    Translate all cells in a sequence by given offset
+    
+    Args:
+        sequence: List of (time_step, cells) where cells = [(dx, dy, w, h), ...]
+        offset_x: X offset to add
+        offset_y: Y offset to add
+        
+    Returns:
+        New sequence with translated cells
+    """
+    translated = []
+    for time_step, cells in sequence:
+        new_cells = [
+            (dx + offset_x, dy + offset_y, w, h)
+            for dx, dy, w, h in cells
+        ]
+        translated.append((time_step, new_cells))
+    return translated
+
+
+def rotate_sequence_90(sequence, rotation_deg: int, center):
+    
+    """
+    Rotate all cells in a sequence by 90-degree increments (counterclockwise)
+    
+    Rotation is around the specified center point. The rectangle's top-left corner (dx, dy)
+    and dimensions (w, h) are transformed.
+    
+    Args:
+        sequence: List of (time_step, cells) where cells = [(dx, dy, w, h), ...]
+        rotation_deg: Rotation angle in degrees (0, 90, 180, 270)
+        center: Tuple (cx, cy) for rotation center, defaults to (0, 0)
+        
+    Returns:
+        New sequence with rotated cells
+    """
+    k = (rotation_deg // 90) % 4
+    cx, cy = center
+    
+    rotated = []
+    for time_step, cells in sequence:
+        new_cells = []
+        for dx, dy, w, h in cells:
+            # 平移到原点
+            px, py = dx - cx, dy - cy
+            
+            if k == 0:  # 0°: no rotation
+                nx, ny, nw, nh = px, py, w, h
+            elif k == 1:  # 90° ccw
+                nx, ny, nw, nh = -py - h, px, h, w
+            elif k == 2:  # 180°
+                nx, ny, nw, nh = -px - w, -py - h, w, h
+            else:  # k == 3: 270° ccw (or 90° cw)
+                nx, ny, nw, nh = py, -px - w, h, w
+            
+            # 平移回圆心
+            nx, ny = nx + cx, ny + cy
+            new_cells.append((nx, ny, nw, nh))
+        rotated.append((time_step, new_cells))
+    
+    return rotated
 
 def filter_by_x_range(activation_sequence, min_x=None, max_x=None):
     """
@@ -291,4 +349,3 @@ def make_continuous_sequence(sequence, max_cycle: int):
             continuous.append((cycle, last_cells))
     
     return continuous
-

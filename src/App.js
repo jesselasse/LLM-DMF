@@ -9,6 +9,7 @@ const STEP_LINE_REGEX =
   /\(([-+]?\d+)\s*,\s*([-+]?\d+)\)\s*\(([-+]?\d+)\s*,\s*([-+]?\d+)\)\s*-\s*(\d+)/;
 const createSessionId = () =>
   `dmf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const DEFAULT_BACKEND_MESSAGE = "在（20，20）向右生成3个液滴";
 
 function extractStepsTextFromRaw(raw) {
   try {
@@ -32,14 +33,14 @@ export default function App() {
   // Feature 1: grid settings + fit-to-view scale
   const [rows, setRows] = useState(120);
   const [cols, setCols] = useState(140);
-  const [cellSize, setCellSize] = useState(16);
+  const cellSize = 16;
   const [scale, setScale] = useState(1);
 
   // Feature 2 + 3 + 4 shared state
   const [steps, setSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [warningText, setWarningText] = useState("");
-  const [backendMessage, setBackendMessage] = useState("");
+  const [backendMessage, setBackendMessage] = useState(DEFAULT_BACKEND_MESSAGE);
   const [backendRawOutput, setBackendRawOutput] = useState("");
   const [backendResultText, setBackendResultText] = useState("");
   const [backendLoading, setBackendLoading] = useState(false);
@@ -103,9 +104,10 @@ export default function App() {
   // Feature 1
   useEffect(() => {
     resizeCanvas();
+    fitToView();
     requestAnimationFrame(redrawCanvas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, cols, cellSize]);
+  }, [rows, cols]);
 
   useEffect(() => {
     requestAnimationFrame(redrawCanvas);
@@ -148,7 +150,6 @@ export default function App() {
     }
 
     setChatMessages((prev) => [...prev, { role: "user", text: message }]);
-    setBackendMessage("");
     setBackendLoading(true);
     setBackendRawOutput("");
     setBackendResultText("");
@@ -206,104 +207,100 @@ export default function App() {
 
   return (
     <div className="app">
-      <section className="panel controls-panel">
-        <h1>Digital Microfluidics Grid Basics</h1>
-        <p className="muted">Only core features are kept in this base project.</p>
-        <p className="hint">Session: <code>{sessionId}</code></p>
-        <button
-          type="button"
-          onClick={() => {
-            setSessionId(createSessionId());
-            setSteps([]);
-            setCurrentStep(-1);
-            setChatMessages([]);
-            setBackendRawOutput("");
-            setBackendResultText("");
-          }}
-        >
-          New Session (Clear Context)
-        </button>
+      <div className="left-column">
+        <section className="panel controls-panel">
+          <h1>Digital Microfluidics Grid Basics</h1>
+          <div className="grid-dim-row">
+            <label htmlFor="rowsInput">Rows / Columns</label>
+            <div className="grid-dim-inputs">
+              <input
+                id="rowsInput"
+                aria-label="Rows"
+                type="number"
+                min="1"
+                value={rows}
+                onChange={(e) => setRows(Math.max(1, Number(e.target.value) || 1))}
+              />
+              <span className="dim-separator">x</span>
+              <input
+                id="colsInput"
+                aria-label="Columns"
+                type="number"
+                min="1"
+                value={cols}
+                onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </div>
+          </div>
 
-        <label htmlFor="rowsInput">Rows</label>
-        <input
-          id="rowsInput"
-          type="number"
-          min="1"
-          value={rows}
-          onChange={(e) => setRows(Math.max(1, Number(e.target.value) || 1))}
-        />
+          <label htmlFor="fileInput">Load TXT Step File</label>
+          <input id="fileInput" type="file" accept=".txt" onChange={handleFileChange} />
+          <p className="hint">
+            Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
+          </p>
+        </section>
 
-        <label htmlFor="colsInput">Columns</label>
-        <input
-          id="colsInput"
-          type="number"
-          min="1"
-          value={cols}
-          onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))}
-        />
+        <section className="panel conversation-panel-box">
+          <div className="conversation-content">
+            <p className="hint">示例：在（20，20）向右生成3个液滴</p>
+            <textarea
+              id="backendMessageInput"
+              rows={3}
+              value={backendMessage}
+              onChange={(e) => setBackendMessage(e.target.value)}
+              placeholder="在（20，20）向右生成3个液滴"
+            />
 
-        <label htmlFor="cellSizeInput">Cell Size (px)</label>
-        <input
-          id="cellSizeInput"
-          type="number"
-          min="4"
-          max="60"
-          value={cellSize}
-          onChange={(e) =>
-            setCellSize(clamp(Number(e.target.value) || 4, 4, 60))
-          }
-        />
-
-        <button type="button" onClick={fitToView}>
-          Fit To View
-        </button>
-
-        <label htmlFor="fileInput">Load TXT Step File</label>
-        <input id="fileInput" type="file" accept=".txt" onChange={handleFileChange} />
-        <p className="hint">
-          Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
-        </p>
-
-        <label htmlFor="backendMessageInput">Send Natural Language To Backend (LLM + Move)</label>
-        <textarea
-          id="backendMessageInput"
-          rows={3}
-          value={backendMessage}
-          onChange={(e) => setBackendMessage(e.target.value)}
-          placeholder="示例：现在在(10,12)有一个液滴(6,4)，它向上移动5格"
-        />
-        <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
-          {backendLoading ? "Generating..." : "Generate Steps (LLM)"}
-        </button>
-
-        <div className="chat-wrap">
-          <div className="chat-list" ref={chatListRef} aria-label="LLM Chat">
-            {chatMessages.map((msg, idx) => (
-              <div
-                key={`${idx}-${msg.role}`}
-                className={`chat-bubble ${msg.role} ${msg.error ? "error" : ""}`}
+            <div className="conversation-actions">
+              <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
+                {backendLoading ? "Generating..." : "Generate Steps"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSessionId(createSessionId());
+                  setSteps([]);
+                  setCurrentStep(-1);
+                  setChatMessages([]);
+                  setBackendRawOutput("");
+                  setBackendResultText("");
+                  setBackendMessage(DEFAULT_BACKEND_MESSAGE);
+                }}
               >
-                {msg.text}
+                Clear Context
+              </button>
+            </div>
+
+            <div className="chat-wrap">
+              <div className="chat-list" ref={chatListRef} aria-label="LLM Chat">
+                {chatMessages.map((msg, idx) => (
+                  <div
+                    key={`${idx}-${msg.role}`}
+                    className={`chat-bubble ${msg.role} ${msg.error ? "error" : ""}`}
+                  >
+                    {msg.text}
+                  </div>
+                ))}
+                {backendLoading ? (
+                  <div className="chat-bubble assistant">正在请求 LLM...</div>
+                ) : null}
               </div>
-            ))}
-            {backendLoading ? (
-              <div className="chat-bubble assistant">正在请求 LLM...</div>
+            </div>
+
+            {backendRawOutput ? (
+              <pre className="backend-result" aria-label="Backend Raw Output">
+                {`raw backend output:\n${backendRawOutput}`}
+              </pre>
+            ) : null}
+
+            {backendResultText ? (
+              <pre className="backend-result" aria-label="Backend Result Text">
+                {backendResultText}
+              </pre>
             ) : null}
           </div>
-        </div>
-
-        {backendRawOutput ? (
-          <pre className="backend-result" aria-label="Backend Raw Output">
-            {`raw backend output:\n${backendRawOutput}`}
-          </pre>
-        ) : null}
-
-        {backendResultText ? (
-          <pre className="backend-result" aria-label="Backend Result Text">
-            {backendResultText}
-          </pre>
-        ) : null}
-      </section>
+        </section>
+      </div>
 
       <section className="panel stage-panel">
         <div className="status-bar">

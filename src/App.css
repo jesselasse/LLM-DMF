@@ -42,8 +42,47 @@ body {
 
 .controls-panel {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
+}
+
+.grid-dim-row {
+  display: grid;
+  gap: 6px;
+}
+
+.grid-dim-inputs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.dim-separator {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.interaction-block {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.conversation-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.conversation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .controls-panel h1 {

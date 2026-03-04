@@ -27,7 +27,7 @@ import sys
 from typing import Any, Dict, List
 
 from llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
-from move_backend import Move_as_txt
+from move_backend import Move_as_txt, Squeeze_as_txt
 
 
 def _normalize_message_to_text(message: Any) -> str:
@@ -76,6 +76,15 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         """
         return Move_as_txt((x, y, w, h), direction, t)
 
+    @tool("squeeze")
+    def squeeze(count: int, x: int, y: int, direction: str) -> str:
+        """
+        Generate squeezing sequence from template.
+        count controls truncation (1->6, 2->11, each extra +5).
+        x,y are translation offsets; direction controls rotation.
+        """
+        return Squeeze_as_txt(count, x, y, direction)
+
     model_name = os.getenv("OPENAI_MODEL", LLM_MODEL)
     llm = ChatOpenAI(
         model=model_name,
@@ -83,15 +92,14 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         base_url=LLM_BASE_URL,
         temperature=0,
     )
-    llm_with_tools = llm.bind_tools([move])
+    llm_with_tools = llm.bind_tools([move, squeeze])
 
     system_prompt = (
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the FULL stored sequence text.\n"
-        "For new user request, you should produce ONLY incremental new steps (delta), not regenerate old steps.\n"
-        "When move is needed, you MUST call tool 'move'.\n"
+        "For movement, call tool 'move'. For generation requests, call tool 'squeeze'.\n"
         "If user says '再/继续/then/again' and omits coordinates, infer target droplet from existing sequence/context.\n"
-        "If there are multiple droplets and request is ambiguous, ask clarification and do not call move.\n"
+        "If there are multiple droplets and request is ambiguous, ask clarification and do not call tools.\n"
         "Return concise Chinese assistant reply."
     )
 
@@ -118,31 +126,27 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     ai_msg = llm_with_tools.invoke(messages)
     tool_calls = getattr(ai_msg, "tool_calls", None) or []
 
-    # No tool call: assistant asks clarification or gives direct reasoning.
-    if not tool_calls:
-        reply = (getattr(ai_msg, "content", "") or "").strip()
-        return {
-            "assistantReply": reply,
-            "stepsTextDelta": "",
-            "moveCalls": [],
-        }
 
     tool_messages: List[ToolMessage] = []
     steps_outputs: List[str] = []
     move_calls: List[Dict[str, Any]] = []
 
     for call in tool_calls:
-        if call.get("name") != "move":
+        name = call.get("name")
+        if name not in ("move", "squeeze"):
             continue
         args = call.get("args", {})
-        tool_result = move.invoke(args)
+        if name == "move":
+            tool_result = move.invoke(args)
+        else:
+            tool_result = squeeze.invoke(args)
         steps_outputs.append(tool_result)
-        move_calls.append(args)
+        move_calls.append({"tool": name, "args": args})
         tool_messages.append(
             ToolMessage(
                 content=tool_result,
                 tool_call_id=call["id"],
-                name="move",
+                name=name,
             )
         )
 

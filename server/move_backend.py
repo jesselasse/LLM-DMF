@@ -9,7 +9,12 @@ For Move(), each time_step contains exactly one moved droplet rectangle.
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+import re
+from functools import lru_cache
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
+
+from Acxel_format import rotate_sequence_90, translate_sequence
 
 Rect = Tuple[int, int, int, int]
 ActivationSequence = List[Tuple[int, List[Rect]]]
@@ -36,6 +41,31 @@ _DIRECTION_DELTAS: Dict[str, Tuple[int, int]] = {
     "右": (1, 0),
 }
 
+_DIRECTION_TO_ROTATION: Dict[str, int] = {
+    # Template orientation is opposite to UI semantics, so squeeze directions
+    # are intentionally flipped here: up<->down, left<->right.
+    "right": 180,
+    "r": 180,
+    "east": 180,
+    "右": 180,
+    "down": 270,
+    "d": 270,
+    "south": 270,
+    "下": 270,
+    "left": 0,
+    "l": 0,
+    "west": 0,
+    "左": 0,
+    "up": 90,
+    "u": 90,
+    "north": 90,
+    "上": 90,
+}
+
+_RECT_PATTERN = re.compile(
+    r"\(([-+]?\d+)\s*,\s*([-+]?\d+)\)\s*\(([-+]?\d+)\s*,\s*([-+]?\d+)\)"
+)
+
 
 def _normalize_direction(direction: str) -> Tuple[int, int]:
     if not isinstance(direction, str):
@@ -48,6 +78,19 @@ def _normalize_direction(direction: str) -> Tuple[int, int]:
     return _DIRECTION_DELTAS[key]
 
 
+def _normalize_rotation_deg(direction_or_deg: Union[str, int]) -> int:
+    if isinstance(direction_or_deg, int):
+        return direction_or_deg % 360
+    if not isinstance(direction_or_deg, str):
+        raise TypeError("direction must be str or int rotation degree.")
+    key = direction_or_deg.strip().lower()
+    if key not in _DIRECTION_TO_ROTATION:
+        raise ValueError(
+            f"Unsupported direction '{direction_or_deg}'. Use up/down/left/right."
+        )
+    return _DIRECTION_TO_ROTATION[key] % 360
+
+
 def _validate_rect(rect: Rect) -> None:
     if not isinstance(rect, (tuple, list)) or len(rect) != 4:
         raise ValueError("droplet must be (x, y, w, h).")
@@ -56,6 +99,30 @@ def _validate_rect(rect: Rect) -> None:
         raise ValueError("x, y, w, h must all be int.")
     if w <= 0 or h <= 0:
         raise ValueError(f"w and h must be > 0, got w={w}, h={h}.")
+
+
+@lru_cache(maxsize=1)
+def _load_squeezing_template() -> ActivationSequence:
+    template_path = Path(__file__).with_name("SqueezingPath.txt")
+    if not template_path.exists():
+        raise FileNotFoundError(f"Squeezing template not found: {template_path}")
+
+    sequence: ActivationSequence = []
+    with template_path.open("r", encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            text = line.strip()
+            if not text:
+                sequence.append((idx, []))
+                continue
+            rects: List[Rect] = []
+            for m in _RECT_PATTERN.finditer(text):
+                x = int(m.group(1))
+                y = int(m.group(2))
+                w = int(m.group(3))
+                h = int(m.group(4))
+                rects.append((x, y, w, h))
+            sequence.append((idx, rects))
+    return sequence
 
 
 def Move(
@@ -131,6 +198,50 @@ def Move_as_txt(
     """
     sequence = Move(droplet, direction, t, start_cycle=start_cycle)
     return activation_sequence_to_txt(sequence)
+
+
+def Squeeze(
+    count: int,
+    px: int,
+    py: int,
+    direction: Union[str, int],
+) -> ActivationSequence:
+    """
+    Generate squeezing sequence from template with truncation and transform.
+
+    Rules:
+      - count=1 -> first 6 steps
+      - count=2 -> first 11 steps
+      - each extra droplet adds +5 steps
+      - rotate by direction, then translate by (px, py)
+      - finally apply global offset (-47, -33)
+    """
+    if not isinstance(count, int):
+        raise TypeError("count must be int.")
+    if count <= 0:
+        raise ValueError("count must be >= 1.")
+    if not isinstance(px, int) or not isinstance(py, int):
+        raise TypeError("px/py must be int.")
+
+    template = _load_squeezing_template()
+    step_limit = 6 + (count - 1) * 5
+    step_limit = max(1, min(step_limit, len(template)))
+
+    temp_sequence = template[:step_limit]
+    temp_sequence = translate_sequence(temp_sequence, -47, -33)
+    rotation_deg = _normalize_rotation_deg(direction)
+    temp_sequence = rotate_sequence_90(temp_sequence, rotation_deg, center=(0, 1))
+    final_sequence = translate_sequence(temp_sequence, px, py)
+    return final_sequence
+
+
+def Squeeze_as_txt(
+    count: int,
+    px: int,
+    py: int,
+    direction: Union[str, int],
+) -> str:
+    return activation_sequence_to_txt(Squeeze(count, px, py, direction))
 
 
 if __name__ == "__main__":

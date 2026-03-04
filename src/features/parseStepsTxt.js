@@ -7,8 +7,10 @@ export function parseStepsTxt(text) {
   const steps = [];
 
   for (const line of lines) {
-    const [rectPart, durationPart = "0"] = line.split("-");
-    const duration = Math.max(0, parseInt(durationPart.trim(), 10) || 0);
+    const durationMatch = line.match(/^(.*?)-\s*(\d+)\s*$/);
+    const rectPart = durationMatch ? durationMatch[1] : line;
+    const durationPart = durationMatch ? durationMatch[2] : "0";
+    const duration = Math.max(0, parseInt(durationPart, 10) || 0);
 
     const rects = rectPart
       .split(";")
