@@ -14,7 +14,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
-from Acxel_format import rotate_sequence_90, translate_sequence
+from Acxel_format import (
+    rotate_sequence_90,
+    scale_activation_sequence_xy,
+    translate_sequence,
+)
 
 Rect = Tuple[int, int, int, int]
 ActivationSequence = List[Tuple[int, List[Rect]]]
@@ -89,6 +93,33 @@ def _normalize_rotation_deg(direction_or_deg: Union[str, int]) -> int:
             f"Unsupported direction '{direction_or_deg}'. Use up/down/left/right."
         )
     return _DIRECTION_TO_ROTATION[key] % 360
+
+
+def _parse_size(size: Union[int, str, Tuple[int, int], List[int]]) -> Tuple[int, int]:
+    if isinstance(size, int):
+        sx, sy = size, size
+    elif isinstance(size, (tuple, list)):
+        if len(size) != 2:
+            raise ValueError("size tuple/list must be length 2, e.g. (3, 2).")
+        sx, sy = int(size[0]), int(size[1])
+    elif isinstance(size, str):
+        raw = size.strip().lower().replace("x", "*")
+        if "*" in raw:
+            parts = [p.strip() for p in raw.split("*") if p.strip()]
+            if len(parts) != 2:
+                raise ValueError(
+                    "size string must be like '3*2' or '3x2' or single '2'."
+                )
+            sx, sy = int(parts[0]), int(parts[1])
+        else:
+            v = int(raw)
+            sx, sy = v, v
+    else:
+        raise TypeError("size must be int | str | tuple/list of 2 ints.")
+
+    if sx <= 0 or sy <= 0:
+        raise ValueError(f"size factors must be >=1, got sx={sx}, sy={sy}.")
+    return sx, sy
 
 
 def _validate_rect(rect: Rect) -> None:
@@ -205,6 +236,7 @@ def Squeeze(
     px: int,
     py: int,
     direction: Union[str, int],
+    size: Union[int, str, Tuple[int, int], List[int]] = 1,
 ) -> ActivationSequence:
     """
     Generate squeezing sequence from template with truncation and transform.
@@ -215,6 +247,10 @@ def Squeeze(
       - each extra droplet adds +5 steps
       - rotate by direction, then translate by (px, py)
       - finally apply global offset (-47, -33)
+      - support droplet size scaling:
+          * supports uniform size (e.g. 2) and non-uniform size (e.g. 3*2)
+          * translate in base grid with (px/sx, py/sy)
+          * then scale the whole sequence by (sx, sy)
     """
     if not isinstance(count, int):
         raise TypeError("count must be int.")
@@ -222,16 +258,27 @@ def Squeeze(
         raise ValueError("count must be >= 1.")
     if not isinstance(px, int) or not isinstance(py, int):
         raise TypeError("px/py must be int.")
+    sx, sy = _parse_size(size)
 
     template = _load_squeezing_template()
     step_limit = 6 + (count - 1) * 5
     step_limit = max(1, min(step_limit, len(template)))
 
+    if px % sx != 0 or py % sy != 0:
+        raise ValueError(
+            "px/py must be divisible by size factors. "
+            f"got px={px}, py={py}, size=({sx},{sy})."
+        )
+
+    base_px = px // sx
+    base_py = py // sy
+
     temp_sequence = template[:step_limit]
     temp_sequence = translate_sequence(temp_sequence, -47, -33)
     rotation_deg = _normalize_rotation_deg(direction)
     temp_sequence = rotate_sequence_90(temp_sequence, rotation_deg, center=(0, 1))
-    final_sequence = translate_sequence(temp_sequence, px, py)
+    temp_sequence = translate_sequence(temp_sequence, base_px, base_py)
+    final_sequence = scale_activation_sequence_xy(temp_sequence, sx, sy)
     return final_sequence
 
 
@@ -240,8 +287,9 @@ def Squeeze_as_txt(
     px: int,
     py: int,
     direction: Union[str, int],
+    size: Union[int, str, Tuple[int, int], List[int]] = 1,
 ) -> str:
-    return activation_sequence_to_txt(Squeeze(count, px, py, direction))
+    return activation_sequence_to_txt(Squeeze(count, px, py, direction, size=size))
 
 
 if __name__ == "__main__":

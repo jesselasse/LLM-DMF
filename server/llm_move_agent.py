@@ -62,6 +62,38 @@ def _normalize_context(raw_context: Any) -> Dict[str, Any]:
     }
 
 
+def _tool_required_args(tool_obj: Any) -> List[str]:
+    """
+    Read required args from tool schema dynamically.
+    Works across pydantic v1/v2 style schemas.
+    """
+    args_schema = getattr(tool_obj, "args_schema", None)
+    schema: Dict[str, Any] = {}
+    if args_schema is not None:
+        if hasattr(args_schema, "model_json_schema"):
+            schema = args_schema.model_json_schema() or {}
+        elif hasattr(args_schema, "schema"):
+            schema = args_schema.schema() or {}
+
+    required = schema.get("required")
+    if isinstance(required, list) and required:
+        return [str(name) for name in required]
+
+    properties = schema.get("properties")
+    if isinstance(properties, dict) and properties:
+        return list(properties.keys())
+
+    args = getattr(tool_obj, "args", None)
+    if isinstance(args, dict) and args:
+        return list(args.keys())
+
+    return []
+
+
+def _build_required_map(tool_registry: Dict[str, Any]) -> Dict[str, List[str]]:
+    return {name: _tool_required_args(tool_obj) for name, tool_obj in tool_registry.items()}
+
+
 def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]:
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
     from langchain_core.tools import tool
@@ -77,13 +109,15 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         return Move_as_txt((x, y, w, h), direction, t)
 
     @tool("squeeze")
-    def squeeze(count: int, x: int, y: int, direction: str) -> str:
+    def squeeze(count: int, x: int, y: int, direction: str, size: str ) -> str:
         """
         Generate squeezing sequence from template.
         count controls truncation (1->6, 2->11, each extra +5).
         x,y are translation offsets; direction controls rotation.
+        size supports both uniform and non-uniform scaling:
+        e.g. "2" or "3*2" (also supports "3x2").
         """
-        return Squeeze_as_txt(count, x, y, direction)
+        return Squeeze_as_txt(count, x, y, direction, size=size)
 
     model_name = os.getenv("OPENAI_MODEL", LLM_MODEL)
     llm = ChatOpenAI(
@@ -92,14 +126,65 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         base_url=LLM_BASE_URL,
         temperature=0,
     )
-    llm_with_tools = llm.bind_tools([move, squeeze])
+    tool_registry = {"move": move, "squeeze": squeeze}
+    llm_with_tools = llm.bind_tools(list(tool_registry.values()))
+    required_map = _build_required_map(tool_registry)
+    
+    def _llm_generate_followup_for_tool_error(
+        tool_name: str, required: List[str], args: Any, error_text: str
+    ) -> str:
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        prompt = (
+            "你是一个DMF助手。工具调用失败了，请生成一条中文追问给用户。\n"
+            "只输出用户可读的一句话，不要技术实现细节。\n"
+            "禁止出现：函数名、工具名、参数名、括号、等号、代码片段。\n"
+            f"函数名: {tool_name}\n"
+            f"必填参数: {required}\n"
+            f"当前工具参数: {args}\n"
+            f"报错信息: {error_text}\n"
+            "如果看起来是缺参数，就只问用户缺什么；可提醒用户可用默认值，但不要写成实现语句。"
+        )
+        reply_msg = llm.invoke(
+            [
+                SystemMessage(content="You generate concise Chinese follow-up questions."),
+                HumanMessage(content=prompt),
+            ]
+        )
+        reply = (getattr(reply_msg, "content", "") or "").strip()
+        if not reply:
+            raise RuntimeError("LLM returned empty follow-up for tool error.")
+        return reply
+
+    def _llm_generate_followup_for_no_toolcall(required_map_data: Dict[str, List[str]]) -> str:
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        prompt = (
+            "你是一个DMF助手。用户刚刚发来请求，但模型没有触发工具调用。\n"
+            "请生成一条中文追问，要求用户补齐动作所需要的信息。\n"
+            "只输出用户可读的一句话，不要技术实现细节。\n"
+            "禁止出现：函数名、工具名、参数名、括号、等号、代码片段。\n"
+            f"当前可用函数及必填参数: {required_map_data}\n"
+        )
+        reply_msg = llm.invoke(
+            [
+                SystemMessage(content="You generate concise Chinese follow-up questions."),
+                HumanMessage(content=prompt),
+            ]
+        )
+        reply = (getattr(reply_msg, "content", "") or "").strip()
+        if not reply:
+            raise RuntimeError("LLM returned empty follow-up when no tool call is produced.")
+        return reply
 
     system_prompt = (
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the FULL stored sequence text.\n"
         "For movement, call tool 'move'. For generation requests, call tool 'squeeze'.\n"
-        "If user says '再/继续/then/again' and omits coordinates, infer target droplet from existing sequence/context.\n"
+        "When information is insufficient, ask a follow-up question instead of calling tools.\n"
+        "You may suggest defaults, but must ask user confirmation before applying them.\n"
         "If there are multiple droplets and request is ambiguous, ask clarification and do not call tools.\n"
+        "Never reveal tool/function names, parameter names, or implementation details to the user.\n"
         "Return concise Chinese assistant reply."
     )
 
@@ -117,7 +202,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             content=(
                 "以下是当前已经存储的完整激活序列（可能为空）：\n"
                 f"{sequence_text if sequence_text.strip() else '[EMPTY]'}\n\n"
-                "你现在只需要在这个基础上处理新请求，并生成新增步骤（delta）。\n"
+                "你现在只需要在这个基础上处理新请求，并生成新增步骤。\n"
                 f"新请求：{message}"
             )
         )
@@ -126,6 +211,15 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     ai_msg = llm_with_tools.invoke(messages)
     tool_calls = getattr(ai_msg, "tool_calls", None) or []
 
+    if not tool_calls:
+        reply = (getattr(ai_msg, "content", "") or "").strip()
+        if not reply:
+            reply = _llm_generate_followup_for_no_toolcall(required_map)
+        return {
+            "assistantReply": reply,
+            "stepsTextDelta": "",
+            "moveCalls": [],
+        }
 
     tool_messages: List[ToolMessage] = []
     steps_outputs: List[str] = []
@@ -136,10 +230,20 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         if name not in ("move", "squeeze"):
             continue
         args = call.get("args", {})
-        if name == "move":
-            tool_result = move.invoke(args)
-        else:
-            tool_result = squeeze.invoke(args)
+        required = required_map.get(name, [])
+        try:
+            if name == "move":
+                tool_result = move.invoke(args)
+            else:
+                tool_result = squeeze.invoke(args)
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "assistantReply": _llm_generate_followup_for_tool_error(
+                    name, required, args, f"{type(exc).__name__}: {exc}"
+                ),
+                "stepsTextDelta": "",
+                "moveCalls": [],
+            }
         steps_outputs.append(tool_result)
         move_calls.append({"tool": name, "args": args})
         tool_messages.append(
@@ -151,7 +255,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         )
 
     if not steps_outputs:
-        raise RuntimeError("No Move output generated from tool calls.")
+        raise RuntimeError("No executable tool output produced from tool calls.")
 
     followup_messages: List[Any] = [
         *messages,

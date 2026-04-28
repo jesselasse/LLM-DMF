@@ -52,6 +52,40 @@ def scale_activation_sequence(activation_sequence, scale_factor):
     return scaled_sequence
 
 
+def scale_activation_sequence_xy(activation_sequence, scale_x, scale_y):
+    """
+    Scale activation sequence by independent x/y factors.
+
+    (x, y, w, h) -> (x*scale_x, y*scale_y, w*scale_x, h*scale_y)
+    """
+    if scale_x <= 0 or scale_y <= 0:
+        raise ValueError(
+            f"scale_x/scale_y must be > 0, got scale_x={scale_x}, scale_y={scale_y}"
+        )
+
+    if scale_x == 1 and scale_y == 1:
+        return activation_sequence
+
+    scaled_sequence = []
+    for time_step, activations in activation_sequence:
+        if not activations:
+            scaled_sequence.append((time_step, []))
+            continue
+
+        scaled_activations = []
+        for x, y, w, h in activations:
+            scaled_activations.append(
+                (
+                    int(x * scale_x),
+                    int(y * scale_y),
+                    int(w * scale_x),
+                    int(h * scale_y),
+                )
+            )
+        scaled_sequence.append((time_step, scaled_activations))
+    return scaled_sequence
+
+
 def translate_activation_sequence(activation_sequence, offset_x=0, offset_y=0):
     """
     平移激活序列
