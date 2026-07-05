@@ -292,6 +292,70 @@ def Squeeze_as_txt(
     return activation_sequence_to_txt(Squeeze(count, px, py, direction, size=size))
 
 
+def RotateMix(
+    x: int,
+    y: int,
+    duration: int,
+    size: Union[int, str, Tuple[int, int], List[int]] = (1, 2),
+    *,
+    start_cycle: int = 0,
+) -> ActivationSequence:
+    """
+    Generate a circulation loop by composing stepwise Move() segments.
+
+    The droplet starts at (x, y) with size (sx, sy). One full round is:
+      - move down by sy cells
+      - move right by sx cells
+      - move up by sy cells
+      - move left by sx cells
+    This returns the droplet to its starting position.
+    """
+    if not isinstance(x, int) or not isinstance(y, int):
+        raise TypeError("x/y must be int.")
+    if not isinstance(duration, int):
+        raise TypeError("duration must be int.")
+    if duration <= 0:
+        raise ValueError("duration must be >= 1.")
+    if not isinstance(start_cycle, int):
+        raise TypeError("start_cycle must be int.")
+
+    sx, sy = _parse_size(size)
+    current_rect: Rect = (x, y, sx, sy)
+    cycle_idx = start_cycle
+    sequence: ActivationSequence = []
+
+    segments = [
+        ("down", sy),
+        ("right", sx),
+        ("up", sy),
+        ("left", sx),
+    ]
+
+    for _ in range(duration):
+        for direction, steps in segments:
+            if steps <= 0:
+                continue
+            segment = Move(current_rect, direction, steps, start_cycle=cycle_idx)
+            sequence.extend(segment)
+            current_rect = segment[-1][1][0]
+            cycle_idx += len(segment)
+
+    return sequence
+
+
+def RotateMix_as_txt(
+    x: int,
+    y: int,
+    duration: int,
+    size: Union[int, str, Tuple[int, int], List[int]] = (1, 2),
+    *,
+    start_cycle: int = 0,
+) -> str:
+    return activation_sequence_to_txt(
+        RotateMix(x, y, duration, size=size, start_cycle=start_cycle)
+    )
+
+
 if __name__ == "__main__":
     # quick demo
     demo_sequence = Move((10, 12, 6, 4), "right", 3)

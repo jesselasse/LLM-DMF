@@ -1,0 +1,4 @@
+# Natural-language backend test samples
+# One sample per line.
+
+对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。

@@ -17,8 +17,8 @@ const INPUT_PRESETS = [
     text: "PCR示例：在（20，20）向右生成3个液滴，再向下移动6步。",
   },
   {
-    label: "Example 2",
-    text: "在（30，18）向上生成2个液滴。",
+    label: "混匀操作",
+    text: "对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。",
   },
   {
     label: "Example 3",

@@ -27,7 +27,7 @@ import sys
 from typing import Any, Dict, List
 
 from llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
-from move_backend import Move_as_txt, Squeeze_as_txt
+from move_backend import Move_as_txt, RotateMix_as_txt, Squeeze_as_txt
 
 
 def _normalize_message_to_text(message: Any) -> str:
@@ -109,7 +109,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         return Move_as_txt((x, y, w, h), direction, t)
 
     @tool("squeeze")
-    def squeeze(count: int, x: int, y: int, direction: str, size: str ) -> str:
+    def squeeze(count: int, x: int, y: int, direction: str, size: str) -> str:
         """
         Generate squeezing sequence from template.
         count controls truncation (1->6, 2->11, each extra +5).
@@ -119,6 +119,15 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         """
         return Squeeze_as_txt(count, x, y, direction, size=size)
 
+    @tool("rotate_mix")
+    def rotate_mix(x: int, y: int, duration: int, size: str = "1*2") -> str:
+        """
+        Generate a circulation loop for a droplet starting at (x, y).
+        One round moves down by the droplet height, right by the droplet width,
+        up by the droplet height, then left by the droplet width.
+        """
+        return RotateMix_as_txt(x, y, duration, size=size)
+
     model_name = os.getenv("OPENAI_MODEL", LLM_MODEL)
     llm = ChatOpenAI(
         model=model_name,
@@ -126,7 +135,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         base_url=LLM_BASE_URL,
         temperature=0,
     )
-    tool_registry = {"move": move, "squeeze": squeeze}
+    tool_registry = {"move": move, "squeeze": squeeze, "rotate_mix": rotate_mix}
     llm_with_tools = llm.bind_tools(list(tool_registry.values()))
     required_map = _build_required_map(tool_registry)
     
@@ -180,7 +189,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     system_prompt = (
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the FULL stored sequence text.\n"
-        "For movement, call tool 'move'. For generation requests, call tool 'squeeze'.\n"
+        "For movement, call tool 'move'. For squeeze generation, call tool 'squeeze'. For circulation mixing, call tool 'rotate_mix'.\n"
         "When information is insufficient, ask a follow-up question instead of calling tools.\n"
         "You may suggest defaults, but must ask user confirmation before applying them.\n"
         "If there are multiple droplets and request is ambiguous, ask clarification and do not call tools.\n"
@@ -227,15 +236,17 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
 
     for call in tool_calls:
         name = call.get("name")
-        if name not in ("move", "squeeze"):
+        if name not in ("move", "squeeze", "rotate_mix"):
             continue
         args = call.get("args", {})
         required = required_map.get(name, [])
         try:
             if name == "move":
                 tool_result = move.invoke(args)
-            else:
+            elif name == "squeeze":
                 tool_result = squeeze.invoke(args)
+            else:
+                tool_result = rotate_mix.invoke(args)
         except Exception as exc:  # noqa: BLE001
             return {
                 "assistantReply": _llm_generate_followup_for_tool_error(
