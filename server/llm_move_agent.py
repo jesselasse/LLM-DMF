@@ -27,7 +27,7 @@ import sys
 from typing import Any, Dict, List
 
 from llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
-from move_backend import Move_as_txt, RotateMix_as_txt, Squeeze_as_txt
+from move_backend import Move_as_txt, RotateMixArray_as_txt, RotateMix_as_txt, Squeeze_as_txt
 
 
 def _normalize_message_to_text(message: Any) -> str:
@@ -128,6 +128,16 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         """
         return RotateMix_as_txt(x, y, duration, size=size)
 
+    @tool("rotate_mix_array")
+    def rotate_mix_array(count: int, duration: int, size: str = "1*2") -> str:
+        """
+        Generate an array of rotate-mix modules.
+        The array uses default gap 4 and fills row by row using a near-square layout.
+        For example: 16 -> 4x4, 12 -> 4x3, 11 -> 4x3 with the last slot left unused, 25 -> 5x5.
+        The base module is anchored at (0,0).
+        """
+        return RotateMixArray_as_txt(count, duration, size=size, gap=4)
+
     model_name = os.getenv("OPENAI_MODEL", LLM_MODEL)
     llm = ChatOpenAI(
         model=model_name,
@@ -135,7 +145,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         base_url=LLM_BASE_URL,
         temperature=0,
     )
-    tool_registry = {"move": move, "squeeze": squeeze, "rotate_mix": rotate_mix}
+    tool_registry = {"move": move, "squeeze": squeeze, "rotate_mix": rotate_mix, "rotate_mix_array": rotate_mix_array}
     llm_with_tools = llm.bind_tools(list(tool_registry.values()))
     required_map = _build_required_map(tool_registry)
     
@@ -189,7 +199,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     system_prompt = (
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the FULL stored sequence text.\n"
-        "For movement, call tool 'move'. For squeeze generation, call tool 'squeeze'. For circulation mixing, call tool 'rotate_mix'.\n"
+        "For movement, call tool 'move'. For squeeze generation, call tool 'squeeze'. For single circulation mixing, call tool 'rotate_mix'. For arrayed circulation mixing, call tool 'rotate_mix_array'.\n"
         "When information is insufficient, ask a follow-up question instead of calling tools.\n"
         "You may suggest defaults, but must ask user confirmation before applying them.\n"
         "If there are multiple droplets and request is ambiguous, ask clarification and do not call tools.\n"
@@ -236,7 +246,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
 
     for call in tool_calls:
         name = call.get("name")
-        if name not in ("move", "squeeze", "rotate_mix"):
+        if name not in ("move", "squeeze", "rotate_mix", "rotate_mix_array"):
             continue
         args = call.get("args", {})
         required = required_map.get(name, [])
@@ -245,8 +255,10 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                 tool_result = move.invoke(args)
             elif name == "squeeze":
                 tool_result = squeeze.invoke(args)
-            else:
+            elif name == "rotate_mix":
                 tool_result = rotate_mix.invoke(args)
+            else:
+                tool_result = rotate_mix_array.invoke(args)
         except Exception as exc:  # noqa: BLE001
             return {
                 "assistantReply": _llm_generate_followup_for_tool_error(

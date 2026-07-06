@@ -1,70 +1,210 @@
-# Getting Started with Create React App
+# React Digital DMF Viewer
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React + Express project for visualizing DMF step text on a grid and generating new steps through an LLM backend.
 
-## Available Scripts
+## What This Project Does
 
-In the project directory, you can run:
+- Draws a grid canvas with configurable rows and columns
+- Loads and parses TXT step files
+- Visualizes droplets step by step on the grid
+- Marks out-of-bound droplets in red and shows warnings
+- Shows a clickable step list for frame navigation
+- Sends natural-language requests to the backend and renders returned step text
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- `src/`: frontend UI, canvas rendering, step parsing, playback controls
+- `server/index.js`: Express backend entry
+- `server/llm_move_agent.py`: LLM tool router
+- `server/move_backend.py`: backend operations such as `move`, `squeeze`, `rotate_mix`, `rotate_mix_array`
+- `server/backend_test_samples.txt`: natural-language backend test samples
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Requirements
 
-### `npm test`
+- Node.js with `npm`
+- Python environment with the required LLM dependencies installed
+- Recommended Python environment: `conda` env `rag`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Install
 
-### `npm run build`
+```bash
+npm install
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Run
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1. Start backend
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+If you use the `rag` conda environment, start the backend with its Python interpreter:
 
-### `npm run eject`
+```bash
+env PYTHON_BIN=/research/d2/gds/cjiang24/jiazq/anaconda3/envs/rag/bin/python npm run server:once
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+For auto-reload during backend development:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+env PYTHON_BIN=/research/d2/gds/cjiang24/jiazq/anaconda3/envs/rag/bin/python npm run server
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Backend address:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```text
+http://localhost:3001
+```
 
-## Learn More
+Health check:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+curl http://localhost:3001/api/health
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 2. Start frontend
 
-### Code Splitting
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Frontend address:
 
-### Analyzing the Bundle Size
+```text
+http://localhost:3000
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The frontend proxies backend requests to `http://localhost:3001`.
 
-### Making a Progressive Web App
+## Backend API
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### `POST /api/steps-from-message`
 
-### Advanced Configuration
+Request body:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```json
+{
+  "message": "在（10，8）有一个液滴尺寸为（1，1），向下移动2步",
+  "sessionId": "demo-session"
+}
+```
 
-### Deployment
+Response body:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```json
+{
+  "sessionId": "demo-session",
+  "assistantReply": "...",
+  "stepsTextDelta": "(10,9)(1,1)-1000\n(10,10)(1,1)-1000",
+  "stepsText": "...",
+  "moveCalls": []
+}
+```
 
-### `npm run build` fails to minify
+## Supported Backend Operations
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The LLM backend currently exposes these operations:
+
+### `move`
+
+Move one droplet step by step.
+
+Typical prompt:
+
+```text
+现在在（10，8）有一个液滴尺寸为（1，1），向右移动8步。
+```
+
+### `squeeze`
+
+Generate droplets from the squeezing template.
+
+Typical prompt:
+
+```text
+在（20，20）向右生成3个液滴。
+```
+
+Notes:
+
+- Supports `size=1` and non-uniform sizes such as `3*2`
+- Returned result is standard step text and can be rendered directly on the grid
+
+### `rotate_mix`
+
+Rotate-mix one droplet from an explicit initial position.
+
+Behavior of one round:
+
+- move down by droplet height
+- move right by droplet width
+- move up by droplet height
+- move left by droplet width
+
+Typical prompt:
+
+```text
+对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。
+```
+
+### `rotate_mix_array`
+
+Run many rotate-mix modules in parallel using automatic array layout.
+
+Behavior:
+
+- build one base rotate-mix module anchored at `(0,0)`
+- compute the module envelope size from its full activation sequence
+- replicate the module into an array with default gap `4`
+- compute layout from the requested parallel count using a near-square grid
+
+Layout rule:
+
+- `cols = ceil(sqrt(count))`
+- `rows = ceil(count / cols)`
+- fill positions row by row
+- if the last row is not full, the remaining slots are left unused
+
+Examples:
+
+- `11 -> 4x3`
+- `12 -> 4x3`
+- `16 -> 4x4`
+- `25 -> 5x5`
+
+Typical prompt:
+
+```text
+对16个尺寸为（3，2）的液滴并行做3圈旋转混匀。
+```
+
+## Step Text Format
+
+Each line is one frame:
+
+```text
+(x,y)(w,h)-1000
+```
+
+Multiple active rectangles in one frame:
+
+```text
+(x1,y1)(w1,h1);(x2,y2)(w2,h2)-1000
+```
+
+## Frontend Usage
+
+- Load a TXT file from the file picker
+- Use the playback controls below the canvas
+- Click a step in the step list to jump to that frame
+- Use the right-side chat/input panel to send natural-language requests to the backend
+- Use the preset buttons above the input box for quick examples
+
+## Test Samples
+
+Natural-language backend samples are stored in:
+
+- `server/backend_test_samples.txt`
+
+## Notes
+
+- If frontend shows `backend error`, first confirm that the correct backend is running on `3001`
+- If Python reports missing `langchain_*` packages, the backend is likely using the wrong interpreter
+- `server/llm_config.py` controls the default LLM model and API settings

@@ -9,10 +9,11 @@ For Move(), each time_step contains exactly one moved droplet rectangle.
 
 from __future__ import annotations
 
+import math
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from Acxel_format import (
     rotate_sequence_90,
@@ -353,6 +354,224 @@ def RotateMix_as_txt(
 ) -> str:
     return activation_sequence_to_txt(
         RotateMix(x, y, duration, size=size, start_cycle=start_cycle)
+    )
+
+
+def RotateMixModule(
+    duration: int,
+    size: Union[int, str, Tuple[int, int], List[int]] = (1, 2),
+    *,
+    start_cycle: int = 0,
+) -> Dict[str, Any]:
+    """Return a rotate-mix module anchored at (0, 0) with its bounds metadata."""
+    sequence = RotateMix(0, 0, duration, size=size, start_cycle=start_cycle)
+    min_x, min_y, width, height = ModuleBounds(sequence)
+    return {
+        "sequence": sequence,
+        "bounds": {
+            "min_x": min_x,
+            "min_y": min_y,
+            "width": width,
+            "height": height,
+        },
+    }
+
+
+def ModuleBounds(activation_sequence: ActivationSequence) -> Tuple[int, int, int, int]:
+    """
+    Return module bounds as (min_x, min_y, width, height).
+
+    Width/height are computed from the full occupied rectangle extent over all steps.
+    """
+    if not activation_sequence:
+        return (0, 0, 0, 0)
+
+    min_x = None
+    min_y = None
+    max_x = None
+    max_y = None
+
+    for _, activations in activation_sequence:
+        for x, y, w, h in activations:
+            _validate_rect((x, y, w, h))
+            right = x + w
+            bottom = y + h
+            min_x = x if min_x is None else min(min_x, x)
+            min_y = y if min_y is None else min(min_y, y)
+            max_x = right if max_x is None else max(max_x, right)
+            max_y = bottom if max_y is None else max(max_y, bottom)
+
+    if min_x is None or min_y is None or max_x is None or max_y is None:
+        return (0, 0, 0, 0)
+    return (min_x, min_y, max_x - min_x, max_y - min_y)
+
+
+def ArrayModulePositions(
+    module_width: int,
+    module_height: int,
+    array_rows: int,
+    array_cols: int,
+    gap_x: int,
+    gap_y: int,
+    *,
+    origin_x: int = 0,
+    origin_y: int = 0,
+) -> List[Tuple[int, int]]:
+    """
+    Generate top-left positions for a module array.
+
+    gap_x/gap_y are edge-to-edge gaps between neighboring modules.
+    """
+    for name, value in {
+        "module_width": module_width,
+        "module_height": module_height,
+        "array_rows": array_rows,
+        "array_cols": array_cols,
+    }.items():
+        if not isinstance(value, int):
+            raise TypeError(f"{name} must be int.")
+        if value <= 0:
+            raise ValueError(f"{name} must be >= 1.")
+
+    for name, value in {"gap_x": gap_x, "gap_y": gap_y, "origin_x": origin_x, "origin_y": origin_y}.items():
+        if not isinstance(value, int):
+            raise TypeError(f"{name} must be int.")
+        if name.startswith("gap") and value < 0:
+            raise ValueError(f"{name} must be >= 0.")
+
+    step_x = module_width + gap_x
+    step_y = module_height + gap_y
+    positions: List[Tuple[int, int]] = []
+    for row in range(array_rows):
+        for col in range(array_cols):
+            positions.append((origin_x + col * step_x, origin_y + row * step_y))
+    return positions
+
+
+def ArrayModule(
+    activation_sequence: ActivationSequence,
+    positions: List[Tuple[int, int]],
+) -> ActivationSequence:
+    """
+    Replicate one module sequence to multiple positions and merge them per time step.
+
+    The first module is treated as the reference module. Each target position refers to
+    the module's top-left bound returned by ModuleBounds().
+    """
+    if not isinstance(positions, list) or not positions:
+        raise ValueError("positions must be a non-empty list of (x, y).")
+
+    min_x, min_y, _, _ = ModuleBounds(activation_sequence)
+    if not activation_sequence:
+        return []
+
+    translated_modules: List[ActivationSequence] = []
+    for pos in positions:
+        if not isinstance(pos, (tuple, list)) or len(pos) != 2:
+            raise ValueError("each position must be (x, y).")
+        px, py = int(pos[0]), int(pos[1])
+        translated_modules.append(
+            translate_sequence(activation_sequence, px - min_x, py - min_y)
+        )
+
+    merged: ActivationSequence = []
+    for step_idx, (time_step, _) in enumerate(activation_sequence):
+        merged_rects: List[Rect] = []
+        for module_seq in translated_modules:
+            _, rects = module_seq[step_idx]
+            merged_rects.extend(rects)
+        merged.append((time_step, merged_rects))
+    return merged
+
+
+def ArrayModule_as_txt(
+    activation_sequence: ActivationSequence,
+    positions: List[Tuple[int, int]],
+) -> str:
+    return activation_sequence_to_txt(ArrayModule(activation_sequence, positions))
+
+
+def RotateMixArray(
+    count: int,
+    duration: int,
+    size: Union[int, str, Tuple[int, int], List[int]] = (1, 2),
+    *,
+    gap: int = 4,
+    origin_x: int = 0,
+    origin_y: int = 0,
+    start_cycle: int = 0,
+) -> Dict[str, Any]:
+    """Build an array of rotate-mix modules.
+
+    Layout fills row-major using a near-square grid:
+      cols = ceil(sqrt(count))
+      rows = ceil(count / cols)
+    """
+    if not isinstance(count, int):
+        raise TypeError("count must be int.")
+    if count <= 0:
+        raise ValueError("count must be >= 1.")
+    if not isinstance(gap, int):
+        raise TypeError("gap must be int.")
+    if gap < 0:
+        raise ValueError("gap must be >= 0.")
+    if not isinstance(origin_x, int) or not isinstance(origin_y, int):
+        raise TypeError("origin_x/origin_y must be int.")
+
+    module = RotateMixModule(duration, size=size, start_cycle=start_cycle)
+    sequence = module["sequence"]
+    bounds = module["bounds"]
+    module_width = int(bounds["width"])
+    module_height = int(bounds["height"])
+
+    array_cols = int(math.ceil(math.sqrt(count)))
+    array_rows = int(math.ceil(count / array_cols))
+    positions = ArrayModulePositions(
+        module_width,
+        module_height,
+        array_rows,
+        array_cols,
+        gap,
+        gap,
+        origin_x=origin_x,
+        origin_y=origin_y,
+    )[:count]
+
+    return {
+        "sequence": ArrayModule(sequence, positions),
+        "module": module,
+        "positions": positions,
+        "layout": {
+            "count": count,
+            "rows": array_rows,
+            "cols": array_cols,
+            "gap": gap,
+            "origin_x": origin_x,
+            "origin_y": origin_y,
+        },
+    }
+
+
+def RotateMixArray_as_txt(
+    count: int,
+    duration: int,
+    size: Union[int, str, Tuple[int, int], List[int]] = (1, 2),
+    *,
+    gap: int = 4,
+    origin_x: int = 0,
+    origin_y: int = 0,
+    start_cycle: int = 0,
+) -> str:
+    return activation_sequence_to_txt(
+        RotateMixArray(
+            count,
+            duration,
+            size=size,
+            gap=gap,
+            origin_x=origin_x,
+            origin_y=origin_y,
+            start_cycle=start_cycle,
+        )["sequence"]
     )
 
 
