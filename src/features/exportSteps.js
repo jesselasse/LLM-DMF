@@ -27,10 +27,9 @@ function createDateStamp(now) {
   return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
 }
 
-export function createExportBaseName(sequenceNumber, now = new Date()) {
+export function createExportFilename(kind, extension, now = new Date()) {
   const dateStamp = createDateStamp(now);
-  const suffix = Math.max(1, Number.parseInt(sequenceNumber, 10) || 1);
-  return `${dateStamp}-dmf_steps-${suffix}`;
+  return `${dateStamp}-dmf-${kind}.${extension}`;
 }
 
 export function contextToJson({ sessionId, messages, exchanges, exportedAt = new Date() }) {
@@ -51,6 +50,19 @@ export function contextToJson({ sessionId, messages, exchanges, exportedAt = new
   )}\n`;
 }
 
+export function createStepsTxtBlob(steps) {
+  return new Blob([stepsToTxt(steps)], {
+    type: "text/plain;charset=utf-8",
+  });
+}
+
+export function createContextBlob({ sessionId, messages, exchanges, exportedAt }) {
+  return new Blob(
+    [contextToJson({ sessionId, messages, exchanges, exportedAt })],
+    { type: "application/json;charset=utf-8" }
+  );
+}
+
 export function downloadBlob(blob, filename) {
   const href = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -58,6 +70,28 @@ export function downloadBlob(blob, filename) {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(href);
+}
+
+export async function saveBlob(blob, { suggestedName, description, accept }) {
+  const picker =
+    typeof window !== "undefined" ? window.showSaveFilePicker : undefined;
+  if (typeof picker !== "function") {
+    downloadBlob(blob, suggestedName);
+    return;
+  }
+
+  const handle = await picker({
+    suggestedName,
+    types: [
+      {
+        description,
+        accept,
+      },
+    ],
+  });
+  const writable = await handle.createWritable();
+  await writable.write(blob);
+  await writable.close();
 }
 
 export function encodeStepsGif({ steps, rows, cols }) {

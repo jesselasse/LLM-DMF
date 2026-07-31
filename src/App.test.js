@@ -24,7 +24,8 @@ test("renders core sections", () => {
     screen.getByText(/Digital Microfluidics Grid Basics/i)
   ).toBeInTheDocument();
   expect(screen.getByText(/Load TXT Step File/i)).toBeInTheDocument();
-  expect(screen.getByLabelText(/Export file number/i)).toHaveValue(1);
   expect(screen.getByRole("heading", { name: "Steps" })).toBeInTheDocument();
-  expect(screen.getByText(/Export All Steps \+ GIF \+ JSON Context/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Export Log" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Export Steps" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Export JSON Context" })).toBeInTheDocument();
 });

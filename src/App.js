@@ -3,11 +3,11 @@ import "./App.css";
 import { parseStepsTxt } from "./features/parseStepsTxt";
 import { drawGridAndDroplets } from "./features/drawGridAndDroplets";
 import {
-  createExportBaseName,
-  contextToJson,
-  downloadBlob,
+  createContextBlob,
+  createExportFilename,
+  createStepsTxtBlob,
   encodeStepsGif,
-  stepsToTxt,
+  saveBlob,
 } from "./features/exportSteps";
 import StepList from "./components/StepList";
 
@@ -92,7 +92,6 @@ export default function App() {
   const [backendResultText, setBackendResultText] = useState("");
   const [backendLoading, setBackendLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportSequenceNumber, setExportSequenceNumber] = useState(1);
   const [chatMessages, setChatMessages] = useState([]);
   const [rawContextEntries, setRawContextEntries] = useState([]);
   const [sessionId, setSessionId] = useState(createSessionId);
@@ -403,42 +402,83 @@ export default function App() {
     }
   }
 
-  async function handleExportAllSteps() {
-    if (!steps.length || isExporting) return;
+  async function runExport({ includeSteps = false, includeGif = false, includeContext = false, errorLabel }) {
+    const requiresSteps = includeSteps || includeGif;
+    if ((requiresSteps && !steps.length) || isExporting) return;
     setIsExporting(true);
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
-      const gifBlob = encodeStepsGif({ steps, rows, cols });
-      const baseName = createExportBaseName(exportSequenceNumber);
-      const txtBlob = new Blob([stepsToTxt(steps)], {
-        type: "text/plain;charset=utf-8",
-      });
-      const contextBlob = new Blob(
-        [
-          contextToJson({
+      if (includeSteps) {
+        await saveBlob(createStepsTxtBlob(steps), {
+          suggestedName: createExportFilename("steps", "txt"),
+          description: "DMF Steps Text",
+          accept: { "text/plain": [".txt"] },
+        });
+      }
+      if (includeGif) {
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+        await saveBlob(encodeStepsGif({ steps, rows, cols }), {
+          suggestedName: createExportFilename("animation", "gif"),
+          description: "GIF Animation",
+          accept: { "image/gif": [".gif"] },
+        });
+      }
+      if (includeContext) {
+        await saveBlob(
+          createContextBlob({
             sessionId,
             messages: chatMessages,
             exchanges: rawContextEntries,
           }),
-        ],
-        { type: "application/json;charset=utf-8" }
-      );
-      downloadBlob(txtBlob, `${baseName}.txt`);
-      downloadBlob(gifBlob, `${baseName}.gif`);
-      downloadBlob(contextBlob, `${baseName}.json`);
+          {
+            suggestedName: createExportFilename("context", "json"),
+            description: "JSON Context",
+            accept: { "application/json": [".json"] },
+          }
+        );
+      }
     } catch (error) {
       setChatMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: `导出失败：${error.message || "无法生成导出文件。"}`,
+          text: `${errorLabel}：${error.message || "无法生成导出文件。"}`,
           error: true,
         },
       ]);
     } finally {
       setIsExporting(false);
     }
+  }
+
+  function handleExportAllSteps() {
+    return runExport({
+      includeSteps: true,
+      errorLabel: "导出失败",
+    });
+  }
+
+  function handleExportGif() {
+    return runExport({
+      includeGif: true,
+      errorLabel: "GIF 导出失败",
+    });
+  }
+
+  function handleExportJsonContext() {
+    return runExport({
+      includeContext: true,
+      errorLabel: "JSON 导出失败",
+    });
+  }
+
+  function handleExportLog() {
+    return runExport({
+      includeSteps: true,
+      includeGif: true,
+      includeContext: true,
+      errorLabel: "整体导出失败",
+    });
   }
 
   return (
@@ -470,26 +510,12 @@ export default function App() {
 
         <label htmlFor="fileInput">Load TXT Step File</label>
         <input id="fileInput" type="file" accept=".txt" onChange={handleFileChange} />
-        <label htmlFor="exportSequenceNumber">Export file number (x)</label>
-        <input
-          id="exportSequenceNumber"
-          aria-label="Export file number"
-          type="number"
-          min="1"
-          step="1"
-          value={exportSequenceNumber}
-          onChange={(event) =>
-            setExportSequenceNumber(Math.max(1, Number.parseInt(event.target.value, 10) || 1))
-          }
-        />
         <button
           type="button"
           onClick={handleExportAllSteps}
           disabled={!steps.length || isExporting}
         >
-          {isExporting
-            ? "Exporting TXT + GIF + JSON..."
-            : "Export All Steps + GIF + JSON Context"}
+          {isExporting ? "Exporting Steps..." : "Export Steps"}
         </button>
         <p className="hint">
           Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
@@ -530,6 +556,15 @@ export default function App() {
             Clear Selected Droplets
           </button>
         </div>
+        <button
+          type="button"
+          className="footer-export-btn"
+          onClick={handleExportLog}
+          disabled={!steps.length || isExporting}
+          title="Export TXT + GIF + JSON Context"
+        >
+          {isExporting ? "Exporting..." : "Export Log"}
+        </button>
       </section>
 
       <section className="panel stage-panel">
@@ -631,54 +666,66 @@ export default function App() {
           >
             {playbackRate}x
           </button>
+          <button
+            type="button"
+            className="icon-btn export-gif-btn"
+            title="Export GIF"
+            aria-label="Export GIF"
+            onClick={handleExportGif}
+            disabled={!steps.length || isExporting}
+          >
+            ◫
+          </button>
         </div>
       </section>
 
       <section className="panel conversation-panel-box">
         <div className="conversation-content">
-          <p className="hint">示例：在（20，20）向右生成3个液滴</p>
-          <div className="preset-row">
-            {INPUT_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                className="preset-btn"
-                onClick={() => setBackendMessage(preset.text)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-          <textarea
-            className="backend-input"
-            id="backendMessageInput"
-            rows={3}
-            value={backendMessage}
-            onChange={(e) => setBackendMessage(e.target.value)}
-            placeholder="在（20，20）向右生成3个液滴"
-          />
+          <div className="conversation-top">
+            <p className="hint">示例：在（20，20）向右生成3个液滴</p>
+            <div className="preset-row">
+              {INPUT_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="preset-btn"
+                  onClick={() => setBackendMessage(preset.text)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="backend-input"
+              id="backendMessageInput"
+              rows={3}
+              value={backendMessage}
+              onChange={(e) => setBackendMessage(e.target.value)}
+              placeholder="在（20，20）向右生成3个液滴"
+            />
 
-          <div className="conversation-actions">
-            <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
-              {backendLoading ? "Generating..." : "Generate Steps"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsPlaying(false);
-                setSessionId(createSessionId());
-                setSteps([]);
-                setCurrentStep(-1);
-                setChatMessages([]);
-                setRawContextEntries([]);
-                setBackendRawOutput("");
-                setBackendResultText("");
-                setBackendMessage(DEFAULT_BACKEND_MESSAGE);
-                setSelectedDroplets([]);
-              }}
-            >
-              Clear Context
-            </button>
+            <div className="conversation-actions">
+              <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
+                {backendLoading ? "Generating..." : "Generate Steps"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPlaying(false);
+                  setSessionId(createSessionId());
+                  setSteps([]);
+                  setCurrentStep(-1);
+                  setChatMessages([]);
+                  setRawContextEntries([]);
+                  setBackendRawOutput("");
+                  setBackendResultText("");
+                  setBackendMessage(DEFAULT_BACKEND_MESSAGE);
+                  setSelectedDroplets([]);
+                }}
+              >
+                Clear Context
+              </button>
+            </div>
           </div>
 
           <div className="chat-wrap">
@@ -695,17 +742,29 @@ export default function App() {
             </div>
           </div>
 
-          {backendRawOutput ? (
-            <pre className="backend-result" aria-label="Backend Raw Output">
-              {`raw backend output:\n${backendRawOutput}`}
-            </pre>
-          ) : null}
+          <div className="backend-results">
+            {backendRawOutput ? (
+              <pre className="backend-result" aria-label="Backend Raw Output">
+                {`raw backend output:\n${backendRawOutput}`}
+              </pre>
+            ) : null}
 
-          {backendResultText ? (
-            <pre className="backend-result" aria-label="Backend Result Text">
-              {backendResultText}
-            </pre>
-          ) : null}
+            {backendResultText ? (
+              <pre className="backend-result" aria-label="Backend Result Text">
+                {backendResultText}
+              </pre>
+            ) : null}
+          </div>
+        </div>
+        <div className="conversation-footer">
+          <button
+            type="button"
+            className="json-export-btn"
+            onClick={handleExportJsonContext}
+            disabled={isExporting}
+          >
+            Export JSON Context
+          </button>
         </div>
       </section>
     </div>

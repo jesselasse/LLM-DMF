@@ -1,7 +1,8 @@
 import {
-  createExportBaseName,
+  createExportFilename,
   contextToJson,
   encodeStepsGif,
+  saveBlob,
   stepToTxtLine,
   stepsToTxt,
 } from "./exportSteps";
@@ -21,11 +22,11 @@ test("keeps an empty activation step and its duration", () => {
   expect(stepToTxtLine({ rects: [], duration: 750 })).toBe("-750");
 });
 
-test("uses the user-selected export file number", () => {
+test("creates a stable default export filename", () => {
   const now = new Date(2026, 6, 28, 9, 8, 7);
 
-  expect(createExportBaseName(1, now)).toBe("20260728-dmf_steps-1");
-  expect(createExportBaseName(25, now)).toBe("20260728-dmf_steps-25");
+  expect(createExportFilename("steps", "txt", now)).toBe("20260728-dmf-steps.txt");
+  expect(createExportFilename("context", "json", now)).toBe("20260728-dmf-context.json");
 });
 
 test("preserves messages and raw API exchanges in the context export", () => {
@@ -75,4 +76,34 @@ test("encodes the complete sequence as a GIF blob", () => {
 
   expect(blob.type).toBe("image/gif");
   expect(blob.size).toBeGreaterThan(6);
+});
+
+test("falls back to browser download when file picker is unavailable", async () => {
+  const blob = new Blob(["hello"], { type: "text/plain" });
+  const anchor = { click: jest.fn() };
+  const originalCreateObjectUrl = URL.createObjectURL;
+  const originalRevokeObjectUrl = URL.revokeObjectURL;
+  URL.createObjectURL = jest.fn(() => "blob:test");
+  URL.revokeObjectURL = jest.fn();
+  const createElementSpy = jest
+    .spyOn(document, "createElement")
+    .mockReturnValue(anchor);
+  const originalPicker = globalThis.showSaveFilePicker;
+  delete globalThis.showSaveFilePicker;
+
+  await saveBlob(blob, {
+    suggestedName: "test.txt",
+    description: "Text",
+    accept: { "text/plain": [".txt"] },
+  });
+
+  expect(anchor.download).toBe("test.txt");
+  expect(anchor.click).toHaveBeenCalled();
+
+  createElementSpy.mockRestore();
+  URL.createObjectURL = originalCreateObjectUrl;
+  URL.revokeObjectURL = originalRevokeObjectUrl;
+  if (originalPicker) {
+    globalThis.showSaveFilePicker = originalPicker;
+  }
 });
