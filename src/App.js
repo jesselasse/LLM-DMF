@@ -2,13 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { parseStepsTxt } from "./features/parseStepsTxt";
 import { drawGridAndDroplets } from "./features/drawGridAndDroplets";
-import {
-  createExportBaseName,
-  contextToJson,
-  downloadBlob,
-  encodeStepsGif,
-  stepsToTxt,
-} from "./features/exportSteps";
 import StepList from "./components/StepList";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -73,6 +66,19 @@ function extractStepsTextFromRaw(raw) {
   return matchedLines.join("\n");
 }
 
+function stepToTxtLine(step) {
+  if (!step) return "";
+  if (typeof step.raw === "string" && step.raw.trim()) {
+    return step.raw.trim();
+  }
+  const rects = Array.isArray(step.rects) ? step.rects : [];
+  const rectText = rects
+    .map((r) => `(${r.x},${r.y})(${r.w},${r.h})`)
+    .join(";");
+  const duration = Math.max(0, Number(step.duration) || 0);
+  return rectText ? `${rectText}-${duration}` : `-1000`;
+}
+
 export default function App() {
   // Feature 1: grid settings + fit-to-view scale
   const [rows, setRows] = useState(120);
@@ -91,10 +97,7 @@ export default function App() {
   const [backendRawOutput, setBackendRawOutput] = useState("");
   const [backendResultText, setBackendResultText] = useState("");
   const [backendLoading, setBackendLoading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportSequenceNumber, setExportSequenceNumber] = useState(1);
   const [chatMessages, setChatMessages] = useState([]);
-  const [rawContextEntries, setRawContextEntries] = useState([]);
   const [sessionId, setSessionId] = useState(createSessionId);
   const [selectedDroplets, setSelectedDroplets] = useState([]);
 
@@ -318,37 +321,15 @@ export default function App() {
     setBackendRawOutput("");
     setBackendResultText("");
 
-    const requestBody = { message, sessionId, selectedDroplets };
-    const requestRaw = JSON.stringify(requestBody);
-    const requestedAt = new Date().toISOString();
-    let rawEntryRecorded = false;
-
     try {
       const response = await fetch("/api/steps-from-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: requestRaw,
+        body: JSON.stringify({ message, sessionId, selectedDroplets }),
       });
 
-      const responseRaw = await response.text();
-      let payload = {};
-      try {
-        payload = JSON.parse(responseRaw);
-      } catch (_error) {
-        payload = {};
-      }
-      const rawOutput = responseRaw || "{}";
-      setRawContextEntries((prev) => [
-        ...prev,
-        {
-          requestedAt,
-          respondedAt: new Date().toISOString(),
-          requestRaw,
-          responseStatus: response.status,
-          responseRaw,
-        },
-      ]);
-      rawEntryRecorded = true;
+      const payload = await response.json().catch(() => ({}));
+      const rawOutput = JSON.stringify(payload, null, 2);
       if (!response.ok) {
         throw new Error(payload.error || `Backend error: ${response.status}`);
       }
@@ -383,17 +364,6 @@ export default function App() {
       setCurrentStep(parsedSteps.length ? 0 : -1);
       requestAnimationFrame(() => redrawCanvas());
     } catch (error) {
-      if (!rawEntryRecorded) {
-        setRawContextEntries((prev) => [
-          ...prev,
-          {
-            requestedAt,
-            failedAt: new Date().toISOString(),
-            requestRaw,
-            errorRaw: String(error.message || error),
-          },
-        ]);
-      }
       setChatMessages((prev) => [
         ...prev,
         { role: "assistant", text: `错误：${error.message || "Request failed."}`, error: true },
@@ -403,42 +373,16 @@ export default function App() {
     }
   }
 
-  async function handleExportAllSteps() {
-    if (!steps.length || isExporting) return;
-    setIsExporting(true);
-
-    try {
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
-      const gifBlob = encodeStepsGif({ steps, rows, cols });
-      const baseName = createExportBaseName(exportSequenceNumber);
-      const txtBlob = new Blob([stepsToTxt(steps)], {
-        type: "text/plain;charset=utf-8",
-      });
-      const contextBlob = new Blob(
-        [
-          contextToJson({
-            sessionId,
-            messages: chatMessages,
-            exchanges: rawContextEntries,
-          }),
-        ],
-        { type: "application/json;charset=utf-8" }
-      );
-      downloadBlob(txtBlob, `${baseName}.txt`);
-      downloadBlob(gifBlob, `${baseName}.gif`);
-      downloadBlob(contextBlob, `${baseName}.json`);
-    } catch (error) {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: `导出失败：${error.message || "无法生成导出文件。"}`,
-          error: true,
-        },
-      ]);
-    } finally {
-      setIsExporting(false);
-    }
+  function handleExportCurrentStep() {
+    if (!steps.length || currentStep < 0 || currentStep >= steps.length) return;
+    const line = stepToTxtLine(steps[currentStep]);
+    const blob = new Blob([`${line}\n`], { type: "text/plain;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = `step-${currentStep + 1}.txt`;
+    link.click();
+    URL.revokeObjectURL(href);
   }
 
   return (
@@ -470,26 +414,12 @@ export default function App() {
 
         <label htmlFor="fileInput">Load TXT Step File</label>
         <input id="fileInput" type="file" accept=".txt" onChange={handleFileChange} />
-        <label htmlFor="exportSequenceNumber">Export file number (x)</label>
-        <input
-          id="exportSequenceNumber"
-          aria-label="Export file number"
-          type="number"
-          min="1"
-          step="1"
-          value={exportSequenceNumber}
-          onChange={(event) =>
-            setExportSequenceNumber(Math.max(1, Number.parseInt(event.target.value, 10) || 1))
-          }
-        />
         <button
           type="button"
-          onClick={handleExportAllSteps}
-          disabled={!steps.length || isExporting}
+          onClick={handleExportCurrentStep}
+          disabled={!steps.length || currentStep < 0}
         >
-          {isExporting
-            ? "Exporting TXT + GIF + JSON..."
-            : "Export All Steps + GIF + JSON Context"}
+          Export Current Step
         </button>
         <p className="hint">
           Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
@@ -670,7 +600,6 @@ export default function App() {
                 setSteps([]);
                 setCurrentStep(-1);
                 setChatMessages([]);
-                setRawContextEntries([]);
                 setBackendRawOutput("");
                 setBackendResultText("");
                 setBackendMessage(DEFAULT_BACKEND_MESSAGE);

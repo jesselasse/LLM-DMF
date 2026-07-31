@@ -5,7 +5,6 @@ export function drawGridAndDroplets({
   cellSize,
   step,
   selectedRects = [],
-  showLabels = true,
 }) {
   const width = cols * cellSize;
   const height = rows * cellSize;
@@ -63,15 +62,13 @@ export function drawGridAndDroplets({
         ctx.strokeRect(px + 3, py + 3, Math.max(0, pw - 5), Math.max(0, ph - 5));
       }
 
-      if (showLabels) {
-        ctx.fillStyle = "#111827";
-        ctx.font = "bold 12px system-ui, sans-serif";
-        ctx.fillText(
-          `D${idx + 1}: (${x},${y})(${w},${h})`,
-          px + 6,
-          py + 16
-        );
-      }
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 12px system-ui, sans-serif";
+      ctx.fillText(
+        `D${idx + 1}: (${x},${y})(${w},${h})`,
+        px + 6,
+        py + 16
+      );
     });
   }
 
