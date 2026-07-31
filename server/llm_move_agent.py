@@ -24,10 +24,18 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
-from move_backend import Move_as_txt, RotateMixArray_as_txt, RotateMix_as_txt, Squeeze_as_txt
+from move_backend import (
+    MoveDroplets_as_txt,
+    Move_as_txt,
+    RotateMixArray_as_txt,
+    RotateMixDroplets_as_txt,
+    RotateMix_as_txt,
+    Squeeze_as_txt,
+    normalize_droplets_input,
+)
 
 
 def _normalize_message_to_text(message: Any) -> str:
@@ -37,7 +45,7 @@ def _normalize_message_to_text(message: Any) -> str:
 
 def _normalize_context(raw_context: Any) -> Dict[str, Any]:
     if not isinstance(raw_context, dict):
-        return {"sequenceText": "", "conversation": []}
+        return {"sequenceText": "", "conversation": [], "selectedDroplets": []}
 
     sequence_text = raw_context.get("sequenceText", "")
     if not isinstance(sequence_text, str):
@@ -46,6 +54,12 @@ def _normalize_context(raw_context: Any) -> Dict[str, Any]:
     conversation = raw_context.get("conversation", [])
     if not isinstance(conversation, list):
         conversation = []
+
+    selected_droplets = raw_context.get("selectedDroplets", [])
+    try:
+        normalized_selected_droplets = normalize_droplets_input(selected_droplets)
+    except Exception:  # noqa: BLE001
+        normalized_selected_droplets = []
 
     normalized_conversation = []
     for item in conversation:
@@ -59,7 +73,51 @@ def _normalize_context(raw_context: Any) -> Dict[str, Any]:
     return {
         "sequenceText": sequence_text,
         "conversation": normalized_conversation,
+        "selectedDroplets": normalized_selected_droplets,
     }
+
+
+def _normalize_optional_int(value: Any, name: str) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be int.") from exc
+
+
+def _resolve_droplets(
+    *,
+    droplets: Any,
+    x: Any,
+    y: Any,
+    w: Any,
+    h: Any,
+    selected_droplets: List[Any],
+) -> List[Any]:
+    has_explicit_single = any(value is not None for value in (x, y, w, h))
+    if droplets is not None and has_explicit_single:
+        raise ValueError("cannot provide both droplets and x/y/w/h.")
+    if droplets is not None:
+        return normalize_droplets_input(droplets)
+    if has_explicit_single:
+        values = {
+            "x": _normalize_optional_int(x, "x"),
+            "y": _normalize_optional_int(y, "y"),
+            "w": _normalize_optional_int(w, "w"),
+            "h": _normalize_optional_int(h, "h"),
+        }
+        missing = [name for name, value in values.items() if value is None]
+        if missing:
+            raise ValueError(
+                f"single droplet input is incomplete; missing: {', '.join(missing)}."
+            )
+        return normalize_droplets_input([values])
+    if selected_droplets:
+        return normalize_droplets_input(selected_droplets)
+    raise ValueError(
+        "droplet input is required; provide droplets, provide x/y/w/h, or select droplets in the UI."
+    )
 
 
 def _tool_required_args(tool_obj: Any) -> List[str]:
@@ -98,17 +156,73 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
     from langchain_core.tools import tool
     from langchain_openai import ChatOpenAI
+    from pydantic import BaseModel, Field
 
-    @tool("move")
-    def move(x: int, y: int, w: int, h: int, direction: str, t: int) -> str:
-        """
-        Move one droplet (x, y, w, h) along direction by t grid steps.
-        direction in [up, down, left, right] (Chinese directions are also supported).
-        Returns txt activation sequence where each line is one moved step.
-        """
-        return Move_as_txt((x, y, w, h), direction, t)
+    selected_droplets = context.get("selectedDroplets", [])
 
-    @tool("squeeze")
+    class DropletModel(BaseModel):
+        x: int
+        y: int
+        w: int
+        h: int
+
+    class MoveArgs(BaseModel):
+        direction: str
+        t: int
+        droplets: Optional[List[DropletModel]] = Field(default=None)
+        x: Optional[int] = Field(default=None)
+        y: Optional[int] = Field(default=None)
+        w: Optional[int] = Field(default=None)
+        h: Optional[int] = Field(default=None)
+
+    class RotateMixArgs(BaseModel):
+        duration: int
+        droplets: Optional[List[DropletModel]] = Field(default=None)
+        x: Optional[int] = Field(default=None)
+        y: Optional[int] = Field(default=None)
+        w: Optional[int] = Field(default=None)
+        h: Optional[int] = Field(default=None)
+
+    class SqueezeArgs(BaseModel):
+        count: int
+        x: int
+        y: int
+        direction: str
+        size: str
+
+    class RotateMixArrayArgs(BaseModel):
+        count: int
+        duration: int
+        size: str = "1*2"
+
+    @tool("move", args_schema=MoveArgs)
+    def move(
+        direction: str,
+        t: int,
+        droplets: Optional[List[DropletModel]] = None,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+        w: Optional[int] = None,
+        h: Optional[int] = None,
+    ) -> str:
+        """
+        Move one or more droplets along direction by t grid steps.
+        You may provide a droplets list directly, or one droplet via x/y/w/h.
+        If neither is provided, the currently selected UI droplets may be used.
+        """
+        resolved = _resolve_droplets(
+            droplets=droplets,
+            x=x,
+            y=y,
+            w=w,
+            h=h,
+            selected_droplets=selected_droplets,
+        )
+        if len(resolved) == 1:
+            return Move_as_txt(resolved[0], direction, t)
+        return MoveDroplets_as_txt(resolved, direction, t)
+
+    @tool("squeeze", args_schema=SqueezeArgs)
     def squeeze(count: int, x: int, y: int, direction: str, size: str) -> str:
         """
         Generate squeezing sequence from template.
@@ -119,16 +233,34 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         """
         return Squeeze_as_txt(count, x, y, direction, size=size)
 
-    @tool("rotate_mix")
-    def rotate_mix(x: int, y: int, duration: int, size: str = "1*2") -> str:
+    @tool("rotate_mix", args_schema=RotateMixArgs)
+    def rotate_mix(
+        duration: int,
+        droplets: Optional[List[DropletModel]] = None,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+        w: Optional[int] = None,
+        h: Optional[int] = None,
+    ) -> str:
         """
-        Generate a circulation loop for a droplet starting at (x, y).
-        One round moves down by the droplet height, right by the droplet width,
-        up by the droplet height, then left by the droplet width.
+        Generate circulation loops for one or more droplets.
+        Each droplet uses its own width/height as the loop size.
+        You may provide droplets directly, one droplet via x/y/w/h, or rely on UI selection.
         """
-        return RotateMix_as_txt(x, y, duration, size=size)
+        resolved = _resolve_droplets(
+            droplets=droplets,
+            x=x,
+            y=y,
+            w=w,
+            h=h,
+            selected_droplets=selected_droplets,
+        )
+        if len(resolved) == 1:
+            x0, y0, w0, h0 = resolved[0]
+            return RotateMix_as_txt(x0, y0, duration, size=(w0, h0))
+        return RotateMixDroplets_as_txt(resolved, duration)
 
-    @tool("rotate_mix_array")
+    @tool("rotate_mix_array", args_schema=RotateMixArrayArgs)
     def rotate_mix_array(count: int, duration: int, size: str = "1*2") -> str:
         """
         Generate an array of rotate-mix modules.
@@ -200,6 +332,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the FULL stored sequence text.\n"
         "For movement, call tool 'move'. For squeeze generation, call tool 'squeeze'. For single circulation mixing, call tool 'rotate_mix'. For arrayed circulation mixing, call tool 'rotate_mix_array'.\n"
+        "When the UI provides selected droplets, you may use them by calling move/rotate_mix without x/y/w/h.\n"
         "When information is insufficient, ask a follow-up question instead of calling tools.\n"
         "You may suggest defaults, but must ask user confirmation before applying them.\n"
         "If there are multiple droplets and request is ambiguous, ask clarification and do not call tools.\n"
@@ -216,11 +349,18 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             messages.append(AIMessage(content=item["content"]))
 
     sequence_text = context.get("sequenceText", "")
+    selected_text = (
+        json.dumps(selected_droplets, ensure_ascii=False)
+        if selected_droplets
+        else "[EMPTY]"
+    )
     messages.append(
         HumanMessage(
             content=(
                 "以下是当前已经存储的完整激活序列（可能为空）：\n"
                 f"{sequence_text if sequence_text.strip() else '[EMPTY]'}\n\n"
+                "以下是当前UI里选中的液滴列表（可能为空）：\n"
+                f"{selected_text}\n\n"
                 "你现在只需要在这个基础上处理新请求，并生成新增步骤。\n"
                 f"新请求：{message}"
             )

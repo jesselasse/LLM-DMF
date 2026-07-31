@@ -4,6 +4,7 @@ export function drawGridAndDroplets({
   cols,
   cellSize,
   step,
+  selectedRects = [],
 }) {
   const width = cols * cellSize;
   const height = rows * cellSize;
@@ -32,9 +33,13 @@ export function drawGridAndDroplets({
   ctx.stroke();
 
   if (step && Array.isArray(step.rects)) {
+    const selectedKeys = new Set(
+      selectedRects.map((rect) => `${rect.x},${rect.y},${rect.w},${rect.h}`)
+    );
     step.rects.forEach((rect, idx) => {
       const { x, y, w, h } = rect;
       const outOfBounds = x < 0 || y < 0 || x + w > cols || y + h > rows;
+      const isSelected = selectedKeys.has(`${x},${y},${w},${h}`);
       hasOutOfBounds = hasOutOfBounds || outOfBounds;
 
       const px = x * cellSize;
@@ -50,6 +55,12 @@ export function drawGridAndDroplets({
       ctx.lineWidth = 2;
       ctx.strokeStyle = outOfBounds ? "#dc2626" : "#0f172a";
       ctx.strokeRect(px + 1, py + 1, Math.max(0, pw - 1), Math.max(0, ph - 1));
+
+      if (isSelected) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#2563eb";
+        ctx.strokeRect(px + 3, py + 3, Math.max(0, pw - 5), Math.max(0, ph - 5));
+      }
 
       ctx.fillStyle = "#111827";
       ctx.font = "bold 12px system-ui, sans-serif";

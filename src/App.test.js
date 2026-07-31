@@ -7,5 +7,5 @@ test("renders core sections", () => {
     screen.getByText(/Digital Microfluidics Grid Basics/i)
   ).toBeInTheDocument();
   expect(screen.getByText(/Load TXT Step File/i)).toBeInTheDocument();
-  expect(screen.getByText(/Steps/i)).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Steps" })).toBeInTheDocument();
 });

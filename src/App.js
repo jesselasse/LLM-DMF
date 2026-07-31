@@ -26,6 +26,28 @@ const INPUT_PRESETS = [
   },
 ];
 
+function dropletKey(rect) {
+  return `${rect.x},${rect.y},${rect.w},${rect.h}`;
+}
+
+function normalizeDroplet(rect) {
+  return {
+    x: Number(rect.x),
+    y: Number(rect.y),
+    w: Number(rect.w),
+    h: Number(rect.h),
+  };
+}
+
+function rectContainsCell(rect, col, row) {
+  return (
+    col >= rect.x &&
+    col < rect.x + rect.w &&
+    row >= rect.y &&
+    row < rect.y + rect.h
+  );
+}
+
 function extractStepsTextFromRaw(raw) {
   try {
     const parsed = JSON.parse(raw);
@@ -77,6 +99,7 @@ export default function App() {
   const [backendLoading, setBackendLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [sessionId, setSessionId] = useState(createSessionId);
+  const [selectedDroplets, setSelectedDroplets] = useState([]);
 
   const canvasRef = useRef(null);
   const canvasContainerRef = useRef(null);
@@ -127,6 +150,7 @@ export default function App() {
       cols,
       cellSize,
       step: activeStep,
+      selectedRects: selectedDroplets,
     });
 
     setWarningText(warning);
@@ -153,24 +177,57 @@ export default function App() {
     setIsPlaying((prev) => !prev);
   }
 
-  function handleCanvasMouseMove(event) {
+  function getGridCellFromPointer(event) {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const px = event.clientX - rect.left;
     const py = event.clientY - rect.top;
     if (px < 0 || py < 0 || px >= rect.width || py >= rect.height) {
-      setHoverCell(null);
-      return;
+      return null;
     }
 
     const col = Math.floor((px / rect.width) * cols);
     const row = Math.floor((py / rect.height) * rows);
     if (col < 0 || row < 0 || col >= cols || row >= rows) {
+      return null;
+    }
+    return { x: col, y: row };
+  }
+
+  function handleCanvasMouseMove(event) {
+    const cell = getGridCellFromPointer(event);
+    if (!cell) {
       setHoverCell(null);
       return;
     }
-    setHoverCell({ x: col, y: row });
+    setHoverCell(cell);
+  }
+
+  function handleCanvasClick(event) {
+    const cell = getGridCellFromPointer(event);
+    const activeStep =
+      currentStep >= 0 && currentStep < steps.length ? steps[currentStep] : null;
+    if (!cell || !activeStep || !Array.isArray(activeStep.rects)) {
+      return;
+    }
+
+    const hit = [...activeStep.rects]
+      .reverse()
+      .find((rect) => rectContainsCell(rect, cell.x, cell.y));
+    if (!hit) {
+      return;
+    }
+
+    const normalized = normalizeDroplet(hit);
+    const key = dropletKey(normalized);
+    setSelectedDroplets((prev) => {
+      const exists = prev.some((rect) => dropletKey(rect) === key);
+      if (exists) {
+        return prev.filter((rect) => dropletKey(rect) !== key);
+      }
+      return [...prev, normalized];
+    });
   }
 
   function handleCanvasMouseLeave() {
@@ -196,7 +253,7 @@ export default function App() {
   useEffect(() => {
     requestAnimationFrame(redrawCanvas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, steps]);
+  }, [currentStep, steps, selectedDroplets]);
 
   useEffect(() => {
     if (!isPlaying || !steps.length) return undefined;
@@ -245,6 +302,7 @@ export default function App() {
     setIsPlaying(false);
     setSteps(parsedSteps);
     setCurrentStep(parsedSteps.length ? 0 : -1);
+    setSelectedDroplets([]);
   }
 
   // New: send message to backend and parse returned TXT content
@@ -267,7 +325,7 @@ export default function App() {
       const response = await fetch("/api/steps-from-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, sessionId }),
+        body: JSON.stringify({ message, sessionId, selectedDroplets }),
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -366,6 +424,42 @@ export default function App() {
         <p className="hint">
           Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
         </p>
+        <div className="selection-panel">
+          <div className="selection-panel-header">
+            <strong>Selected Droplets</strong>
+            <span>{selectedDroplets.length}</span>
+          </div>
+          <p className="hint">
+            点击画布中的液滴可选中或取消选中，系统会把这些液滴作为当前会话的内存输入。
+          </p>
+          <div className="selection-list" aria-label="Selected Droplets">
+            {selectedDroplets.length ? (
+              selectedDroplets.map((rect) => (
+                <button
+                  key={dropletKey(rect)}
+                  type="button"
+                  className="selection-chip"
+                  onClick={() =>
+                    setSelectedDroplets((prev) =>
+                      prev.filter((item) => dropletKey(item) !== dropletKey(rect))
+                    )
+                  }
+                >
+                  {`(${rect.x},${rect.y})(${rect.w},${rect.h})`}
+                </button>
+              ))
+            ) : (
+              <div className="empty-selection">No droplets selected</div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedDroplets([])}
+            disabled={!selectedDroplets.length}
+          >
+            Clear Selected Droplets
+          </button>
+        </div>
       </section>
 
       <section className="panel stage-panel">
@@ -392,6 +486,7 @@ export default function App() {
             ref={canvasContainerRef}
             onMouseMove={handleCanvasMouseMove}
             onMouseLeave={handleCanvasMouseLeave}
+            onClick={handleCanvasClick}
           >
             {hoverCell ? (
               <div className="mouse-coord-overlay">{`(${hoverCell.x}, ${hoverCell.y})`}</div>
@@ -508,6 +603,7 @@ export default function App() {
                 setBackendRawOutput("");
                 setBackendResultText("");
                 setBackendMessage(DEFAULT_BACKEND_MESSAGE);
+                setSelectedDroplets([]);
               }}
             >
               Clear Context

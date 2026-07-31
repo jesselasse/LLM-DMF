@@ -133,6 +133,51 @@ def _validate_rect(rect: Rect) -> None:
         raise ValueError(f"w and h must be > 0, got w={w}, h={h}.")
 
 
+def _coerce_rect(value: Any) -> Rect:
+    if isinstance(value, dict):
+        try:
+            rect = (
+                int(value["x"]),
+                int(value["y"]),
+                int(value["w"]),
+                int(value["h"]),
+            )
+        except KeyError as exc:
+            raise ValueError(f"droplet dict is missing key: {exc.args[0]}") from exc
+    elif all(hasattr(value, name) for name in ("x", "y", "w", "h")):
+        rect = (int(value.x), int(value.y), int(value.w), int(value.h))
+    elif isinstance(value, (tuple, list)) and len(value) == 4:
+        rect = (int(value[0]), int(value[1]), int(value[2]), int(value[3]))
+    else:
+        raise ValueError("droplet must be (x, y, w, h) or a dict with x/y/w/h.")
+
+    _validate_rect(rect)
+    return rect
+
+
+def normalize_droplets_input(values: Any) -> List[Rect]:
+    if not isinstance(values, list) or not values:
+        raise ValueError("droplets must be a non-empty list of droplets.")
+    return [_coerce_rect(value) for value in values]
+
+
+def merge_sequences_by_step(sequences: List[ActivationSequence]) -> ActivationSequence:
+    if not sequences:
+        return []
+
+    max_len = max(len(sequence) for sequence in sequences)
+    merged: ActivationSequence = []
+    for step_idx in range(max_len):
+        merged_rects: List[Rect] = []
+        for sequence in sequences:
+            if step_idx >= len(sequence):
+                continue
+            _, rects = sequence[step_idx]
+            merged_rects.extend(rects)
+        merged.append((step_idx, merged_rects))
+    return merged
+
+
 @lru_cache(maxsize=1)
 def _load_squeezing_template() -> ActivationSequence:
     template_path = Path(__file__).with_name("SqueezingPath.txt")
@@ -201,6 +246,20 @@ def Move(
     return sequence
 
 
+def MoveDroplets(
+    droplets: List[Rect],
+    direction: str,
+    t: int,
+    *,
+    start_cycle: int = 0,
+) -> ActivationSequence:
+    normalized = normalize_droplets_input(droplets)
+    sequences = [
+        Move(droplet, direction, t, start_cycle=start_cycle) for droplet in normalized
+    ]
+    return merge_sequences_by_step(sequences)
+
+
 def activation_sequence_to_txt(activation_sequence: ActivationSequence) -> str:
     """
     Convert activation_sequence to Acxel-like txt lines:
@@ -230,6 +289,18 @@ def Move_as_txt(
     """
     sequence = Move(droplet, direction, t, start_cycle=start_cycle)
     return activation_sequence_to_txt(sequence)
+
+
+def MoveDroplets_as_txt(
+    droplets: List[Rect],
+    direction: str,
+    t: int,
+    *,
+    start_cycle: int = 0,
+) -> str:
+    return activation_sequence_to_txt(
+        MoveDroplets(droplets, direction, t, start_cycle=start_cycle)
+    )
 
 
 def Squeeze(
@@ -344,6 +415,20 @@ def RotateMix(
     return sequence
 
 
+def RotateMixDroplets(
+    droplets: List[Rect],
+    duration: int,
+    *,
+    start_cycle: int = 0,
+) -> ActivationSequence:
+    normalized = normalize_droplets_input(droplets)
+    sequences = [
+        RotateMix(x, y, duration, size=(w, h), start_cycle=start_cycle)
+        for x, y, w, h in normalized
+    ]
+    return merge_sequences_by_step(sequences)
+
+
 def RotateMix_as_txt(
     x: int,
     y: int,
@@ -355,6 +440,58 @@ def RotateMix_as_txt(
     return activation_sequence_to_txt(
         RotateMix(x, y, duration, size=size, start_cycle=start_cycle)
     )
+
+
+def RotateMixDroplets_as_txt(
+    droplets: List[Rect],
+    duration: int,
+    *,
+    start_cycle: int = 0,
+) -> str:
+    return activation_sequence_to_txt(
+        RotateMixDroplets(droplets, duration, start_cycle=start_cycle)
+    )
+
+
+def RotateMixArrayDroplets(
+    count: int,
+    duration: int,
+    size: Union[int, str, Tuple[int, int], List[int]] = (1, 2),
+    *,
+    gap: int = 4,
+    origin_x: int = 0,
+    origin_y: int = 0,
+) -> List[Rect]:
+    if not isinstance(count, int):
+        raise TypeError("count must be int.")
+    if count <= 0:
+        raise ValueError("count must be >= 1.")
+    if not isinstance(gap, int):
+        raise TypeError("gap must be int.")
+    if gap < 0:
+        raise ValueError("gap must be >= 0.")
+    if not isinstance(origin_x, int) or not isinstance(origin_y, int):
+        raise TypeError("origin_x/origin_y must be int.")
+
+    sx, sy = _parse_size(size)
+    module = RotateMixModule(duration, size=(sx, sy))
+    bounds = module["bounds"]
+    module_width = int(bounds["width"])
+    module_height = int(bounds["height"])
+
+    array_cols = int(math.ceil(math.sqrt(count)))
+    array_rows = int(math.ceil(count / array_cols))
+    positions = ArrayModulePositions(
+        module_width,
+        module_height,
+        array_rows,
+        array_cols,
+        gap,
+        gap,
+        origin_x=origin_x,
+        origin_y=origin_y,
+    )[:count]
+    return [(px, py, sx, sy) for px, py in positions]
 
 
 def RotateMixModule(
@@ -507,40 +644,24 @@ def RotateMixArray(
       cols = ceil(sqrt(count))
       rows = ceil(count / cols)
     """
-    if not isinstance(count, int):
-        raise TypeError("count must be int.")
-    if count <= 0:
-        raise ValueError("count must be >= 1.")
-    if not isinstance(gap, int):
-        raise TypeError("gap must be int.")
-    if gap < 0:
-        raise ValueError("gap must be >= 0.")
-    if not isinstance(origin_x, int) or not isinstance(origin_y, int):
-        raise TypeError("origin_x/origin_y must be int.")
-
-    module = RotateMixModule(duration, size=size, start_cycle=start_cycle)
-    sequence = module["sequence"]
-    bounds = module["bounds"]
-    module_width = int(bounds["width"])
-    module_height = int(bounds["height"])
-
-    array_cols = int(math.ceil(math.sqrt(count)))
-    array_rows = int(math.ceil(count / array_cols))
-    positions = ArrayModulePositions(
-        module_width,
-        module_height,
-        array_rows,
-        array_cols,
-        gap,
-        gap,
+    droplets = RotateMixArrayDroplets(
+        count,
+        duration,
+        size=size,
+        gap=gap,
         origin_x=origin_x,
         origin_y=origin_y,
-    )[:count]
+    )
+    array_cols = int(math.ceil(math.sqrt(count)))
+    array_rows = int(math.ceil(count / array_cols))
+    positions = [(x, y) for x, y, _, _ in droplets]
+    module = RotateMixModule(duration, size=size, start_cycle=start_cycle)
 
     return {
-        "sequence": ArrayModule(sequence, positions),
+        "sequence": RotateMixDroplets(droplets, duration, start_cycle=start_cycle),
         "module": module,
         "positions": positions,
+        "droplets": droplets,
         "layout": {
             "count": count,
             "rows": array_rows,

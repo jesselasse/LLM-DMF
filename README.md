@@ -7,6 +7,7 @@ A React + Express project for visualizing DMF step text on a grid and generating
 - Draws a grid canvas with configurable rows and columns
 - Loads and parses TXT step files
 - Visualizes droplets step by step on the grid
+- Lets the user select one or more active droplets on the canvas as session memory
 - Marks out-of-bound droplets in red and shows warnings
 - Shows a clickable step list for frame navigation
 - Sends natural-language requests to the backend and renders returned step text
@@ -82,7 +83,10 @@ Request body:
 ```json
 {
   "message": "在（10，8）有一个液滴尺寸为（1，1），向下移动2步",
-  "sessionId": "demo-session"
+  "sessionId": "demo-session",
+  "selectedDroplets": [
+    { "x": 10, "y": 8, "w": 1, "h": 1 }
+  ]
 }
 ```
 
@@ -104,7 +108,12 @@ The LLM backend currently exposes these operations:
 
 ### `move`
 
-Move one droplet step by step.
+Move one droplet or many droplets step by step.
+
+Input sources:
+
+- explicit single-droplet coordinates `(x, y, w, h)`
+- current UI-selected droplets from session context
 
 Typical prompt:
 
@@ -129,7 +138,7 @@ Notes:
 
 ### `rotate_mix`
 
-Rotate-mix one droplet from an explicit initial position.
+Rotate-mix one droplet or many droplets from their current positions.
 
 Behavior of one round:
 
@@ -144,9 +153,20 @@ Typical prompt:
 对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。
 ```
 
+Selected-droplet prompt:
+
+```text
+对当前选中的液滴做3圈旋转混匀。
+```
+
 ### `rotate_mix_array`
 
 Run many rotate-mix modules in parallel using automatic array layout.
+
+Implementation note:
+
+- first generate the array droplet coordinates
+- then call the multi-droplet `rotate_mix` path
 
 Behavior:
 
@@ -192,6 +212,7 @@ Multiple active rectangles in one frame:
 ## Frontend Usage
 
 - Load a TXT file from the file picker
+- Click droplets on the canvas to select or unselect them for later operations
 - Use the playback controls below the canvas
 - Click a step in the step list to jump to that frame
 - Use the right-side chat/input panel to send natural-language requests to the backend

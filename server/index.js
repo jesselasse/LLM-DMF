@@ -6,7 +6,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 const BACKEND_VERSION = "llm-move-v3-context";
 
-// session_id -> { sequenceText, conversation, updatedAt }
+// session_id -> { sequenceText, conversation, selectedDroplets, updatedAt }
 const sessionStore = new Map();
 
 app.use(express.json());
@@ -22,10 +22,27 @@ function ensureSessionState(sessionId) {
   const created = {
     sequenceText: "",
     conversation: [],
+    selectedDroplets: [],
     updatedAt: Date.now(),
   };
   sessionStore.set(sessionId, created);
   return created;
+}
+
+function normalizeDroplet(value) {
+  if (!value || typeof value !== "object") return null;
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const w = Number(value.w);
+  const h = Number(value.h);
+  if (![x, y, w, h].every(Number.isInteger)) return null;
+  if (w <= 0 || h <= 0) return null;
+  return { x, y, w, h };
+}
+
+function normalizeSelectedDroplets(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(normalizeDroplet).filter(Boolean);
 }
 
 function appendSequence(existing, delta) {
@@ -92,6 +109,9 @@ app.post("/api/steps-from-message", async (req, res) => {
     const message = String((req.body && req.body.message) || "").trim();
     const sessionId = normalizeSessionId(req.body && req.body.sessionId);
     const resetContext = Boolean(req.body && req.body.resetContext);
+    const selectedDroplets = normalizeSelectedDroplets(
+      req.body && req.body.selectedDroplets
+    );
 
     if (!message) {
       return res.status(400).json({ error: "message is required" });
@@ -101,11 +121,15 @@ app.post("/api/steps-from-message", async (req, res) => {
     if (resetContext) {
       state.sequenceText = "";
       state.conversation = [];
+      state.selectedDroplets = [];
     }
+
+    state.selectedDroplets = selectedDroplets;
 
     const context = {
       sequenceText: state.sequenceText,
       conversation: state.conversation,
+      selectedDroplets: state.selectedDroplets,
     };
 
     const result = await runLlmAgent(message, context);
@@ -126,6 +150,7 @@ app.post("/api/steps-from-message", async (req, res) => {
       stepsTextDelta: delta,
       stepsText: state.sequenceText,
       moveCalls,
+      selectedDroplets: state.selectedDroplets,
     });
   } catch (error) {
     return res.status(502).json({

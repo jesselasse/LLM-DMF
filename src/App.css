@@ -73,6 +73,45 @@ body {
   border-top: 1px solid var(--line);
 }
 
+.selection-panel {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.selection-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.selection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.selection-chip {
+  width: auto;
+  max-width: 100%;
+  padding: 0 10px;
+  font-size: 12px;
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.empty-selection {
+  width: 100%;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  background: #f8fafc;
+}
+
 .conversation-panel {
   display: grid;
   gap: 8px;
