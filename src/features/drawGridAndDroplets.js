@@ -6,6 +6,8 @@ export function drawGridAndDroplets({
   step,
   selectedRects = [],
   showLabels = true,
+  majorGridEvery = 0,
+  viewportScale = 1,
 }) {
   const width = cols * cellSize;
   const height = rows * cellSize;
@@ -14,24 +16,75 @@ export function drawGridAndDroplets({
   ctx.clearRect(0, 0, width, height);
 
   // Grid background
-  ctx.fillStyle = "#f7f8fa";
+  ctx.fillStyle = majorGridEvery > 0 ? "#ffffff" : "#f7f8fa";
   ctx.fillRect(0, 0, width, height);
 
-  // Grid lines
-  ctx.strokeStyle = "#d0d4dc";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let c = 0; c <= cols; c += 1) {
-    const x = Math.round(c * cellSize) + 0.5;
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
+  // Grid lines. The live viewport can opt into a major/minor hierarchy while
+  // exports retain the original single-weight grid by omitting majorGridEvery.
+  if (majorGridEvery > 0) {
+    const safeScale = Math.max(0.01, Number(viewportScale) || 1);
+    const screenCellSize = cellSize * safeScale;
+    const minorGridEvery =
+      screenCellSize >= 12
+        ? 1
+        : screenCellSize >= 6
+          ? 2
+          : screenCellSize >= 3
+            ? 4
+            : screenCellSize >= 1.5
+              ? 8
+              : majorGridEvery;
+    const strokeGridLines = ({ color, lineWidth, include }) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth / safeScale;
+      ctx.beginPath();
+      for (let c = 0; c <= cols; c += 1) {
+        if (!include(c)) continue;
+        const x = c * cellSize;
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+      }
+      for (let r = 0; r <= rows; r += 1) {
+        if (!include(r)) continue;
+        const y = r * cellSize;
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+      }
+      ctx.stroke();
+    };
+
+    if (minorGridEvery < majorGridEvery) {
+      strokeGridLines({
+        color: "#edf1f5",
+        lineWidth: 0.6,
+        include: (value) =>
+          value % minorGridEvery === 0 && value % majorGridEvery !== 0,
+      });
+    }
+    strokeGridLines({
+      color: "#b9c4d1",
+      lineWidth: 1,
+      include: (value) => value % majorGridEvery === 0,
+    });
+    ctx.strokeStyle = "#9eacbd";
+    ctx.lineWidth = 1 / safeScale;
+    ctx.strokeRect(0, 0, width, height);
+  } else {
+    ctx.strokeStyle = "#d0d4dc";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let c = 0; c <= cols; c += 1) {
+      const x = Math.round(c * cellSize) + 0.5;
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    for (let r = 0; r <= rows; r += 1) {
+      const y = Math.round(r * cellSize) + 0.5;
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    ctx.stroke();
   }
-  for (let r = 0; r <= rows; r += 1) {
-    const y = Math.round(r * cellSize) + 0.5;
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-  }
-  ctx.stroke();
 
   if (step && Array.isArray(step.rects)) {
     const selectedKeys = new Set(

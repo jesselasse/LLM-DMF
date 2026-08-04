@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { parseStepsTxt } from "./features/parseStepsTxt";
 import { drawGridAndDroplets } from "./features/drawGridAndDroplets";
@@ -18,6 +18,11 @@ const createSessionId = () =>
   `dmf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const DEFAULT_BACKEND_MESSAGE = "在（20，20）向右生成3个液滴";
 const PLAYBACK_SPEEDS = [0.5, 1, 2, 4, 8];
+const GRID_MAJOR_INTERVAL = 16;
+const GRID_VIEWPORT_PADDING = 28;
+const GRID_MIN_SCALE = 0.1;
+const GRID_MAX_SCALE = 2.5;
+const GRID_ZOOM_FACTOR = 1.25;
 const INPUT_PRESETS = [
   {
     label: "PCR",
@@ -32,6 +37,47 @@ const INPUT_PRESETS = [
     text: "现在在(10,8)有一个液滴尺寸为(1,1)，向右移动8步。",
   },
 ];
+
+function getRulerInterval(scale, cellSize) {
+  const minimumLabelSpacing = 72;
+  const intervals = [1, 2, 4, 8, 16, 32, 64];
+  return (
+    intervals.find(
+      (interval) => interval * cellSize * scale >= minimumLabelSpacing
+    ) || intervals[intervals.length - 1]
+  );
+}
+
+function createVisibleAxisTicks({ size, scale, cellSize, origin, viewportSize }) {
+  const interval = getRulerInterval(scale, cellSize);
+  const ticks = [];
+  const pixelsPerUnit = cellSize * scale;
+  const firstVisibleValue = clamp(
+    Math.floor(-origin / pixelsPerUnit),
+    0,
+    size
+  );
+  const lastVisibleValue = clamp(
+    Math.ceil((viewportSize - origin) / pixelsPerUnit),
+    0,
+    size
+  );
+  const firstTick = Math.ceil(firstVisibleValue / interval) * interval;
+
+  for (let value = firstTick; value <= lastVisibleValue; value += interval) {
+    ticks.push({ value, position: origin + value * pixelsPerUnit });
+  }
+
+  const terminalPosition = origin + size * pixelsPerUnit;
+  if (
+    size >= firstVisibleValue &&
+    size <= lastVisibleValue &&
+    !ticks.some((tick) => tick.value === size)
+  ) {
+    ticks.push({ value: size, position: terminalPosition });
+  }
+  return ticks;
+}
 
 function dropletKey(rect) {
   return `${rect.x},${rect.y},${rect.w},${rect.h}`;
@@ -79,6 +125,12 @@ export default function App() {
   const [cols, setCols] = useState(140);
   const cellSize = 16;
   const [scale, setScale] = useState(1);
+  const [axisViewport, setAxisViewport] = useState({
+    width: 0,
+    height: 0,
+    originX: 0,
+    originY: 0,
+  });
 
   // Feature 2 + 3 + 4 shared state
   const [steps, setSteps] = useState([]);
@@ -100,6 +152,35 @@ export default function App() {
   const canvasRef = useRef(null);
   const canvasContainerRef = useRef(null);
   const chatListRef = useRef(null);
+  const backendInputRef = useRef(null);
+  const fitScaleRef = useRef(GRID_MIN_SCALE);
+  const isFitModeRef = useRef(true);
+  const zoomFocusRef = useRef(null);
+
+  const displayGridWidth = cols * cellSize * scale;
+  const displayGridHeight = rows * cellSize * scale;
+  const xAxisTicks = useMemo(
+    () =>
+      createVisibleAxisTicks({
+        size: cols,
+        scale,
+        cellSize,
+        origin: axisViewport.originX,
+        viewportSize: axisViewport.width,
+      }),
+    [cols, scale, cellSize, axisViewport.originX, axisViewport.width]
+  );
+  const yAxisTicks = useMemo(
+    () =>
+      createVisibleAxisTicks({
+        size: rows,
+        scale,
+        cellSize,
+        origin: axisViewport.originY,
+        viewportSize: axisViewport.height,
+      }),
+    [rows, scale, cellSize, axisViewport.originY, axisViewport.height]
+  );
 
   const statusText = useMemo(() => {
     if (!steps.length || currentStep < 0) return "No step selected";
@@ -115,22 +196,71 @@ export default function App() {
 
     canvas.width = Math.ceil(logicalWidth * dpr);
     canvas.height = Math.ceil(logicalHeight * dpr);
-    canvas.style.width = `${logicalWidth}px`;
-    canvas.style.height = `${logicalHeight}px`;
 
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function fitToView() {
+  function calculateFitScale() {
     const container = canvasContainerRef.current;
-    if (!container) return;
-    const pad = 16;
-    const availableW = container.clientWidth - pad;
-    const availableH = container.clientHeight - pad;
+    if (!container) return GRID_MIN_SCALE;
+    const availableW = container.clientWidth - GRID_VIEWPORT_PADDING;
+    const availableH = container.clientHeight - GRID_VIEWPORT_PADDING;
     const scaleX = availableW / (cols * cellSize);
     const scaleY = availableH / (rows * cellSize);
-    setScale(clamp(Math.min(scaleX, scaleY), 0.2, 6));
+    return clamp(Math.min(scaleX, scaleY), GRID_MIN_SCALE, GRID_MAX_SCALE);
+  }
+
+  function syncRulers() {
+    const container = canvasContainerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    setAxisViewport({
+      width: container.clientWidth,
+      height: container.clientHeight,
+      originX: canvasRect.left - containerRect.left,
+      originY: canvasRect.top - containerRect.top,
+    });
+  }
+
+  function fitToView() {
+    const nextScale = calculateFitScale();
+    fitScaleRef.current = nextScale;
+    isFitModeRef.current = true;
+    zoomFocusRef.current = null;
+    const container = canvasContainerRef.current;
+    if (container) {
+      container.scrollLeft = 0;
+      container.scrollTop = 0;
+    }
+    setScale(nextScale);
+  }
+
+  function zoomGrid(factor) {
+    const container = canvasContainerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const nextScale = clamp(
+      scale * factor,
+      fitScaleRef.current,
+      GRID_MAX_SCALE
+    );
+    if (Math.abs(nextScale - scale) < 0.0001) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportCenterX = containerRect.left + container.clientWidth / 2;
+    const viewportCenterY = containerRect.top + container.clientHeight / 2;
+    zoomFocusRef.current = {
+      gridX: clamp((viewportCenterX - canvasRect.left) / scale, 0, cols * cellSize),
+      gridY: clamp((viewportCenterY - canvasRect.top) / scale, 0, rows * cellSize),
+    };
+    isFitModeRef.current = Math.abs(nextScale - fitScaleRef.current) < 0.0001;
+    setScale(nextScale);
   }
 
   function redrawCanvas() {
@@ -147,6 +277,9 @@ export default function App() {
       cellSize,
       step: activeStep,
       selectedRects: selectedDroplets,
+      showLabels: false,
+      majorGridEvery: GRID_MAJOR_INTERVAL,
+      viewportScale: scale,
     });
 
     setWarningText(warning);
@@ -249,7 +382,30 @@ export default function App() {
   useEffect(() => {
     requestAnimationFrame(redrawCanvas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, steps, selectedDroplets]);
+  }, [currentStep, steps, selectedDroplets, scale]);
+
+  useLayoutEffect(() => {
+    const focus = zoomFocusRef.current;
+    const container = canvasContainerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    if (!focus) {
+      syncRulers();
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportCenterX = containerRect.left + container.clientWidth / 2;
+    const viewportCenterY = containerRect.top + container.clientHeight / 2;
+    const focusClientX = canvasRect.left + focus.gridX * scale;
+    const focusClientY = canvasRect.top + focus.gridY * scale;
+    container.scrollLeft += focusClientX - viewportCenterX;
+    container.scrollTop += focusClientY - viewportCenterY;
+    zoomFocusRef.current = null;
+    requestAnimationFrame(syncRulers);
+  }, [scale]);
 
   useEffect(() => {
     if (!isPlaying || !steps.length) return undefined;
@@ -277,7 +433,18 @@ export default function App() {
 
   useEffect(() => {
     fitToView();
-    const onResize = () => fitToView();
+    const onResize = () => {
+      const nextFitScale = calculateFitScale();
+      fitScaleRef.current = nextFitScale;
+      if (isFitModeRef.current) {
+        setScale(nextFitScale);
+      } else {
+        setScale((currentScale) =>
+          clamp(currentScale, nextFitScale, GRID_MAX_SCALE)
+        );
+      }
+      requestAnimationFrame(syncRulers);
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -288,6 +455,18 @@ export default function App() {
       chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
     }
   }, [chatMessages, backendLoading]);
+
+  useLayoutEffect(() => {
+    const input = backendInputRef.current;
+    if (!input) return;
+
+    const minHeight = 48;
+    const maxHeight = 160;
+    input.style.height = "auto";
+    const contentHeight = input.scrollHeight + 2;
+    input.style.height = `${clamp(contentHeight, minHeight, maxHeight)}px`;
+    input.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
+  }, [backendMessage]);
 
   // Feature 2: parse TXT file
   async function handleFileChange(event) {
@@ -313,6 +492,7 @@ export default function App() {
     }
 
     setChatMessages((prev) => [...prev, { role: "user", text: message }]);
+    setBackendMessage("");
     setBackendLoading(true);
     setBackendRawOutput("");
     setBackendResultText("");
@@ -402,6 +582,16 @@ export default function App() {
     }
   }
 
+  function handleBackendInputKeyDown(event) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+
+    event.preventDefault();
+    if (!backendLoading) {
+      handleGenerateFromBackend();
+    }
+  }
+
   async function runExport({ includeSteps = false, includeGif = false, includeContext = false, errorLabel }) {
     const requiresSteps = includeSteps || includeGif;
     if ((requiresSteps && !steps.length) || isExporting) return;
@@ -479,6 +669,19 @@ export default function App() {
       includeContext: true,
       errorLabel: "整体导出失败",
     });
+  }
+
+  function handleNewConversation() {
+    setIsPlaying(false);
+    setSessionId(createSessionId());
+    setSteps([]);
+    setCurrentStep(-1);
+    setChatMessages([]);
+    setRawContextEntries([]);
+    setBackendRawOutput("");
+    setBackendResultText("");
+    setBackendMessage(DEFAULT_BACKEND_MESSAGE);
+    setSelectedDroplets([]);
   }
 
   return (
@@ -570,8 +773,39 @@ export default function App() {
       <section className="panel stage-panel">
         <div className="status-bar">
           <span>{statusText}</span>
-          <span>Scale: {Math.round(scale * 100)}%</span>
+          <span aria-label="Grid scale">Scale: {Math.round(scale * 100)}%</span>
           <span className="warning">{warningText}</span>
+          <div className="zoom-controls" aria-label="Grid zoom controls">
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={() => zoomGrid(1 / GRID_ZOOM_FACTOR)}
+              disabled={scale <= fitScaleRef.current + 0.0001}
+              aria-label="Zoom Out"
+              title="Zoom Out"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="zoom-fit-btn"
+              onClick={fitToView}
+              aria-label="Fit to View"
+              title="Fit to View"
+            >
+              适应
+            </button>
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={() => zoomGrid(GRID_ZOOM_FACTOR)}
+              disabled={scale >= GRID_MAX_SCALE - 0.0001}
+              aria-label="Zoom In"
+              title="Zoom In"
+            >
+              ＋
+            </button>
+          </div>
         </div>
         <div className="stage-workspace">
           <aside className="steps-dock">
@@ -586,21 +820,56 @@ export default function App() {
               compact
             />
           </aside>
-          <div
-            className="canvas-container"
-            ref={canvasContainerRef}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseLeave={handleCanvasMouseLeave}
-            onClick={handleCanvasClick}
-          >
+          <div className="grid-viewport">
             {hoverCell ? (
               <div className="mouse-coord-overlay">{`(${hoverCell.x}, ${hoverCell.y})`}</div>
             ) : null}
+            <div className="axis-corner" aria-hidden="true" />
+            <div className="grid-axis grid-axis-x" aria-label="X axis">
+              {xAxisTicks.map(({ value, position }) => (
+                <span
+                  key={value}
+                  className="axis-tick"
+                  style={{ left: `${position}px` }}
+                >
+                  {value}
+                </span>
+              ))}
+            </div>
+            <div className="grid-axis grid-axis-y" aria-label="Y axis">
+              {yAxisTicks.map(({ value, position }) => (
+                <span
+                  key={value}
+                  className="axis-tick"
+                  style={{ top: `${position}px` }}
+                >
+                  {value}
+                </span>
+              ))}
+            </div>
             <div
-              className="canvas-stage"
-              style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}
+              className="canvas-container"
+              ref={canvasContainerRef}
+              onScroll={syncRulers}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseLeave={handleCanvasMouseLeave}
+              onClick={handleCanvasClick}
             >
-              <canvas ref={canvasRef} />
+              <div
+                className="canvas-stage"
+                style={{
+                  width: `${displayGridWidth}px`,
+                  height: `${displayGridHeight}px`,
+                }}
+              >
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    width: `${displayGridWidth}px`,
+                    height: `${displayGridHeight}px`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -680,10 +949,77 @@ export default function App() {
       </section>
 
       <section className="panel conversation-panel-box">
+        <header className="ai-chat-header">
+          <div className="ai-chat-identity">
+            <span className="ai-chat-avatar" aria-hidden="true">AI</span>
+            <div>
+              <h2>DMF Assistant</h2>
+              <span>液滴操作与步骤生成</span>
+            </div>
+          </div>
+          <div className="ai-chat-header-actions">
+            <button
+              type="button"
+              className="chat-header-btn"
+              onClick={handleExportJsonContext}
+              disabled={isExporting}
+              aria-label="Export JSON Context"
+              title="Export JSON Context"
+            >
+              导出
+            </button>
+            <button
+              type="button"
+              className="chat-header-btn new-chat-btn"
+              onClick={handleNewConversation}
+              aria-label="新建对话"
+              title="新建对话"
+            >
+              <span aria-hidden="true">＋</span>
+              新建
+            </button>
+          </div>
+        </header>
+
         <div className="conversation-content">
-          <div className="conversation-top">
-            <p className="hint">示例：在（20，20）向右生成3个液滴</p>
-            <div className="preset-row">
+          <div className="chat-wrap">
+            <div className="chat-list" ref={chatListRef} aria-label="LLM Chat">
+              {!chatMessages.length && !backendLoading ? (
+                <div className="chat-empty-state">
+                  <span className="chat-empty-icon" aria-hidden="true">AI</span>
+                  <strong>开始一段 DMF 对话</strong>
+                  <p>描述液滴的位置、尺寸和操作，助手会生成对应步骤。</p>
+                </div>
+              ) : null}
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={`${idx}-${msg.role}`}
+                  className={`chat-bubble ${msg.role} ${msg.error ? "error" : ""}`}
+                >
+                  {msg.text}
+                </div>
+              ))}
+              {backendLoading ? <div className="chat-bubble assistant">正在请求 LLM...</div> : null}
+              {backendRawOutput || backendResultText ? (
+                <div className="backend-results">
+                  {backendRawOutput ? (
+                    <pre className="backend-result" aria-label="Backend Raw Output">
+                      {`raw backend output:\n${backendRawOutput}`}
+                    </pre>
+                  ) : null}
+
+                  {backendResultText ? (
+                    <pre className="backend-result" aria-label="Backend Result Text">
+                      {backendResultText}
+                    </pre>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="chat-composer">
+            <div className="preset-row" aria-label="预设对话">
               {INPUT_PRESETS.map((preset) => (
                 <button
                   key={preset.label}
@@ -695,76 +1031,37 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <textarea
-              className="backend-input"
-              id="backendMessageInput"
-              rows={3}
-              value={backendMessage}
-              onChange={(e) => setBackendMessage(e.target.value)}
-              placeholder="在（20，20）向右生成3个液滴"
-            />
-
-            <div className="conversation-actions">
-              <button type="button" onClick={handleGenerateFromBackend} disabled={backendLoading}>
-                {backendLoading ? "Generating..." : "Generate Steps"}
-              </button>
+            <div className="composer-input-row">
+              <textarea
+                ref={backendInputRef}
+                className="backend-input"
+                id="backendMessageInput"
+                aria-label="对话输入"
+                rows={1}
+                value={backendMessage}
+                onChange={(e) => setBackendMessage(e.target.value)}
+                onKeyDown={handleBackendInputKeyDown}
+                placeholder="描述需要执行的液滴操作…"
+              />
               <button
                 type="button"
-                onClick={() => {
-                  setIsPlaying(false);
-                  setSessionId(createSessionId());
-                  setSteps([]);
-                  setCurrentStep(-1);
-                  setChatMessages([]);
-                  setRawContextEntries([]);
-                  setBackendRawOutput("");
-                  setBackendResultText("");
-                  setBackendMessage(DEFAULT_BACKEND_MESSAGE);
-                  setSelectedDroplets([]);
-                }}
+                className="send-message-btn"
+                onClick={handleGenerateFromBackend}
+                disabled={backendLoading}
+                aria-label="发送消息"
+                title="发送消息"
               >
-                Clear Context
+                {backendLoading ? (
+                  <span className="send-loading" aria-hidden="true">…</span>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3.4 20.4 22 12 3.4 3.6l-.1 6.5L16.6 12 3.3 13.9l.1 6.5Z" />
+                  </svg>
+                )}
               </button>
             </div>
+            <p className="composer-hint">示例：在（20，20）向右生成 3 个液滴</p>
           </div>
-
-          <div className="chat-wrap">
-            <div className="chat-list" ref={chatListRef} aria-label="LLM Chat">
-              {chatMessages.map((msg, idx) => (
-                <div
-                  key={`${idx}-${msg.role}`}
-                  className={`chat-bubble ${msg.role} ${msg.error ? "error" : ""}`}
-                >
-                  {msg.text}
-                </div>
-              ))}
-              {backendLoading ? <div className="chat-bubble assistant">正在请求 LLM...</div> : null}
-            </div>
-          </div>
-
-          <div className="backend-results">
-            {backendRawOutput ? (
-              <pre className="backend-result" aria-label="Backend Raw Output">
-                {`raw backend output:\n${backendRawOutput}`}
-              </pre>
-            ) : null}
-
-            {backendResultText ? (
-              <pre className="backend-result" aria-label="Backend Result Text">
-                {backendResultText}
-              </pre>
-            ) : null}
-          </div>
-        </div>
-        <div className="conversation-footer">
-          <button
-            type="button"
-            className="json-export-btn"
-            onClick={handleExportJsonContext}
-            disabled={isExporting}
-          >
-            Export JSON Context
-          </button>
         </div>
       </section>
     </div>
