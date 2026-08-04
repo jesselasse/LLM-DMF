@@ -279,6 +279,32 @@ button:disabled {
   overflow: auto;
 }
 
+.backend-raw-details {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+}
+
+.backend-raw-details summary {
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+
+.backend-raw-details[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.backend-raw-details .backend-result {
+  max-height: 220px;
+  border: 0;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+}
+
 .chat-wrap {
   background: #f8fafc;
   min-height: 0;

@@ -2,6 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 
 beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: jest.fn(),
+  });
   Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
     configurable: true,
     value: () => ({
@@ -79,7 +83,11 @@ test("send button keeps the existing backend request contract", async () => {
   const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
     ok: true,
     status: 200,
-    text: async () => JSON.stringify({ assistantReply: "收到", stepsText: "" }),
+    text: async () =>
+      JSON.stringify({
+        assistantReply: "收到",
+        stepsText: "(14,21)(1,1)-1000",
+      }),
   });
 
   render(<App />);
@@ -94,6 +102,16 @@ test("send button keeps the existing backend request contract", async () => {
   expect(body.sessionId).toMatch(/^dmf-/);
   expect(body.selectedDroplets).toEqual([]);
   expect(screen.getByRole("textbox", { name: "对话输入" })).toHaveValue("");
+  const rawDetails = await screen.findByText("Raw backend output");
+  expect(rawDetails.closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByLabelText("Backend Raw Output")).toHaveTextContent(
+    '"assistantReply":"收到"'
+  );
+  const stepsDetails = await screen.findByText("Generated steps");
+  expect(stepsDetails.closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByLabelText("Backend Result Text")).toHaveTextContent(
+    "(14,21)(1,1)-1000"
+  );
 
   fetchMock.mockRestore();
 });

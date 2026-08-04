@@ -18,7 +18,8 @@ const createSessionId = () =>
   `dmf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const DEFAULT_BACKEND_MESSAGE = "在（20，20）向右生成3个液滴";
 const PLAYBACK_SPEEDS = [0.5, 1, 2, 4, 8];
-const GRID_MAJOR_INTERVAL = 16;
+const GRID_MAJOR_INTERVAL = 32;
+const GRID_SECONDARY_INTERVAL = 16;
 const GRID_VIEWPORT_PADDING = 28;
 const GRID_MIN_SCALE = 0.1;
 const GRID_MAX_SCALE = 2.5;
@@ -279,6 +280,7 @@ export default function App() {
       selectedRects: selectedDroplets,
       showLabels: false,
       majorGridEvery: GRID_MAJOR_INTERVAL,
+      secondaryGridEvery: GRID_SECONDARY_INTERVAL,
       viewportScale: scale,
     });
 
@@ -1003,15 +1005,21 @@ export default function App() {
               {backendRawOutput || backendResultText ? (
                 <div className="backend-results">
                   {backendRawOutput ? (
-                    <pre className="backend-result" aria-label="Backend Raw Output">
-                      {`raw backend output:\n${backendRawOutput}`}
-                    </pre>
+                    <details className="backend-raw-details">
+                      <summary>Raw backend output</summary>
+                      <pre className="backend-result" aria-label="Backend Raw Output">
+                        {backendRawOutput}
+                      </pre>
+                    </details>
                   ) : null}
 
                   {backendResultText ? (
-                    <pre className="backend-result" aria-label="Backend Result Text">
-                      {backendResultText}
-                    </pre>
+                    <details className="backend-raw-details">
+                      <summary>Generated steps</summary>
+                      <pre className="backend-result" aria-label="Backend Result Text">
+                        {backendResultText}
+                      </pre>
+                    </details>
                   ) : null}
                 </div>
               ) : null}

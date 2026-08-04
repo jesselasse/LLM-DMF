@@ -13,7 +13,7 @@ function createContext() {
   };
 }
 
-test("live grid draws separate minor and major line passes", () => {
+test("live grid draws minor, secondary, and major line passes", () => {
   const ctx = createContext();
 
   drawGridAndDroplets({
@@ -21,16 +21,17 @@ test("live grid draws separate minor and major line passes", () => {
     rows: 32,
     cols: 32,
     cellSize: 16,
-    majorGridEvery: 16,
+    majorGridEvery: 32,
+    secondaryGridEvery: 16,
     viewportScale: 0.5,
   });
 
-  expect(ctx.stroke).toHaveBeenCalledTimes(2);
+  expect(ctx.stroke).toHaveBeenCalledTimes(3);
   expect(ctx.strokeRect).toHaveBeenCalledTimes(1);
   expect(ctx.lineWidth).toBe(2);
 });
 
-test("live grid reveals finer lines as the viewport zooms in", () => {
+test("live grid keeps every cell visible across zoom levels", () => {
   const zoomedOutContext = createContext();
   const zoomedInContext = createContext();
 
@@ -39,7 +40,8 @@ test("live grid reveals finer lines as the viewport zooms in", () => {
     rows: 16,
     cols: 16,
     cellSize: 16,
-    majorGridEvery: 16,
+    majorGridEvery: 32,
+    secondaryGridEvery: 16,
     viewportScale: 0.1,
   });
   drawGridAndDroplets({
@@ -47,11 +49,12 @@ test("live grid reveals finer lines as the viewport zooms in", () => {
     rows: 16,
     cols: 16,
     cellSize: 16,
-    majorGridEvery: 16,
+    majorGridEvery: 32,
+    secondaryGridEvery: 16,
     viewportScale: 1,
   });
 
-  expect(zoomedOutContext.moveTo).toHaveBeenCalledTimes(6);
+  expect(zoomedOutContext.moveTo).toHaveBeenCalledTimes(34);
   expect(zoomedInContext.moveTo).toHaveBeenCalledTimes(34);
 });
 
@@ -70,7 +73,7 @@ test("default grid keeps the single-weight export drawing path", () => {
   expect(ctx.lineWidth).toBe(1);
 });
 
-test("droplet labels can be hidden without changing droplet rendering", () => {
+test("regular droplets render without labels or dark outlines", () => {
   const ctx = createContext();
 
   drawGridAndDroplets({
@@ -83,6 +86,33 @@ test("droplet labels can be hidden without changing droplet rendering", () => {
   });
 
   expect(ctx.fillText).not.toHaveBeenCalled();
-  expect(ctx.fillRect).toHaveBeenCalled();
-  expect(ctx.strokeRect).toHaveBeenCalled();
+  expect(ctx.fillRect).toHaveBeenLastCalledWith(32, 48, 16, 16);
+  expect(ctx.strokeRect).not.toHaveBeenCalled();
+});
+
+test("selected and out-of-bounds droplets keep their status outlines", () => {
+  const selectedContext = createContext();
+  const outOfBoundsContext = createContext();
+  const selectedRect = { x: 2, y: 3, w: 1, h: 1 };
+
+  drawGridAndDroplets({
+    ctx: selectedContext,
+    rows: 32,
+    cols: 32,
+    cellSize: 16,
+    step: { rects: [selectedRect] },
+    selectedRects: [selectedRect],
+    showLabels: false,
+  });
+  drawGridAndDroplets({
+    ctx: outOfBoundsContext,
+    rows: 4,
+    cols: 4,
+    cellSize: 16,
+    step: { rects: [{ x: 4, y: 3, w: 1, h: 1 }] },
+    showLabels: false,
+  });
+
+  expect(selectedContext.strokeRect).toHaveBeenCalledTimes(1);
+  expect(outOfBoundsContext.strokeRect).toHaveBeenCalledTimes(1);
 });
