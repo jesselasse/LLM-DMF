@@ -17,7 +17,7 @@ A React + Express project for visualizing DMF step text on a grid and generating
 - `src/`: frontend UI, canvas rendering, step parsing, playback controls
 - `server/index.js`: Express backend entry
 - `server/llm_move_agent.py`: LLM tool router
-- `server/move_backend.py`: backend operations such as `move`, `squeeze`, `rotate_mix`, `rotate_mix_array`
+- `server/move_backend.py`: backend operations and shared droplet layout helpers
 - `server/backend_test_samples.txt`: natural-language backend test samples
 
 ## Requirements
@@ -34,45 +34,58 @@ npm install
 
 ## Run
 
-### 1. Start backend
-
-If you use the `rag` conda environment, start the backend with its Python interpreter:
-
-```bash
-env PYTHON_BIN=/research/d2/gds/cjiang24/jiazq/anaconda3/envs/rag/bin/python npm run server:once
-```
-
-For auto-reload during backend development:
-
-```bash
-env PYTHON_BIN=/research/d2/gds/cjiang24/jiazq/anaconda3/envs/rag/bin/python npm run server
-```
-
-Backend address:
-
-```text
-http://localhost:3001
-```
-
-Health check:
-
-```bash
-curl http://localhost:3001/api/health
-```
-
-### 2. Start frontend
+### Start frontend and backend together
 
 ```bash
 npm start
 ```
 
-Frontend address:
+On the first run, this creates `.venv` from `uv.lock` when needed. The same command then
+starts the React frontend and Node/Python backend. Press `Ctrl+C` once to stop both.
+
+Addresses:
 
 ```text
 http://localhost:3000
+http://localhost:3001/api/health
 ```
 
-The frontend proxies backend requests to `http://localhost:3001`.
+To prepare only the Python environment, run `npm run setup:python`. For separate debugging
+terminals, use `npm run start:frontend` and `npm run server`.
+
+## Backend Sequence Workspace
+
+The frontend calls the application API, not the LLM directly. The backend request flow is:
+
+```text
+Frontend
+  -> Node application API
+  -> LLM selects a typed computation tool and arguments
+  -> deterministic Python function returns a structured sequence delta
+  -> per-session SequenceWorkspace processes and appends the delta
+  -> API serializes the processed sequence to TXT for the frontend
+```
+
+The in-memory workspace is the authoritative sequence state for a session. It owns:
+
+- the complete structured activation sequence
+- current-frame lookup
+- delta concatenation and time-step reindexing
+- preservation of unselected static droplets across generated frames
+- TXT parsing at import boundaries and TXT serialization at response boundaries
+
+The workspace also exposes typed variables to the LLM tool environment:
+
+- `sequence`: the complete structured sequence
+- `currentFrameDroplets`: droplets in the latest frame
+- `selectedDroplets`: the current UI selection
+
+Tool arguments can explicitly reference a compatible value with a structured reference such
+as `{ "workspaceVariable": "selectedDroplets" }`. The backend resolves the reference and
+validates the resulting value before invoking the deterministic computation function.
+
+The LLM does not compose TXT activation lines. It only decides which registered function to
+call and supplies schema-validated arguments. Server restart currently clears all workspaces.
 
 ## Backend API
 
@@ -159,9 +172,9 @@ Selected-droplet prompt:
 对当前选中的液滴做3圈旋转混匀。
 ```
 
-### `rotate_mix_array`
+#### Array input
 
-Run many rotate-mix modules in parallel using automatic array layout.
+The same `rotate_mix` operation can arrange and mix many droplets in parallel.
 
 Implementation note:
 
@@ -170,9 +183,9 @@ Implementation note:
 
 Behavior:
 
-- build one base rotate-mix module anchored at `(0,0)`
+- generate array coordinates from the requested origin and droplet size
 - compute the module envelope size from its full activation sequence
-- replicate the module into an array with default gap `4`
+- arrange droplets with the standard gap `4` when the user confirms the default layout
 - compute layout from the requested parallel count using a near-square grid
 
 Layout rule:
@@ -192,7 +205,7 @@ Examples:
 Typical prompt:
 
 ```text
-对16个尺寸为（3，2）的液滴并行做3圈旋转混匀。
+对处于位置（20，30）尺寸为（3，2）的16个液滴做3圈旋转混匀。使用默认阵列排布。
 ```
 
 ## Step Text Format

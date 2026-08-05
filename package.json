@@ -17,9 +17,12 @@
   "scripts": {
     "server": "node --watch server/index.js",
     "server:once": "node server/index.js",
-    "start": "react-scripts start",
+    "start": "node scripts/start-dev.js",
+    "start:frontend": "react-scripts start",
+    "setup:python": "node scripts/setup-python.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:server": "node --test server/index.node.test.js",
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:3001",

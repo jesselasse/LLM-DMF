@@ -93,8 +93,10 @@ test("send button keeps the existing backend request contract", async () => {
   render(<App />);
   fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
 
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-  const [url, options] = fetchMock.mock.calls[0];
+  const generationCalls = () =>
+    fetchMock.mock.calls.filter(([url]) => url === "/api/steps-from-message");
+  await waitFor(() => expect(generationCalls()).toHaveLength(1));
+  const [url, options] = generationCalls()[0];
   const body = JSON.parse(options.body);
   expect(url).toBe("/api/steps-from-message");
   expect(options.method).toBe("POST");
@@ -128,13 +130,15 @@ test("enter sends and clears while shift enter keeps editing", async () => {
   fireEvent.change(input, { target: { value: "测试 Enter 发送" } });
   fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
 
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-  expect(JSON.parse(fetchMock.mock.calls[0][1].body).message).toBe("测试 Enter 发送");
+  const generationCalls = () =>
+    fetchMock.mock.calls.filter(([url]) => url === "/api/steps-from-message");
+  await waitFor(() => expect(generationCalls()).toHaveLength(1));
+  expect(JSON.parse(generationCalls()[0][1].body).message).toBe("测试 Enter 发送");
   expect(input).toHaveValue("");
 
   fireEvent.change(input, { target: { value: "继续编辑" } });
   fireEvent.keyDown(input, { key: "Enter", code: "Enter", shiftKey: true });
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(generationCalls()).toHaveLength(1);
   expect(input).toHaveValue("继续编辑");
 
   fetchMock.mockRestore();

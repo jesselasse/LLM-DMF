@@ -1,12 +1,22 @@
 const express = require("express");
 const path = require("path");
 const { spawn } = require("child_process");
+const {
+  getLastStepRects,
+  mergeDeltaWithCurrentFrame: mergeSequenceDeltaWithCurrentFrame,
+  normalizeRect,
+  normalizeRects,
+  normalizeSequence,
+  parseSequenceText,
+  SequenceWorkspace,
+  sequenceToText,
+} = require("./sequence_workspace");
 
 const app = express();
 const port = process.env.PORT || 3001;
-const BACKEND_VERSION = "llm-move-v3-context";
+const BACKEND_VERSION = "llm-move-v4-sequence-workspace";
 
-// session_id -> { sequenceText, conversation, selectedDroplets, updatedAt }
+// session_id -> { workspace, conversation, selectedDroplets, updatedAt }
 const sessionStore = new Map();
 
 app.use(express.json());
@@ -20,7 +30,7 @@ function ensureSessionState(sessionId) {
   const existing = sessionStore.get(sessionId);
   if (existing) return existing;
   const created = {
-    sequenceText: "",
+    workspace: new SequenceWorkspace(),
     conversation: [],
     selectedDroplets: [],
     updatedAt: Date.now(),
@@ -29,28 +39,66 @@ function ensureSessionState(sessionId) {
   return created;
 }
 
-function normalizeDroplet(value) {
-  if (!value || typeof value !== "object") return null;
-  const x = Number(value.x);
-  const y = Number(value.y);
-  const w = Number(value.w);
-  const h = Number(value.h);
-  if (![x, y, w, h].every(Number.isInteger)) return null;
-  if (w <= 0 || h <= 0) return null;
-  return { x, y, w, h };
-}
-
 function normalizeSelectedDroplets(raw) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map(normalizeDroplet).filter(Boolean);
+  return normalizeRects(raw);
 }
 
-function appendSequence(existing, delta) {
-  const left = String(existing || "").trim();
-  const right = String(delta || "").trim();
-  if (!left) return right;
-  if (!right) return left;
-  return `${left}\n${right}`;
+function syncSessionState(state, payload) {
+  if (payload && Object.prototype.hasOwnProperty.call(payload, "sequenceText")) {
+    state.workspace.importText(payload.sequenceText);
+    state.conversation = [];
+  } else if (payload && Object.prototype.hasOwnProperty.call(payload, "sequence")) {
+    state.workspace.replace(payload.sequence);
+    state.conversation = [];
+  }
+  if (payload && Object.prototype.hasOwnProperty.call(payload, "selectedDroplets")) {
+    state.selectedDroplets = normalizeSelectedDroplets(payload.selectedDroplets);
+  }
+  state.updatedAt = Date.now();
+  return state;
+}
+
+function resolveDropletsFromCall(call, selectedDroplets) {
+  if (!call || typeof call !== "object") return [];
+  const resolvedDroplets = normalizeSelectedDroplets(call.resolvedDroplets);
+  if (resolvedDroplets.length) return resolvedDroplets;
+  const args = call.args && typeof call.args === "object" ? call.args : {};
+  const droplets = normalizeSelectedDroplets(args.droplets);
+  const hasExplicitSingle = ["x", "y", "w", "h"].some((key) => args[key] !== null && args[key] !== undefined);
+
+  if (droplets.length && hasExplicitSingle) {
+    return [];
+  }
+  if (droplets.length) {
+    return droplets;
+  }
+  if (hasExplicitSingle) {
+    const single = normalizeRect({
+      x: args.x,
+      y: args.y,
+      w: args.w,
+      h: args.h,
+    });
+    return single ? [single] : [];
+  }
+  if (call.tool === "move" || call.tool === "rotate_mix") {
+    return normalizeSelectedDroplets(selectedDroplets);
+  }
+  return [];
+}
+
+function getLastStepRectsFromSequenceText(text) {
+  return getLastStepRects(parseSequenceText(text));
+}
+
+function mergeDeltaWithCurrentFrame(deltaText, frameRects, selectedDroplets) {
+  return sequenceToText(
+    mergeSequenceDeltaWithCurrentFrame(
+      parseSequenceText(deltaText),
+      frameRects,
+      selectedDroplets
+    )
+  );
 }
 
 function runLlmAgent(message, context) {
@@ -104,42 +152,65 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.post("/api/session-state", (req, res) => {
+  try {
+    const sessionId = normalizeSessionId(req.body && req.body.sessionId);
+    const state = ensureSessionState(sessionId);
+    syncSessionState(state, req.body || {});
+    sessionStore.set(sessionId, state);
+    return res.json({
+      sessionId,
+      selectedDroplets: state.selectedDroplets,
+      currentFrameRects: state.workspace.currentFrame(),
+    });
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message || "failed to sync session state",
+    });
+  }
+});
+
 app.post("/api/steps-from-message", async (req, res) => {
   try {
     const message = String((req.body && req.body.message) || "").trim();
     const sessionId = normalizeSessionId(req.body && req.body.sessionId);
     const resetContext = Boolean(req.body && req.body.resetContext);
-    const selectedDroplets = normalizeSelectedDroplets(
-      req.body && req.body.selectedDroplets
-    );
-
     if (!message) {
       return res.status(400).json({ error: "message is required" });
     }
 
     const state = ensureSessionState(sessionId);
     if (resetContext) {
-      state.sequenceText = "";
+      state.workspace.clear();
       state.conversation = [];
       state.selectedDroplets = [];
     }
 
-    state.selectedDroplets = selectedDroplets;
+    syncSessionState(state, req.body || {});
+    const currentFrameRects = state.workspace.currentFrame();
 
     const context = {
-      sequenceText: state.sequenceText,
+      sequence: state.workspace.snapshot(),
+      workspaceVariables: state.workspace.variables(state.selectedDroplets),
       conversation: state.conversation,
       selectedDroplets: state.selectedDroplets,
     };
 
     const result = await runLlmAgent(message, context);
     const assistantReply = String(result.assistantReply || "");
-    const delta = String(result.stepsTextDelta || "");
+    const rawDelta = normalizeSequence(result.sequenceDelta);
     const moveCalls = Array.isArray(result.moveCalls) ? result.moveCalls : [];
+    const resolvedSelectedDroplets = moveCalls.flatMap((call) =>
+      resolveDropletsFromCall(call, state.selectedDroplets)
+    );
+    const effectiveSelectedDroplets = resolvedSelectedDroplets.length
+      ? resolvedSelectedDroplets
+      : state.selectedDroplets;
+    const delta = state.workspace.applyDelta(rawDelta, effectiveSelectedDroplets);
 
     state.conversation.push({ role: "user", content: message });
     state.conversation.push({ role: "assistant", content: assistantReply });
-    state.sequenceText = appendSequence(state.sequenceText, delta);
+    state.selectedDroplets = normalizeSelectedDroplets(effectiveSelectedDroplets);
     state.updatedAt = Date.now();
     sessionStore.set(sessionId, state);
 
@@ -147,10 +218,12 @@ app.post("/api/steps-from-message", async (req, res) => {
     return res.json({
       sessionId,
       assistantReply,
-      stepsTextDelta: delta,
-      stepsText: state.sequenceText,
+      stepsTextDelta: sequenceToText(delta),
+      stepsTextDeltaRaw: sequenceToText(rawDelta),
+      stepsText: state.workspace.toText(),
       moveCalls,
       selectedDroplets: state.selectedDroplets,
+      currentFrameRects,
     });
   } catch (error) {
     return res.status(502).json({
@@ -159,7 +232,17 @@ app.post("/api/steps-from-message", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Backend listening on http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Backend listening on http://localhost:${port}`);
+  });
+}
+
+module.exports = {
+  app,
+  getLastStepRectsFromSequenceText,
+  mergeDeltaWithCurrentFrame,
+  parseStepsText: parseSequenceText,
+  sessionStore,
+};

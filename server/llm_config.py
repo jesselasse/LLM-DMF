@@ -10,4 +10,4 @@ def _require_env(name: str) -> str:
 
 LLM_BASE_URL = _require_env("OPENAI_BASE_URL")
 LLM_API_KEY = _require_env("OPENAI_API_KEY")
-LLM_MODEL = _require_env("OPENAI_MODEL")
+LLM_MODEL = os.getenv("OPENAI_MODEL") or "gpt-5.4"

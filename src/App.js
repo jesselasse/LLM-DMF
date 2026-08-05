@@ -187,6 +187,15 @@ export default function App() {
     if (!steps.length || currentStep < 0) return "No step selected";
     return `Step ${currentStep + 1} / ${steps.length}`;
   }, [steps.length, currentStep]);
+  const activeStep = useMemo(
+    () => (currentStep >= 0 && currentStep < steps.length ? steps[currentStep] : null),
+    [currentStep, steps]
+  );
+  const latestStep = useMemo(
+    () => (steps.length ? steps[steps.length - 1] : null),
+    [steps]
+  );
+  const latestFrameRects = useMemo(() => latestStep?.rects || [], [latestStep]);
 
   function resizeCanvas() {
     const canvas = canvasRef.current;
@@ -268,8 +277,6 @@ export default function App() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const activeStep =
-      currentStep >= 0 && currentStep < steps.length ? steps[currentStep] : null;
 
     const { warning } = drawGridAndDroplets({
       ctx,
@@ -337,6 +344,9 @@ export default function App() {
 
   function handleCanvasClick(event) {
     const cell = getGridCellFromPointer(event);
+    if (currentStep !== steps.length - 1) {
+      return;
+    }
     const activeStep =
       currentStep >= 0 && currentStep < steps.length ? steps[currentStep] : null;
     if (!cell || !activeStep || !Array.isArray(activeStep.rects)) {
@@ -410,6 +420,42 @@ export default function App() {
   }, [scale]);
 
   useEffect(() => {
+    const currentKeys = new Set(latestFrameRects.map((rect) => dropletKey(rect)));
+    setSelectedDroplets((prev) => {
+      const next = prev.filter((rect) => currentKeys.has(dropletKey(rect)));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [latestFrameRects]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function syncSessionState() {
+      try {
+        const response = await fetch("/api/session-state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            selectedDroplets,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+        await response.json();
+      } catch (error) {
+        if (error.name !== "AbortError") return;
+      }
+    }
+
+    syncSessionState();
+    return () => controller.abort();
+  }, [sessionId, selectedDroplets]);
+
+  useEffect(() => {
     if (!isPlaying || !steps.length) return undefined;
     if (currentStep < 0) return undefined;
     if (currentStep >= steps.length - 1) {
@@ -480,6 +526,11 @@ export default function App() {
     setSteps(parsedSteps);
     setCurrentStep(parsedSteps.length ? 0 : -1);
     setSelectedDroplets([]);
+    await fetch("/api/session-state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, sequenceText: text, selectedDroplets: [] }),
+    });
   }
 
   // New: send message to backend and parse returned TXT content
@@ -498,8 +549,14 @@ export default function App() {
     setBackendLoading(true);
     setBackendRawOutput("");
     setBackendResultText("");
+    const baseSteps = steps;
+    const selectedDropletSnapshot = selectedDroplets.map(normalizeDroplet);
 
-    const requestBody = { message, sessionId, selectedDroplets };
+    const requestBody = {
+      message,
+      sessionId,
+      selectedDroplets: selectedDropletSnapshot,
+    };
     const requestRaw = JSON.stringify(requestBody);
     const requestedAt = new Date().toISOString();
     let rawEntryRecorded = false;
@@ -543,25 +600,37 @@ export default function App() {
         setChatMessages((prev) => [...prev, { role: "assistant", text: rawOutput }]);
       }
 
-      const txt = extractStepsTextFromRaw(
-        typeof payload.stepsText === "string" ? payload.stepsText : rawOutput
+      const completeText = extractStepsTextFromRaw(
+        typeof payload.stepsText === "string" ? payload.stepsText : ""
       );
-      if (!txt.trim()) {
+      const deltaText = extractStepsTextFromRaw(
+        typeof payload.stepsTextDelta === "string" ? payload.stepsTextDelta : ""
+      );
+      if (!completeText.trim() && !deltaText.trim()) {
         // Interactive mode: assistant may ask follow-up questions without steps.
         return;
       }
 
-      setBackendResultText(txt);
-      const parsedSteps = parseStepsTxt(txt);
-      const totalRects = parsedSteps.reduce((sum, step) => sum + step.rects.length, 0);
-      if (!parsedSteps.length || totalRects === 0) {
+      const authoritativeSteps = completeText.trim()
+        ? parseStepsTxt(completeText)
+        : [...baseSteps, ...parseStepsTxt(deltaText)];
+      const totalRects = authoritativeSteps.reduce(
+        (sum, step) => sum + step.rects.length,
+        0
+      );
+      if (!authoritativeSteps.length || totalRects === 0) {
         // Keep chat running even when returned text is not drawable.
         return;
       }
 
+      setBackendResultText(deltaText.trim() || completeText);
       setIsPlaying(false);
-      setSteps(parsedSteps);
-      setCurrentStep(parsedSteps.length ? 0 : -1);
+      setSteps(authoritativeSteps);
+      setCurrentStep(
+        authoritativeSteps.length
+          ? Math.min(baseSteps.length, authoritativeSteps.length - 1)
+          : -1
+      );
       requestAnimationFrame(() => redrawCanvas());
     } catch (error) {
       if (!rawEntryRecorded) {
