@@ -95,42 +95,6 @@ body {
   padding: 0;
 }
 
-.controls-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 58px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-}
-
-.controls-brand {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  color: #fff;
-  background: var(--primary);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.controls-header h1 {
-  margin: 0;
-  color: var(--text-strong);
-  font-size: 14px;
-  line-height: 1.25;
-}
-
-.controls-header p {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .control-section {
   display: grid;
   gap: 9px;
@@ -139,6 +103,10 @@ body {
   border: 1px solid var(--line);
   border-radius: 11px;
   background: var(--subtle);
+}
+
+.controls-panel > .control-section:first-child {
+  margin-top: 12px;
 }
 
 .control-section-title {
@@ -233,28 +201,54 @@ body {
   background: var(--control);
 }
 
-.file-input-label {
-  color: var(--muted);
-  font-size: 10px;
-}
-
 .file-input {
-  height: auto;
-  min-height: 36px;
-  padding: 4px;
-  color: var(--muted);
-  font-size: 10px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.file-input::file-selector-button {
-  height: 27px;
-  margin-right: 8px;
-  padding: 0 9px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text);
-  background: var(--control);
+.file-import-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  color: #fff;
+  background: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.file-import-btn:hover,
+.file-input:focus-visible + .file-import-btn {
+  filter: brightness(1.04);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.file-import-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.selected-file-name {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .secondary-action-btn {
@@ -279,7 +273,7 @@ body {
 .controls-footer {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin-top: auto;
   padding: 12px;
@@ -326,7 +320,7 @@ body {
 .interface-settings {
   position: absolute;
   left: 0;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   z-index: 20;
   display: grid;
   gap: 12px;
@@ -336,6 +330,18 @@ body {
   border-radius: 12px;
   background: var(--panel);
   box-shadow: 0 14px 38px rgba(15, 23, 42, 0.2);
+}
+
+.chat-settings-anchor {
+  flex: 0 0 auto;
+}
+
+.chat-settings-trigger {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 9px;
 }
 
 .settings-row {
@@ -549,6 +555,17 @@ textarea {
   flex-wrap: wrap;
 }
 
+.preset-toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.preset-toolbar .preset-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .preset-btn {
   width: auto;
   min-width: 0;
@@ -558,6 +575,86 @@ textarea {
   border-radius: 999px;
   background: var(--subtle);
   color: var(--muted);
+}
+
+.manage-presets-btn {
+  flex: 0 0 auto;
+  width: auto;
+  height: 28px;
+  padding: 0 8px;
+  border-style: dashed;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 10px;
+}
+
+.preset-manager {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--subtle);
+}
+
+.preset-manager-topline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 6px;
+}
+
+.preset-manager select,
+.preset-manager input,
+.preset-manager textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--control);
+  font: inherit;
+  font-size: 11px;
+}
+
+.preset-manager select,
+.preset-manager input {
+  height: 30px;
+  padding: 0 8px;
+}
+
+.preset-manager textarea {
+  min-height: 52px;
+  max-height: 92px;
+  padding: 7px 8px;
+  resize: vertical;
+}
+
+.preset-manager-topline button {
+  height: 30px;
+  padding: 0;
+  background: var(--control);
+}
+
+.preset-manager-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.preset-manager-actions button {
+  width: auto;
+  height: 28px;
+  padding: 0 9px;
+  color: var(--text);
+  background: var(--control);
+  font-size: 10px;
+}
+
+.preset-manager-actions .save-preset-btn {
+  color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
 }
 
 button {
@@ -700,6 +797,7 @@ button:disabled {
 }
 
 .chat-bubble {
+  position: relative;
   max-width: 86%;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -707,6 +805,39 @@ button:disabled {
   font-size: 13px;
   line-height: 1.35;
   white-space: pre-wrap;
+}
+
+.chat-bubble.user {
+  padding-right: 36px;
+}
+
+.edit-chat-message-btn {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+}
+
+.edit-chat-message-btn:hover:not(:disabled),
+.edit-chat-message-btn:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.edit-chat-message-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
 }
 
 .chat-bubble.user {
@@ -882,6 +1013,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 9px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -956,6 +1088,31 @@ button:disabled {
   background: var(--panel);
 }
 
+.composer-edit-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--primary-border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--primary-soft);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.composer-edit-notice button {
+  flex: 0 0 auto;
+  width: auto;
+  height: 24px;
+  padding: 0 7px;
+  color: var(--primary);
+  border-color: var(--primary-border);
+  background: var(--control);
+  font-size: 10px;
+}
+
 .composer-input-row {
   position: relative;
 }
@@ -975,6 +1132,10 @@ button:disabled {
   border-color: #93c5fd;
   outline: none;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.composer-input-row .backend-input:disabled {
+  opacity: 0.78;
 }
 
 .composer-input-row .backend-input::selection {

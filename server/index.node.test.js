@@ -4,6 +4,7 @@ const {
   getLastStepRectsFromSequenceText,
   mergeDeltaWithCurrentFrame,
   parseStepsText,
+  rewindSessionToTurn,
 } = require("./index");
 const {
   appendSequence,
@@ -156,4 +157,39 @@ describe("structured sequence workspace", () => {
       /reserved/
     );
   });
+});
+
+test("editing a turn restores only the context before that turn", () => {
+  const firstStep = parseSequenceText("(1,1)(1,1)-1000");
+  const state = {
+    workspace: new SequenceWorkspace(
+      parseSequenceText("(1,1)(1,1)-1000\n(2,1)(1,1)-1000")
+    ),
+    conversation: [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "first reply" },
+      { role: "user", content: "second" },
+      { role: "assistant", content: "second reply" },
+    ],
+    selectedDroplets: [{ x: 2, y: 1, w: 1, h: 1 }],
+    turns: [
+      {
+        sequenceBefore: [],
+        selectedDropletsBefore: [],
+        conversationLengthBefore: 0,
+      },
+      {
+        sequenceBefore: firstStep,
+        selectedDropletsBefore: [{ x: 1, y: 1, w: 1, h: 1 }],
+        conversationLengthBefore: 2,
+      },
+    ],
+  };
+
+  rewindSessionToTurn(state, 1);
+
+  assert.equal(state.workspace.toText(), "(1,1)(1,1)-1000");
+  assert.equal(state.conversation.length, 2);
+  assert.equal(state.turns.length, 1);
+  assert.deepEqual(state.selectedDroplets, [{ x: 1, y: 1, w: 1, h: 1 }]);
 });

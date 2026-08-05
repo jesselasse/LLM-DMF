@@ -25,8 +25,9 @@ beforeEach(() => {
 
 test("renders core sections", () => {
   render(<App />);
-  expect(screen.getByRole("heading", { name: "Digital Microfluidics Grid Basics" })).toBeInTheDocument();
-  expect(screen.getByText("加载 TXT 步骤文件")).toBeInTheDocument();
+  expect(screen.queryByText("Digital Microfluidics Grid Basics")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("加载 TXT 步骤文件")).toBeInTheDocument();
+  expect(screen.getByText("导入步骤")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "步骤" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "导出日志" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "导出步骤" })).toBeInTheDocument();
@@ -254,7 +255,7 @@ test("interface settings switch language and theme without changing prompt data"
   expect(window.localStorage.getItem("dmf-ui-theme")).toBe("dark");
 
   fireEvent.click(screen.getByRole("button", { name: "English" }));
-  expect(screen.getByRole("heading", { name: "Digital Microfluidics Grid Basics" })).toBeInTheDocument();
+  expect(screen.queryByText("Digital Microfluidics Grid Basics")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Send message" })).toBeInTheDocument();
   expect(document.documentElement).toHaveAttribute("lang", "en");
   expect(window.localStorage.getItem("dmf-ui-locale")).toBe("en");
@@ -304,4 +305,111 @@ test("composer grows with multiline input and caps its height", () => {
   });
   fireEvent.change(input, { target: { value: "更多内容\n".repeat(12) } });
   expect(input).toHaveStyle({ height: "160px", overflowY: "auto" });
+});
+
+test("editing a sent turn regenerates it without discarding earlier context", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url, options) => {
+    if (url === "/api/session-state") {
+      return { ok: true, json: async () => ({}) };
+    }
+    const body = JSON.parse(options.body);
+    return {
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          turnIndex: body.editTurnIndex ?? 0,
+          baseStepCount: 0,
+          assistantReply: body.editTurnIndex === 0 ? "修改后的回复" : "第一次回复",
+          stepsText: "",
+          selectedDroplets: [],
+        }),
+    };
+  });
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
+  expect(await screen.findByText("第一次回复")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "编辑这条消息" }));
+  const input = screen.getByRole("textbox", { name: "对话输入" });
+  expect(input).toHaveValue("在（20，20）向右生成3个液滴");
+  expect(screen.getByText(/正在编辑第 1 轮/)).toBeInTheDocument();
+
+  fireEvent.change(input, { target: { value: "修改后的要求" } });
+  fireEvent.click(screen.getByRole("button", { name: "重新生成" }));
+
+  const generationCalls = () =>
+    fetchMock.mock.calls.filter(([url]) => url === "/api/steps-from-message");
+  await waitFor(() => expect(generationCalls()).toHaveLength(2));
+  expect(JSON.parse(generationCalls()[1][1].body)).toMatchObject({
+    message: "修改后的要求",
+    editTurnIndex: 0,
+  });
+  expect(await screen.findByText("修改后的回复")).toBeInTheDocument();
+  expect(screen.queryByText("第一次回复")).not.toBeInTheDocument();
+
+  fetchMock.mockRestore();
+});
+
+test("failed send restores the message for retry", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url) => {
+    if (url === "/api/session-state") {
+      return { ok: true, json: async () => ({}) };
+    }
+    return {
+      ok: false,
+      status: 502,
+      text: async () => JSON.stringify({ error: "temporary failure" }),
+    };
+  });
+
+  render(<App />);
+  const input = screen.getByRole("textbox", { name: "对话输入" });
+  fireEvent.change(input, { target: { value: "请稍后重试" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
+
+  expect(await screen.findByText("错误：temporary failure")).toBeInTheDocument();
+  expect(input).toHaveValue("请稍后重试");
+
+  fetchMock.mockRestore();
+});
+
+test("preset manager can create and reuse a local preset", () => {
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "管理预设" }));
+  fireEvent.click(screen.getByRole("button", { name: "＋" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "名称" }), {
+    target: { value: "我的操作" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "内容" }), {
+    target: { value: "自定义液滴操作" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "保存预设" }));
+  fireEvent.click(screen.getByRole("button", { name: "我的操作" }));
+
+  expect(screen.getByRole("textbox", { name: "对话输入" })).toHaveValue(
+    "自定义液滴操作"
+  );
+  expect(window.localStorage.getItem("dmf-chat-presets-v1")).toContain("我的操作");
+});
+
+test("preset manager can delete a built-in preset and keep that choice locally", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
+    ok: true,
+    json: async () => ({}),
+  });
+  const { unmount } = render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "管理预设" }));
+  fireEvent.click(screen.getByRole("button", { name: "删除预设" }));
+
+  expect(screen.queryByRole("button", { name: "PCR" })).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(window.localStorage.getItem("dmf-chat-presets-v1")).not.toContain('"id":"pcr"')
+  );
+
+  unmount();
+  render(<App />);
+  expect(screen.queryByRole("button", { name: "PCR" })).not.toBeInTheDocument();
+  fetchMock.mockRestore();
 });

@@ -33,10 +33,14 @@ function normalizeSessionId(raw) {
 
 function ensureSessionState(sessionId) {
   const existing = sessionStore.get(sessionId);
-  if (existing) return existing;
+  if (existing) {
+    if (!Array.isArray(existing.turns)) existing.turns = [];
+    return existing;
+  }
   const created = {
     workspace: new SequenceWorkspace(),
     conversation: [],
+    turns: [],
     selectedDroplets: [],
     updatedAt: Date.now(),
   };
@@ -52,13 +56,28 @@ function syncSessionState(state, payload) {
   if (payload && Object.prototype.hasOwnProperty.call(payload, "sequenceText")) {
     state.workspace.importText(payload.sequenceText);
     state.conversation = [];
+    state.turns = [];
   } else if (payload && Object.prototype.hasOwnProperty.call(payload, "sequence")) {
     state.workspace.replace(payload.sequence);
     state.conversation = [];
+    state.turns = [];
   }
   if (payload && Object.prototype.hasOwnProperty.call(payload, "selectedDroplets")) {
     state.selectedDroplets = normalizeSelectedDroplets(payload.selectedDroplets);
   }
+  state.updatedAt = Date.now();
+  return state;
+}
+
+function rewindSessionToTurn(state, turnIndex) {
+  if (!Number.isInteger(turnIndex) || turnIndex < 0 || turnIndex >= state.turns.length) {
+    throw new Error("editTurnIndex does not identify an existing conversation turn");
+  }
+  const turn = state.turns[turnIndex];
+  state.workspace.replace(turn.sequenceBefore);
+  state.selectedDroplets = normalizeSelectedDroplets(turn.selectedDropletsBefore);
+  state.conversation = state.conversation.slice(0, turn.conversationLengthBefore);
+  state.turns = state.turns.slice(0, turnIndex);
   state.updatedAt = Date.now();
   return state;
 }
@@ -261,6 +280,9 @@ app.post("/api/steps-from-message", async (req, res) => {
     const message = String((req.body && req.body.message) || "").trim();
     const sessionId = normalizeSessionId(req.body && req.body.sessionId);
     const resetContext = Boolean(req.body && req.body.resetContext);
+    const hasEditTurn =
+      req.body && Object.prototype.hasOwnProperty.call(req.body, "editTurnIndex");
+    const editTurnIndex = hasEditTurn ? Number(req.body.editTurnIndex) : null;
     let llmConfig;
     try {
       llmConfig = normalizeLlmConfig(req.body && req.body.llmConfig);
@@ -272,13 +294,31 @@ app.post("/api/steps-from-message", async (req, res) => {
     }
 
     const state = ensureSessionState(sessionId);
+    const editRollback = hasEditTurn
+      ? {
+          sequence: state.workspace.snapshot(),
+          conversation: [...state.conversation],
+          turns: [...state.turns],
+          selectedDroplets: normalizeSelectedDroplets(state.selectedDroplets),
+        }
+      : null;
     if (resetContext) {
       state.workspace.clear();
       state.conversation = [];
+      state.turns = [];
       state.selectedDroplets = [];
     }
-
-    syncSessionState(state, req.body || {});
+    if (hasEditTurn) {
+      rewindSessionToTurn(state, editTurnIndex);
+    } else {
+      syncSessionState(state, req.body || {});
+    }
+    const turnIndex = state.turns.length;
+    const turnSnapshot = {
+      sequenceBefore: state.workspace.snapshot(),
+      selectedDropletsBefore: normalizeSelectedDroplets(state.selectedDroplets),
+      conversationLengthBefore: state.conversation.length,
+    };
     const currentFrameRects = state.workspace.currentFrame();
 
     const context = {
@@ -288,7 +328,19 @@ app.post("/api/steps-from-message", async (req, res) => {
       selectedDroplets: state.selectedDroplets,
     };
 
-    const result = await runLlmAgent(message, context, llmConfig);
+    let result;
+    try {
+      result = await runLlmAgent(message, context, llmConfig);
+    } catch (error) {
+      if (editRollback) {
+        state.workspace.replace(editRollback.sequence);
+        state.conversation = editRollback.conversation;
+        state.turns = editRollback.turns;
+        state.selectedDroplets = editRollback.selectedDroplets;
+        state.updatedAt = Date.now();
+      }
+      throw error;
+    }
     const assistantReply = String(result.assistantReply || "");
     state.workspace.applyVariableUpdates(result.workspaceUpdates);
     const rawDelta = normalizeSequence(result.sequenceDelta);
@@ -303,6 +355,7 @@ app.post("/api/steps-from-message", async (req, res) => {
 
     state.conversation.push({ role: "user", content: message });
     state.conversation.push({ role: "assistant", content: assistantReply });
+    state.turns.push(turnSnapshot);
     state.selectedDroplets = normalizeSelectedDroplets(effectiveSelectedDroplets);
     state.updatedAt = Date.now();
     sessionStore.set(sessionId, state);
@@ -310,6 +363,8 @@ app.post("/api/steps-from-message", async (req, res) => {
     res.set("x-backend-version", BACKEND_VERSION);
     return res.json({
       sessionId,
+      turnIndex,
+      baseStepCount: turnSnapshot.sequenceBefore.length,
       assistantReply,
       stepsTextDelta: sequenceToText(delta),
       stepsTextDeltaRaw: sequenceToText(rawDelta),
@@ -337,5 +392,6 @@ module.exports = {
   getLastStepRectsFromSequenceText,
   mergeDeltaWithCurrentFrame,
   parseStepsText: parseSequenceText,
+  rewindSessionToTurn,
   sessionStore,
 };

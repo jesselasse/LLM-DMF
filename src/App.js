@@ -24,7 +24,7 @@ const GRID_VIEWPORT_PADDING = 28;
 const GRID_MIN_SCALE = 0.1;
 const GRID_MAX_SCALE = 2.5;
 const GRID_ZOOM_FACTOR = 1.25;
-const INPUT_PRESETS = [
+const DEFAULT_INPUT_PRESETS = [
   {
     id: "pcr",
     labels: { zh: "PCR", en: "PCR" },
@@ -66,7 +66,38 @@ const INPUT_PRESETS = [
     text: "对 3 个尺寸为 1×1 的液滴并行做 3 圈阵列混匀",
   },
 ];
+const PRESET_STORAGE_KEY = "dmf-chat-presets-v1";
 const EMPTY_LLM_CONFIG = { baseUrl: "", apiKey: "", model: "" };
+
+function cloneDefaultPresets() {
+  return DEFAULT_INPUT_PRESETS.map((preset) => ({
+    ...preset,
+    labels: { ...preset.labels },
+  }));
+}
+
+function readChatPresets() {
+  try {
+    const stored = window.localStorage.getItem(PRESET_STORAGE_KEY);
+    if (stored === null) return cloneDefaultPresets();
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed) || parsed.length > 32) {
+      return cloneDefaultPresets();
+    }
+    const valid = parsed.every(
+      (preset) =>
+        preset &&
+        typeof preset.id === "string" &&
+        preset.labels &&
+        typeof preset.labels.zh === "string" &&
+        typeof preset.labels.en === "string" &&
+        typeof preset.text === "string"
+    );
+    return valid ? parsed : cloneDefaultPresets();
+  } catch (_error) {
+    return cloneDefaultPresets();
+  }
+}
 
 function compactLlmConfig(config) {
   return Object.fromEntries(
@@ -78,13 +109,13 @@ function compactLlmConfig(config) {
 
 const UI_COPY = {
   zh: {
-    appTitle: "Digital Microfluidics Grid Basics",
-    appSubtitle: "网格、步骤与导出",
     gridSize: "网格尺寸",
     rows: "行数",
     columns: "列数",
     stepFile: "步骤文件",
     loadTxt: "加载 TXT 步骤文件",
+    importSteps: "导入步骤",
+    noFileSelected: "尚未选择文件",
     exportSteps: "导出步骤",
     exportingSteps: "正在导出步骤…",
     example: "格式示例",
@@ -151,20 +182,32 @@ const UI_COPY = {
     rawOutput: "原始后端输出",
     generatedSteps: "生成的步骤",
     presets: "预设对话",
+    managePresets: "管理预设",
+    closePresetManager: "关闭",
+    newPreset: "新增预设",
+    presetName: "名称",
+    presetPrompt: "内容",
+    savePreset: "保存预设",
+    resetPreset: "恢复默认",
+    deletePreset: "删除预设",
     composerLabel: "对话输入",
     composerPlaceholder: "描述需要执行的液滴操作…",
     send: "发送消息",
+    editMessage: "编辑这条消息",
+    editingMessage: (turn) => `正在编辑第 ${turn} 轮；发送后将替换这一轮及其后的回复。`,
+    cancelEdit: "取消编辑",
+    resend: "重新生成",
     composerHint: "示例：在（20，20）向右生成 3 个液滴",
     outOfBounds: "部分液滴超出网格范围，以红色显示。",
   },
   en: {
-    appTitle: "Digital Microfluidics Grid Basics",
-    appSubtitle: "Grid, steps, and exports",
     gridSize: "Grid size",
     rows: "Rows",
     columns: "Columns",
     stepFile: "Step file",
     loadTxt: "Load TXT step file",
+    importSteps: "Import steps",
+    noFileSelected: "No file selected",
     exportSteps: "Export steps",
     exportingSteps: "Exporting steps…",
     example: "Format example",
@@ -231,9 +274,21 @@ const UI_COPY = {
     rawOutput: "Raw backend output",
     generatedSteps: "Generated steps",
     presets: "Conversation presets",
+    managePresets: "Manage presets",
+    closePresetManager: "Close",
+    newPreset: "New preset",
+    presetName: "Name",
+    presetPrompt: "Prompt",
+    savePreset: "Save preset",
+    resetPreset: "Restore default",
+    deletePreset: "Delete preset",
     composerLabel: "Chat input",
     composerPlaceholder: "Describe the droplet operation…",
     send: "Send message",
+    editMessage: "Edit this message",
+    editingMessage: (turn) => `Editing turn ${turn}. Sending replaces this turn and later replies.`,
+    cancelEdit: "Cancel edit",
+    resend: "Regenerate",
     composerHint: "Example: generate 3 droplets to the right at (20, 20)",
     outOfBounds: "Some droplets are outside the grid and are shown in red.",
   },
@@ -358,6 +413,7 @@ export default function App() {
 
   // Feature 2 + 3 + 4 shared state
   const [steps, setSteps] = useState([]);
+  const [stepFileName, setStepFileName] = useState("");
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -370,6 +426,13 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [rawContextEntries, setRawContextEntries] = useState([]);
+  const [editingTurnIndex, setEditingTurnIndex] = useState(null);
+  const [draftBeforeEdit, setDraftBeforeEdit] = useState("");
+  const [requestInputHeight, setRequestInputHeight] = useState(null);
+  const [chatPresets, setChatPresets] = useState(readChatPresets);
+  const [presetManagerOpen, setPresetManagerOpen] = useState(false);
+  const [editingPresetId, setEditingPresetId] = useState("");
+  const [presetDraft, setPresetDraft] = useState({ label: "", text: "" });
   const [sessionId, setSessionId] = useState(createSessionId);
   const [selectedDroplets, setSelectedDroplets] = useState([]);
 
@@ -433,6 +496,14 @@ export default function App() {
       // Preferences are optional when storage is unavailable.
     }
   }, [theme, locale]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(chatPresets));
+    } catch (_error) {
+      // Custom presets remain available for this page when storage is unavailable.
+    }
+  }, [chatPresets]);
 
   function resizeCanvas() {
     const canvas = canvasRef.current;
@@ -748,16 +819,22 @@ export default function App() {
 
     const minHeight = 48;
     const maxHeight = 160;
+    if (backendLoading && requestInputHeight) {
+      input.style.height = `${requestInputHeight}px`;
+      input.style.overflowY = "hidden";
+      return;
+    }
     input.style.height = "auto";
     const contentHeight = input.scrollHeight + 2;
     input.style.height = `${clamp(contentHeight, minHeight, maxHeight)}px`;
     input.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
-  }, [backendMessage]);
+  }, [backendMessage, backendLoading, requestInputHeight]);
 
   // Feature 2: parse TXT file
   async function handleFileChange(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
+    setStepFileName(file.name);
     const text = await file.text();
     const parsedSteps = parseStepsTxt(text);
     setIsPlaying(false);
@@ -829,8 +906,38 @@ export default function App() {
       return;
     }
 
-    setChatMessages((prev) => [...prev, { role: "user", text: message }]);
+    const requestedEditTurn = editingTurnIndex;
+    const chatMessagesBeforeRequest = chatMessages;
+    const rawContextBeforeRequest = rawContextEntries;
+    const rawOutputBeforeRequest = backendRawOutput;
+    const resultTextBeforeRequest = backendResultText;
+    const successfulTurnCount = chatMessages.filter(
+      (entry) => entry.role === "assistant" && !entry.error && Number.isInteger(entry.turnIndex)
+    ).length;
+    const provisionalTurnIndex = requestedEditTurn ?? successfulTurnCount;
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setChatMessages((prev) => {
+      const editedMessageIndex = prev.findIndex(
+        (entry) => entry.role === "user" && entry.turnIndex === requestedEditTurn
+      );
+      const retained =
+        Number.isInteger(requestedEditTurn) && editedMessageIndex >= 0
+          ? prev.slice(0, editedMessageIndex)
+          : prev;
+      return [
+        ...retained,
+        { role: "user", text: message, turnIndex: provisionalTurnIndex, requestId },
+      ];
+    });
+    if (Number.isInteger(requestedEditTurn)) {
+      setRawContextEntries((prev) =>
+        prev.filter(
+          (entry) => !Number.isInteger(entry.turnIndex) || entry.turnIndex < requestedEditTurn
+        )
+      );
+    }
     setBackendMessage("");
+    setRequestInputHeight(backendInputRef.current?.offsetHeight || 48);
     setBackendLoading(true);
     setBackendRawOutput("");
     setBackendResultText("");
@@ -841,6 +948,9 @@ export default function App() {
       message,
       sessionId,
       selectedDroplets: selectedDropletSnapshot,
+      ...(Number.isInteger(requestedEditTurn)
+        ? { editTurnIndex: requestedEditTurn }
+        : {}),
     };
     const configuredLlmValues = compactLlmConfig(llmConfig);
     const transportBody = Object.keys(configuredLlmValues).length
@@ -871,6 +981,9 @@ export default function App() {
           requestedAt,
           respondedAt: new Date().toISOString(),
           requestRaw,
+          turnIndex: Number.isInteger(payload.turnIndex)
+            ? payload.turnIndex
+            : provisionalTurnIndex,
           responseStatus: response.status,
           responseRaw,
         },
@@ -881,13 +994,32 @@ export default function App() {
       }
       setBackendRawOutput(rawOutput);
 
+      const resolvedTurnIndex = Number.isInteger(payload.turnIndex)
+        ? payload.turnIndex
+        : provisionalTurnIndex;
+      setChatMessages((prev) =>
+        prev.map((entry) =>
+          entry.requestId === requestId
+            ? { ...entry, turnIndex: resolvedTurnIndex }
+            : entry
+        )
+      );
+
       const reply =
         typeof payload.assistantReply === "string" ? payload.assistantReply : "";
       if (reply.trim()) {
-        setChatMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+        setChatMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: reply, turnIndex: resolvedTurnIndex },
+        ]);
       } else {
-        setChatMessages((prev) => [...prev, { role: "assistant", text: rawOutput }]);
+        setChatMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: rawOutput, turnIndex: resolvedTurnIndex },
+        ]);
       }
+      setEditingTurnIndex(null);
+      setDraftBeforeEdit("");
 
       const completeText = extractStepsTextFromRaw(
         typeof payload.stepsText === "string" ? payload.stepsText : ""
@@ -917,29 +1049,146 @@ export default function App() {
       setSteps(authoritativeSteps);
       setCurrentStep(
         authoritativeSteps.length
-          ? Math.min(baseSteps.length, authoritativeSteps.length - 1)
+          ? Math.min(
+              Number.isInteger(payload.baseStepCount)
+                ? payload.baseStepCount
+                : baseSteps.length,
+              authoritativeSteps.length - 1
+            )
           : -1
       );
+      if (Array.isArray(payload.selectedDroplets)) {
+        setSelectedDroplets(payload.selectedDroplets.map(normalizeDroplet));
+      }
       requestAnimationFrame(() => redrawCanvas());
     } catch (error) {
-      if (!rawEntryRecorded) {
+      const errorText = String(error.message || error);
+      if (Number.isInteger(requestedEditTurn)) {
+        setRawContextEntries([
+          ...rawContextBeforeRequest,
+          {
+            requestedAt,
+            failedAt: new Date().toISOString(),
+            requestRaw,
+            turnIndex: provisionalTurnIndex,
+            errorRaw: errorText,
+          },
+        ]);
+      } else if (!rawEntryRecorded) {
         setRawContextEntries((prev) => [
           ...prev,
           {
             requestedAt,
             failedAt: new Date().toISOString(),
             requestRaw,
-            errorRaw: String(error.message || error),
+            turnIndex: provisionalTurnIndex,
+            errorRaw: errorText,
           },
         ]);
       }
       setChatMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: `错误：${error.message || "Request failed."}`, error: true },
+        ...(Number.isInteger(requestedEditTurn)
+          ? chatMessagesBeforeRequest
+          : prev.map((entry) =>
+              entry.requestId === requestId ? { ...entry, turnIndex: null } : entry
+            )),
+        {
+          role: "assistant",
+          text: `错误：${errorText || "Request failed."}`,
+          error: true,
+        },
       ]);
+      if (Number.isInteger(requestedEditTurn)) {
+        setBackendRawOutput(rawOutputBeforeRequest);
+        setBackendResultText(resultTextBeforeRequest);
+      }
+      setBackendMessage(message);
     } finally {
       setBackendLoading(false);
+      setRequestInputHeight(null);
     }
+  }
+
+  function beginEditingMessage(message) {
+    if (backendLoading || !Number.isInteger(message.turnIndex)) return;
+    setDraftBeforeEdit(backendMessage);
+    setEditingTurnIndex(message.turnIndex);
+    setBackendMessage(message.text);
+    requestAnimationFrame(() => backendInputRef.current?.focus());
+  }
+
+  function cancelEditingMessage() {
+    setEditingTurnIndex(null);
+    setBackendMessage(draftBeforeEdit);
+    setDraftBeforeEdit("");
+    setRequestInputHeight(null);
+    requestAnimationFrame(() => backendInputRef.current?.focus());
+  }
+
+  function editPreset(preset) {
+    setEditingPresetId(preset.id);
+    setPresetDraft({ label: preset.labels[locale], text: preset.text });
+  }
+
+  function openPresetManager() {
+    setPresetManagerOpen(true);
+    if (chatPresets.length) editPreset(chatPresets[0]);
+    else startNewPreset();
+  }
+
+  function startNewPreset() {
+    setEditingPresetId("");
+    setPresetDraft({ label: "", text: backendMessage.trim() });
+  }
+
+  function savePreset() {
+    const label = presetDraft.label.trim();
+    const text = presetDraft.text.trim();
+    if (!label || !text) return;
+    if (editingPresetId) {
+      setChatPresets((current) =>
+        current.map((preset) =>
+          preset.id === editingPresetId
+            ? {
+                ...preset,
+                labels: { ...preset.labels, [locale]: label },
+                text,
+              }
+            : preset
+        )
+      );
+      return;
+    }
+    if (chatPresets.length >= 32) return;
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const created = { id, labels: { zh: label, en: label }, text };
+    setChatPresets((current) => [...current, created]);
+    setEditingPresetId(id);
+  }
+
+  function resetPreset() {
+    const defaultPreset = DEFAULT_INPUT_PRESETS.find(
+      (preset) => preset.id === editingPresetId
+    );
+    if (!defaultPreset) return;
+    setChatPresets((current) =>
+      current.map((preset) =>
+        preset.id === editingPresetId
+          ? { ...defaultPreset, labels: { ...defaultPreset.labels } }
+          : preset
+      )
+    );
+    setPresetDraft({
+      label: defaultPreset.labels[locale],
+      text: defaultPreset.text,
+    });
+  }
+
+  function deletePreset() {
+    const remaining = chatPresets.filter((preset) => preset.id !== editingPresetId);
+    setChatPresets(remaining);
+    if (remaining.length) editPreset(remaining[0]);
+    else startNewPreset();
   }
 
   function handleBackendInputKeyDown(event) {
@@ -1038,6 +1287,9 @@ export default function App() {
     setCurrentStep(-1);
     setChatMessages([]);
     setRawContextEntries([]);
+    setEditingTurnIndex(null);
+    setDraftBeforeEdit("");
+    setRequestInputHeight(null);
     setBackendRawOutput("");
     setBackendResultText("");
     setBackendMessage(DEFAULT_BACKEND_MESSAGE);
@@ -1047,14 +1299,6 @@ export default function App() {
   return (
     <div className="app">
       <section className="panel controls-panel">
-        <header className="controls-header">
-          <span className="controls-brand" aria-hidden="true">DMF</span>
-          <div>
-            <h1>{t.appTitle}</h1>
-            <p>{t.appSubtitle}</p>
-          </div>
-        </header>
-
         <div className="control-section">
           <div className="control-section-title">{t.gridSize}</div>
           <div className="grid-dim-inputs">
@@ -1074,9 +1318,17 @@ export default function App() {
 
         <div className="control-section file-section">
           <div className="control-section-title">{t.stepFile}</div>
-          <label className="file-input-label" htmlFor="fileInput">{t.loadTxt}</label>
           <input className="file-input" id="fileInput" aria-label={t.loadTxt}
             type="file" accept=".txt" onChange={handleFileChange} />
+          <label className="file-import-btn" htmlFor="fileInput">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />
+            </svg>
+            {t.importSteps}
+          </label>
+          <span className="selected-file-name" title={stepFileName || t.noFileSelected}>
+            {stepFileName || t.noFileSelected}
+          </span>
           <button type="button" className="secondary-action-btn"
             onClick={handleExportAllSteps} disabled={!steps.length || isExporting}>
             {isExporting ? t.exportingSteps : t.exportSteps}
@@ -1124,135 +1376,6 @@ export default function App() {
         </div>
 
         <div className="controls-footer">
-          <div className="settings-anchor">
-            {settingsOpen ? (
-              <div className="interface-settings" role="group" aria-label={t.interfaceSettings}>
-                <div className="settings-row">
-                  <span>{t.language}</span>
-                  <div className="settings-options">
-                    <button type="button" aria-pressed={locale === "zh"}
-                      className={locale === "zh" ? "active" : ""} onClick={() => setLocale("zh")}>
-                      {t.chinese}
-                    </button>
-                    <button type="button" aria-pressed={locale === "en"}
-                      className={locale === "en" ? "active" : ""} onClick={() => setLocale("en")}>
-                      {t.english}
-                    </button>
-                  </div>
-                </div>
-                <div className="settings-row">
-                  <span>{t.appearance}</span>
-                  <div className="settings-options">
-                    <button type="button" aria-pressed={theme === "light"}
-                      className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}>
-                      {t.light}
-                    </button>
-                    <button type="button" aria-pressed={theme === "dark"}
-                      className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}>
-                      {t.dark}
-                    </button>
-                  </div>
-                </div>
-                <div className="settings-divider" />
-                <fieldset className="llm-settings">
-                  <legend>{t.llmConnection}</legend>
-                  <div className="llm-setting-field">
-                    <label htmlFor="llmBaseUrl">{t.apiBaseUrl}</label>
-                    <input
-                      id="llmBaseUrl"
-                      type="url"
-                      value={llmConfigDraft.baseUrl}
-                      onChange={(event) => updateLlmConfigDraft("baseUrl", event.target.value)}
-                      placeholder={t.apiBaseUrlPlaceholder}
-                      autoComplete="off"
-                      spellCheck="false"
-                    />
-                  </div>
-                  <div className="llm-setting-field">
-                    <label htmlFor="llmApiKey">{t.apiKey}</label>
-                    <span className="secret-input-wrap">
-                      <input
-                        id="llmApiKey"
-                        type={apiKeyVisible ? "text" : "password"}
-                        value={llmConfigDraft.apiKey}
-                        onChange={(event) => updateLlmConfigDraft("apiKey", event.target.value)}
-                        placeholder={t.apiKeyPlaceholder}
-                        autoComplete="off"
-                        spellCheck="false"
-                      />
-                      <button
-                        type="button"
-                        className="secret-visibility-btn"
-                        onClick={() => setApiKeyVisible((visible) => !visible)}
-                        aria-label={apiKeyVisible ? t.hideApiKey : t.showApiKey}
-                        title={apiKeyVisible ? t.hideApiKey : t.showApiKey}
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                          <circle cx="12" cy="12" r="2.5" />
-                          {apiKeyVisible ? <path d="M4 4l16 16" /> : null}
-                        </svg>
-                      </button>
-                    </span>
-                  </div>
-                  <div className="llm-setting-field">
-                    <label htmlFor="llmModel">{t.model}</label>
-                    <input
-                      id="llmModel"
-                      type="text"
-                      value={llmConfigDraft.model}
-                      onChange={(event) => updateLlmConfigDraft("model", event.target.value)}
-                      placeholder={t.modelPlaceholder}
-                      autoComplete="off"
-                      spellCheck="false"
-                    />
-                  </div>
-                  <p>{t.llmConfigHint}</p>
-                  <div className="llm-settings-actions">
-                    <button type="button" onClick={handleSaveLlmConfig}>
-                      {t.saveLlmConfig}
-                    </button>
-                    <button
-                      type="button"
-                      className="test-llm-btn"
-                      onClick={handleTestLlmConfig}
-                      disabled={llmConfigStatus.state === "testing"}
-                    >
-                      {llmConfigStatus.state === "testing"
-                        ? t.testingLlmConfig
-                        : t.testLlmConfig}
-                    </button>
-                  </div>
-                  <p
-                    className={`llm-config-status ${llmConfigStatus.state}`}
-                    aria-live="polite"
-                  >
-                    {llmConfigStatus.state === "testing"
-                      ? t.testingLlmConfig
-                      : llmConfigStatus.state === "success"
-                        ? `${t.llmTestSuccess(llmConfigStatus.latencyMs)}${
-                            llmConfigDirty ? ` ${t.llmConfigUnsaved}` : ""
-                          }`
-                        : llmConfigStatus.state === "error"
-                          ? `${t.llmTestFailed}：${llmConfigStatus.error}`
-                          : llmConfigDirty
-                            ? t.llmConfigUnsaved
-                            : llmConfigStatus.state === "saved" ||
-                                (llmConfigConfirmed && !llmConfigDirty)
-                              ? t.llmConfigSaved
-                              : ""}
-                  </p>
-                </fieldset>
-              </div>
-            ) : null}
-            <button type="button" className="settings-trigger" aria-expanded={settingsOpen}
-              onClick={() => setSettingsOpen((open) => !open)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6" />
-              </svg>
-              {t.interfaceSettings}
-            </button>
-          </div>
           <button type="button" className="footer-export-btn" onClick={handleExportLog}
             disabled={!steps.length || isExporting} title={t.exportAllTitle}>
             {isExporting ? t.exporting : t.exportLog}
@@ -1443,6 +1566,101 @@ export default function App() {
 
       <section className="panel conversation-panel-box">
         <header className="ai-chat-header">
+          <div className="settings-anchor chat-settings-anchor">
+            {settingsOpen ? (
+              <div className="interface-settings" role="group" aria-label={t.interfaceSettings}>
+                <div className="settings-row">
+                  <span>{t.language}</span>
+                  <div className="settings-options">
+                    <button type="button" aria-pressed={locale === "zh"}
+                      className={locale === "zh" ? "active" : ""} onClick={() => setLocale("zh")}>
+                      {t.chinese}
+                    </button>
+                    <button type="button" aria-pressed={locale === "en"}
+                      className={locale === "en" ? "active" : ""} onClick={() => setLocale("en")}>
+                      {t.english}
+                    </button>
+                  </div>
+                </div>
+                <div className="settings-row">
+                  <span>{t.appearance}</span>
+                  <div className="settings-options">
+                    <button type="button" aria-pressed={theme === "light"}
+                      className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}>
+                      {t.light}
+                    </button>
+                    <button type="button" aria-pressed={theme === "dark"}
+                      className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}>
+                      {t.dark}
+                    </button>
+                  </div>
+                </div>
+                <div className="settings-divider" />
+                <fieldset className="llm-settings">
+                  <legend>{t.llmConnection}</legend>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmBaseUrl">{t.apiBaseUrl}</label>
+                    <input id="llmBaseUrl" type="url" value={llmConfigDraft.baseUrl}
+                      onChange={(event) => updateLlmConfigDraft("baseUrl", event.target.value)}
+                      placeholder={t.apiBaseUrlPlaceholder} autoComplete="off" spellCheck="false" />
+                  </div>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmApiKey">{t.apiKey}</label>
+                    <span className="secret-input-wrap">
+                      <input id="llmApiKey" type={apiKeyVisible ? "text" : "password"}
+                        value={llmConfigDraft.apiKey}
+                        onChange={(event) => updateLlmConfigDraft("apiKey", event.target.value)}
+                        placeholder={t.apiKeyPlaceholder} autoComplete="off" spellCheck="false" />
+                      <button type="button" className="secret-visibility-btn"
+                        onClick={() => setApiKeyVisible((visible) => !visible)}
+                        aria-label={apiKeyVisible ? t.hideApiKey : t.showApiKey}
+                        title={apiKeyVisible ? t.hideApiKey : t.showApiKey}>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                          <circle cx="12" cy="12" r="2.5" />
+                          {apiKeyVisible ? <path d="M4 4l16 16" /> : null}
+                        </svg>
+                      </button>
+                    </span>
+                  </div>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmModel">{t.model}</label>
+                    <input id="llmModel" type="text" value={llmConfigDraft.model}
+                      onChange={(event) => updateLlmConfigDraft("model", event.target.value)}
+                      placeholder={t.modelPlaceholder} autoComplete="off" spellCheck="false" />
+                  </div>
+                  <p>{t.llmConfigHint}</p>
+                  <div className="llm-settings-actions">
+                    <button type="button" onClick={handleSaveLlmConfig}>{t.saveLlmConfig}</button>
+                    <button type="button" className="test-llm-btn" onClick={handleTestLlmConfig}
+                      disabled={llmConfigStatus.state === "testing"}>
+                      {llmConfigStatus.state === "testing" ? t.testingLlmConfig : t.testLlmConfig}
+                    </button>
+                  </div>
+                  <p className={`llm-config-status ${llmConfigStatus.state}`} aria-live="polite">
+                    {llmConfigStatus.state === "testing"
+                      ? t.testingLlmConfig
+                      : llmConfigStatus.state === "success"
+                        ? `${t.llmTestSuccess(llmConfigStatus.latencyMs)}${llmConfigDirty ? ` ${t.llmConfigUnsaved}` : ""}`
+                        : llmConfigStatus.state === "error"
+                          ? `${t.llmTestFailed}：${llmConfigStatus.error}`
+                          : llmConfigDirty
+                            ? t.llmConfigUnsaved
+                            : llmConfigStatus.state === "saved" || (llmConfigConfirmed && !llmConfigDirty)
+                              ? t.llmConfigSaved
+                              : ""}
+                  </p>
+                </fieldset>
+              </div>
+            ) : null}
+            <button type="button" className="settings-trigger chat-settings-trigger"
+              aria-expanded={settingsOpen} aria-label={t.interfaceSettings}
+              title={t.interfaceSettings} onClick={() => setSettingsOpen((open) => !open)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6" />
+              </svg>
+            </button>
+          </div>
           <div className="ai-chat-identity">
             <span className="ai-chat-avatar" aria-hidden="true">AI</span>
             <div>
@@ -1465,6 +1683,7 @@ export default function App() {
               type="button"
               className="chat-header-btn new-chat-btn"
               onClick={handleNewConversation}
+              disabled={backendLoading}
               aria-label={t.newConversation}
               title={t.newConversation}
             >
@@ -1486,10 +1705,24 @@ export default function App() {
               ) : null}
               {chatMessages.map((msg, idx) => (
                 <div
-                  key={`${idx}-${msg.role}`}
+                  key={msg.requestId || `${idx}-${msg.role}-${msg.turnIndex ?? "notice"}`}
                   className={`chat-bubble ${msg.role} ${msg.error ? "error" : ""}`}
                 >
-                  {msg.text}
+                  <span>{msg.text}</span>
+                  {msg.role === "user" && Number.isInteger(msg.turnIndex) ? (
+                    <button
+                      type="button"
+                      className="edit-chat-message-btn"
+                      onClick={() => beginEditingMessage(msg)}
+                      disabled={backendLoading}
+                      aria-label={t.editMessage}
+                      title={t.editMessage}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m4 16.5-.8 4.3 4.3-.8L18.8 8.7l-3.5-3.5L4 16.5Zm13-13 3.5 3.5 1-1a1.4 1.4 0 0 0 0-2l-1.5-1.5a1.4 1.4 0 0 0-2 0l-1 1Z" />
+                      </svg>
+                    </button>
+                  ) : null}
                 </div>
               ))}
               {backendLoading ? <div className="chat-bubble assistant">{t.requesting}</div> : null}
@@ -1518,18 +1751,105 @@ export default function App() {
           </div>
 
           <div className="chat-composer">
-            <div className="preset-row" aria-label={t.presets}>
-              {INPUT_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => setBackendMessage(preset.text)}
-                >
-                  {preset.labels[locale]}
-                </button>
-              ))}
+            <div className="preset-toolbar">
+              <div className="preset-row" aria-label={t.presets}>
+                {chatPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className="preset-btn"
+                    onClick={() => setBackendMessage(preset.text)}
+                    disabled={backendLoading}
+                  >
+                    {preset.labels[locale]}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="manage-presets-btn"
+                onClick={presetManagerOpen ? () => setPresetManagerOpen(false) : openPresetManager}
+                aria-expanded={presetManagerOpen}
+              >
+                {presetManagerOpen ? t.closePresetManager : t.managePresets}
+              </button>
             </div>
+            {presetManagerOpen ? (
+              <div className="preset-manager">
+                <div className="preset-manager-topline">
+                  <select
+                    aria-label={t.managePresets}
+                    value={editingPresetId}
+                    onChange={(event) => {
+                      const preset = chatPresets.find(
+                        (entry) => entry.id === event.target.value
+                      );
+                      if (preset) editPreset(preset);
+                      else startNewPreset();
+                    }}
+                  >
+                    <option value="">＋ {t.newPreset}</option>
+                    {chatPresets.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.labels[locale]}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={startNewPreset}>
+                    ＋
+                  </button>
+                </div>
+                <input
+                  aria-label={t.presetName}
+                  value={presetDraft.label}
+                  onChange={(event) =>
+                    setPresetDraft((current) => ({
+                      ...current,
+                      label: event.target.value,
+                    }))
+                  }
+                  placeholder={t.presetName}
+                />
+                <textarea
+                  aria-label={t.presetPrompt}
+                  rows={2}
+                  value={presetDraft.text}
+                  onChange={(event) =>
+                    setPresetDraft((current) => ({
+                      ...current,
+                      text: event.target.value,
+                    }))
+                  }
+                  placeholder={t.presetPrompt}
+                />
+                <div className="preset-manager-actions">
+                  <button
+                    type="button"
+                    className="save-preset-btn"
+                    onClick={savePreset}
+                    disabled={!presetDraft.label.trim() || !presetDraft.text.trim()}
+                  >
+                    {t.savePreset}
+                  </button>
+                  {editingPresetId ? (
+                    <>
+                      {DEFAULT_INPUT_PRESETS.some((preset) => preset.id === editingPresetId) ? (
+                        <button type="button" onClick={resetPreset}>{t.resetPreset}</button>
+                      ) : null}
+                      <button type="button" onClick={deletePreset}>{t.deletePreset}</button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {Number.isInteger(editingTurnIndex) ? (
+              <div className="composer-edit-notice" role="status">
+                <span>{t.editingMessage(editingTurnIndex + 1)}</span>
+                <button type="button" onClick={cancelEditingMessage} disabled={backendLoading}>
+                  {t.cancelEdit}
+                </button>
+              </div>
+            ) : null}
             <div className="composer-input-row">
               <textarea
                 ref={backendInputRef}
@@ -1540,15 +1860,16 @@ export default function App() {
                 value={backendMessage}
                 onChange={(e) => setBackendMessage(e.target.value)}
                 onKeyDown={handleBackendInputKeyDown}
+                disabled={backendLoading}
                 placeholder={t.composerPlaceholder}
               />
               <button
                 type="button"
                 className="send-message-btn"
                 onClick={handleGenerateFromBackend}
-                disabled={backendLoading}
-                aria-label={t.send}
-                title={t.send}
+                disabled={backendLoading || !backendMessage.trim()}
+                aria-label={Number.isInteger(editingTurnIndex) ? t.resend : t.send}
+                title={Number.isInteger(editingTurnIndex) ? t.resend : t.send}
               >
                 {backendLoading ? (
                   <span className="send-loading" aria-hidden="true">…</span>
@@ -1559,7 +1880,9 @@ export default function App() {
                 )}
               </button>
             </div>
-            <p className="composer-hint">{t.composerHint}</p>
+            {!backendMessage.trim() && !Number.isInteger(editingTurnIndex) ? (
+              <p className="composer-hint">{t.composerHint}</p>
+            ) : null}
           </div>
         </div>
       </section>
