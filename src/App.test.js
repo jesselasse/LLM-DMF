@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 
 beforeEach(() => {
+  window.localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
     configurable: true,
     value: jest.fn(),
@@ -24,31 +25,29 @@ beforeEach(() => {
 
 test("renders core sections", () => {
   render(<App />);
-  expect(
-    screen.getByText(/Digital Microfluidics Grid Basics/i)
-  ).toBeInTheDocument();
-  expect(screen.getByText(/Load TXT Step File/i)).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Steps" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Export Log" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Export Steps" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Export JSON Context" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Digital Microfluidics Grid Basics" })).toBeInTheDocument();
+  expect(screen.getByText("加载 TXT 步骤文件")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "步骤" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "导出日志" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "导出步骤" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "导出 JSON 上下文" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "发送消息" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "新建对话" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Zoom Out" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Fit to View" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Zoom In" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "缩小" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "适应" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "放大" })).toBeInTheDocument();
   expect(screen.getByLabelText("X axis")).toBeInTheDocument();
   expect(screen.getByLabelText("Y axis")).toBeInTheDocument();
 });
 
 test("grid zoom controls change scale and fit restores the global view", () => {
   render(<App />);
-  const scaleIndicator = screen.getByLabelText("Grid scale");
+  const scaleIndicator = screen.getByLabelText("缩放");
 
   expect(scaleIndicator).toHaveTextContent("10%");
-  fireEvent.click(screen.getByRole("button", { name: "Zoom In" }));
+  fireEvent.click(screen.getByRole("button", { name: "放大" }));
   expect(scaleIndicator).toHaveTextContent("13%");
-  fireEvent.click(screen.getByRole("button", { name: "Fit to View" }));
+  fireEvent.click(screen.getByRole("button", { name: "适应" }));
   expect(scaleIndicator).toHaveTextContent("10%");
 });
 
@@ -103,19 +102,97 @@ test("send button keeps the existing backend request contract", async () => {
   expect(body.message).toBe("在（20，20）向右生成3个液滴");
   expect(body.sessionId).toMatch(/^dmf-/);
   expect(body.selectedDroplets).toEqual([]);
+  expect(body).not.toHaveProperty("llmConfig");
   expect(screen.getByRole("textbox", { name: "对话输入" })).toHaveValue("");
-  const rawDetails = await screen.findByText("Raw backend output");
+  const rawDetails = await screen.findByText("原始后端输出");
   expect(rawDetails.closest("details")).not.toHaveAttribute("open");
   expect(screen.getByLabelText("Backend Raw Output")).toHaveTextContent(
     '"assistantReply":"收到"'
   );
-  const stepsDetails = await screen.findByText("Generated steps");
+  const stepsDetails = await screen.findByText("生成的步骤");
   expect(stepsDetails.closest("details")).not.toHaveAttribute("open");
   expect(screen.getByLabelText("Backend Result Text")).toHaveTextContent(
     "(14,21)(1,1)-1000"
   );
 
   fetchMock.mockRestore();
+});
+
+test("temporary LLM settings are sent but never stored or exported", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
+    ok: true,
+    status: 200,
+    text: async () =>
+      JSON.stringify({ assistantReply: "收到", stepsText: "(14,21)(1,1)-1000" }),
+  });
+  let writtenBlob;
+  const write = jest.fn(async (blob) => {
+    writtenBlob = blob;
+  });
+  Object.defineProperty(window, "showSaveFilePicker", {
+    configurable: true,
+    value: jest.fn().mockResolvedValue({
+      createWritable: async () => ({ write, close: jest.fn() }),
+    }),
+  });
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "界面设置" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "API 地址" }), {
+    target: { value: "https://custom.example/v1" },
+  });
+  fireEvent.change(screen.getByLabelText("API Key"), {
+    target: { value: "temporary-secret-key" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "模型" }), {
+    target: { value: "custom-model" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
+
+  const generationCalls = () =>
+    fetchMock.mock.calls.filter(([url]) => url === "/api/steps-from-message");
+  await waitFor(() => expect(generationCalls()).toHaveLength(1));
+  const requestBody = JSON.parse(generationCalls()[0][1].body);
+  expect(requestBody.llmConfig).toEqual({
+    baseUrl: "https://custom.example/v1",
+    apiKey: "temporary-secret-key",
+    model: "custom-model",
+  });
+  expect(JSON.stringify({ ...window.localStorage })).not.toContain(
+    "temporary-secret-key"
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "导出 JSON 上下文" }));
+  await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+  const exportedText = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(writtenBlob);
+  });
+  expect(exportedText).not.toContain("temporary-secret-key");
+  expect(exportedText).not.toContain("https://custom.example/v1");
+  expect(exportedText).not.toContain("custom-model");
+
+  fetchMock.mockRestore();
+  delete window.showSaveFilePicker;
+});
+
+test("interface settings switch language and theme without changing prompt data", () => {
+  render(<App />);
+  const prompt = screen.getByRole("textbox", { name: "对话输入" });
+
+  fireEvent.click(screen.getByRole("button", { name: "界面设置" }));
+  fireEvent.click(screen.getByRole("button", { name: "深色" }));
+  expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+  expect(window.localStorage.getItem("dmf-ui-theme")).toBe("dark");
+
+  fireEvent.click(screen.getByRole("button", { name: "English" }));
+  expect(screen.getByRole("heading", { name: "Digital Microfluidics Grid Basics" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Send message" })).toBeInTheDocument();
+  expect(document.documentElement).toHaveAttribute("lang", "en");
+  expect(window.localStorage.getItem("dmf-ui-locale")).toBe("en");
+  expect(prompt).toHaveValue("在（20，20）向右生成3个液滴");
 });
 
 test("enter sends and clears while shift enter keeps editing", async () => {

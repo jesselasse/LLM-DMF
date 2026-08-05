@@ -9,6 +9,7 @@ export function drawGridAndDroplets({
   majorGridEvery = 0,
   secondaryGridEvery = 0,
   viewportScale = 1,
+  theme = "light",
 }) {
   const width = cols * cellSize;
   const height = rows * cellSize;
@@ -24,6 +25,24 @@ export function drawGridAndDroplets({
   // exports retain the original single-weight grid by omitting majorGridEvery.
   if (majorGridEvery > 0) {
     const safeScale = Math.max(0.01, Number(viewportScale) || 1);
+    const palette =
+      theme === "dark"
+        ? {
+            background: "#101722",
+            minor: "#243044",
+            secondary: "#34435a",
+            major: "#55657d",
+            border: "#6b7c96",
+          }
+        : {
+            background: "#ffffff",
+            minor: "#edf1f5",
+            secondary: "#d2dae5",
+            major: "#aeb9c7",
+            border: "#9eacbd",
+          };
+    ctx.fillStyle = palette.background;
+    ctx.fillRect(0, 0, width, height);
     const safeSecondaryEvery =
       secondaryGridEvery > 0 && secondaryGridEvery < majorGridEvery
         ? secondaryGridEvery
@@ -48,24 +67,24 @@ export function drawGridAndDroplets({
     };
 
     strokeGridLines({
-      color: "#edf1f5",
+      color: palette.minor,
       lineWidth: 0.45,
       include: (value) => value % safeSecondaryEvery !== 0,
     });
     if (safeSecondaryEvery < majorGridEvery) {
       strokeGridLines({
-        color: "#d2dae5",
+        color: palette.secondary,
         lineWidth: 0.8,
         include: (value) =>
           value % safeSecondaryEvery === 0 && value % majorGridEvery !== 0,
       });
     }
     strokeGridLines({
-      color: "#aeb9c7",
+      color: palette.major,
       lineWidth: 1.2,
       include: (value) => value % majorGridEvery === 0,
     });
-    ctx.strokeStyle = "#9eacbd";
+    ctx.strokeStyle = palette.border;
     ctx.lineWidth = 1 / safeScale;
     ctx.strokeRect(0, 0, width, height);
   } else {
@@ -100,7 +119,8 @@ export function drawGridAndDroplets({
       const pw = w * cellSize;
       const ph = h * cellSize;
 
-      ctx.fillStyle = outOfBounds ? "#f87171" : "#334155";
+      const liveDropletColor = theme === "dark" ? "#8b9bb2" : "#334155";
+      ctx.fillStyle = outOfBounds ? "#f87171" : liveDropletColor;
       ctx.globalAlpha = 0.85;
       ctx.fillRect(px, py, Math.max(0, pw), Math.max(0, ph));
 

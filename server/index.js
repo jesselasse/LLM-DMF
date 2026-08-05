@@ -11,6 +11,7 @@ const {
   SequenceWorkspace,
   sequenceToText,
 } = require("./sequence_workspace");
+const { createLlmProcessEnv, normalizeLlmConfig } = require("./llm_runtime_config");
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -101,13 +102,14 @@ function mergeDeltaWithCurrentFrame(deltaText, frameRects, selectedDroplets) {
   );
 }
 
-function runLlmAgent(message, context) {
+function runLlmAgent(message, context, llmConfig) {
   return new Promise((resolve, reject) => {
     const pythonBin = process.env.PYTHON_BIN || "python3";
     const scriptPath = path.join(__dirname, "llm_move_agent.py");
     const child = spawn(pythonBin, [scriptPath], {
       cwd: __dirname,
       stdio: ["pipe", "pipe", "pipe"],
+      env: createLlmProcessEnv(process.env, llmConfig),
     });
 
     let stdout = "";
@@ -175,6 +177,12 @@ app.post("/api/steps-from-message", async (req, res) => {
     const message = String((req.body && req.body.message) || "").trim();
     const sessionId = normalizeSessionId(req.body && req.body.sessionId);
     const resetContext = Boolean(req.body && req.body.resetContext);
+    let llmConfig;
+    try {
+      llmConfig = normalizeLlmConfig(req.body && req.body.llmConfig);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
     if (!message) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -196,7 +204,7 @@ app.post("/api/steps-from-message", async (req, res) => {
       selectedDroplets: state.selectedDroplets,
     };
 
-    const result = await runLlmAgent(message, context);
+    const result = await runLlmAgent(message, context, llmConfig);
     const assistantReply = String(result.assistantReply || "");
     const rawDelta = normalizeSequence(result.sequenceDelta);
     const moveCalls = Array.isArray(result.moveCalls) ? result.moveCalls : [];

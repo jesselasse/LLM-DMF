@@ -22,7 +22,7 @@
     "setup:python": "node scripts/setup-python.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:server": "node --test server/index.node.test.js",
+    "test:server": "node --test server/*.node.test.js",
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:3001",

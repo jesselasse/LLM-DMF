@@ -1,6 +1,14 @@
 import React, { useEffect, useRef } from "react";
 
-export default function StepList({ steps, currentStep, onSelectStep, compact = false }) {
+export default function StepList({
+  steps,
+  currentStep,
+  onSelectStep,
+  compact = false,
+  emptyText = "No steps loaded",
+  ariaLabel = "Step List",
+  stepLabel = "Step",
+}) {
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -11,7 +19,7 @@ export default function StepList({ steps, currentStep, onSelectStep, compact = f
   }, [currentStep, steps.length]);
 
   if (!steps.length) {
-    return <div className="empty-steps">No steps loaded</div>;
+    return <div className="empty-steps">{emptyText}</div>;
   }
 
   return (
@@ -19,7 +27,7 @@ export default function StepList({ steps, currentStep, onSelectStep, compact = f
       ref={listRef}
       className={`step-list ${compact ? "compact" : ""}`}
       role="listbox"
-      aria-label="Step List"
+      aria-label={ariaLabel}
     >
       {steps.map((step, index) => (
         <button
@@ -29,7 +37,7 @@ export default function StepList({ steps, currentStep, onSelectStep, compact = f
             index === currentStep ? "active" : ""
           }`}
           onClick={() => onSelectStep(index)}
-          title={compact ? `Step ${index + 1}` : undefined}
+          title={compact ? `${stepLabel} ${index + 1}` : undefined}
         >
           {compact ? (
             <span>{index + 1}</span>

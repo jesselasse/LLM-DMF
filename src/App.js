@@ -26,18 +26,179 @@ const GRID_MAX_SCALE = 2.5;
 const GRID_ZOOM_FACTOR = 1.25;
 const INPUT_PRESETS = [
   {
-    label: "PCR",
+    id: "pcr",
+    labels: { zh: "PCR", en: "PCR" },
     text: "PCR示例：在（20，20）向右生成3个液滴，再向下移动6步。",
   },
   {
-    label: "混匀操作",
+    id: "mixing",
+    labels: { zh: "混匀操作", en: "Mixing" },
     text: "对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。",
   },
   {
-    label: "Example 3",
+    id: "example-3",
+    labels: { zh: "示例 3", en: "Example 3" },
     text: "现在在(10,8)有一个液滴尺寸为(1,1)，向右移动8步。",
   },
 ];
+
+const UI_COPY = {
+  zh: {
+    appTitle: "Digital Microfluidics Grid Basics",
+    appSubtitle: "网格、步骤与导出",
+    gridSize: "网格尺寸",
+    rows: "行数",
+    columns: "列数",
+    stepFile: "步骤文件",
+    loadTxt: "加载 TXT 步骤文件",
+    exportSteps: "导出步骤",
+    exportingSteps: "正在导出步骤…",
+    example: "格式示例",
+    selectedDroplets: "已选液滴",
+    selectionHint: "点击画布中的液滴可选中或取消选中，并作为当前会话的上下文。",
+    noDroplets: "尚未选择液滴",
+    clearDroplets: "清除已选液滴",
+    exportLog: "导出日志",
+    exporting: "正在导出…",
+    exportAllTitle: "导出 TXT、GIF 与 JSON 上下文",
+    interfaceSettings: "界面设置",
+    language: "语言",
+    appearance: "外观",
+    chinese: "中文",
+    english: "English",
+    light: "浅色",
+    dark: "深色",
+    llmConnection: "LLM 连接",
+    apiBaseUrl: "API 地址",
+    apiBaseUrlPlaceholder: "留空使用服务器配置",
+    apiKey: "API Key",
+    apiKeyPlaceholder: "仅当前页面有效",
+    model: "模型",
+    modelPlaceholder: "留空使用服务器配置",
+    showApiKey: "显示 API Key",
+    hideApiKey: "隐藏 API Key",
+    llmConfigHint: "留空使用服务器配置；API Key 不会保存或导出。",
+    noStepSelected: "未选择步骤",
+    stepProgress: (current, total) => `步骤 ${current} / ${total}`,
+    scale: "缩放",
+    zoomControls: "网格缩放控制",
+    zoomOut: "缩小",
+    fitView: "适应",
+    zoomIn: "放大",
+    steps: "步骤",
+    noSteps: "尚未加载步骤",
+    stepList: "步骤列表",
+    stepLabel: "步骤",
+    playbackControls: "播放控制",
+    back10: "后退 10 步",
+    back1: "后退 1 步",
+    pause: "暂停",
+    play: "播放",
+    forward1: "前进 1 步",
+    forward10: "前进 10 步",
+    playbackSpeed: "播放速度",
+    exportGif: "导出 GIF",
+    assistantSubtitle: "液滴操作与步骤生成",
+    export: "导出",
+    exportContext: "导出 JSON 上下文",
+    newConversation: "新建对话",
+    new: "新建",
+    chat: "LLM 对话",
+    emptyChatTitle: "开始一段 DMF 对话",
+    emptyChatDescription: "描述液滴的位置、尺寸和操作，助手会生成对应步骤。",
+    requesting: "正在请求 LLM…",
+    rawOutput: "原始后端输出",
+    generatedSteps: "生成的步骤",
+    presets: "预设对话",
+    composerLabel: "对话输入",
+    composerPlaceholder: "描述需要执行的液滴操作…",
+    send: "发送消息",
+    composerHint: "示例：在（20，20）向右生成 3 个液滴",
+    outOfBounds: "部分液滴超出网格范围，以红色显示。",
+  },
+  en: {
+    appTitle: "Digital Microfluidics Grid Basics",
+    appSubtitle: "Grid, steps, and exports",
+    gridSize: "Grid size",
+    rows: "Rows",
+    columns: "Columns",
+    stepFile: "Step file",
+    loadTxt: "Load TXT step file",
+    exportSteps: "Export steps",
+    exportingSteps: "Exporting steps…",
+    example: "Format example",
+    selectedDroplets: "Selected droplets",
+    selectionHint: "Select droplets on the canvas to include them in the current conversation context.",
+    noDroplets: "No droplets selected",
+    clearDroplets: "Clear selected droplets",
+    exportLog: "Export log",
+    exporting: "Exporting…",
+    exportAllTitle: "Export TXT, GIF, and JSON context",
+    interfaceSettings: "Interface settings",
+    language: "Language",
+    appearance: "Appearance",
+    chinese: "中文",
+    english: "English",
+    light: "Light",
+    dark: "Dark",
+    llmConnection: "LLM connection",
+    apiBaseUrl: "API URL",
+    apiBaseUrlPlaceholder: "Use server configuration when blank",
+    apiKey: "API Key",
+    apiKeyPlaceholder: "Current page only",
+    model: "Model",
+    modelPlaceholder: "Use server configuration when blank",
+    showApiKey: "Show API Key",
+    hideApiKey: "Hide API Key",
+    llmConfigHint: "Blank fields use server settings. The API Key is not saved or exported.",
+    noStepSelected: "No step selected",
+    stepProgress: (current, total) => `Step ${current} / ${total}`,
+    scale: "Scale",
+    zoomControls: "Grid zoom controls",
+    zoomOut: "Zoom out",
+    fitView: "Fit",
+    zoomIn: "Zoom in",
+    steps: "Steps",
+    noSteps: "No steps loaded",
+    stepList: "Step list",
+    stepLabel: "Step",
+    playbackControls: "Playback controls",
+    back10: "Back 10",
+    back1: "Back 1",
+    pause: "Pause",
+    play: "Play",
+    forward1: "Forward 1",
+    forward10: "Forward 10",
+    playbackSpeed: "Playback speed",
+    exportGif: "Export GIF",
+    assistantSubtitle: "Droplet operations and step generation",
+    export: "Export",
+    exportContext: "Export JSON context",
+    newConversation: "New conversation",
+    new: "New",
+    chat: "LLM chat",
+    emptyChatTitle: "Start a DMF conversation",
+    emptyChatDescription: "Describe droplet positions, dimensions, and operations to generate steps.",
+    requesting: "Requesting LLM…",
+    rawOutput: "Raw backend output",
+    generatedSteps: "Generated steps",
+    presets: "Conversation presets",
+    composerLabel: "Chat input",
+    composerPlaceholder: "Describe the droplet operation…",
+    send: "Send message",
+    composerHint: "Example: generate 3 droplets to the right at (20, 20)",
+    outOfBounds: "Some droplets are outside the grid and are shown in red.",
+  },
+};
+
+function readPreference(key, allowed, fallback) {
+  try {
+    const value = window.localStorage.getItem(key);
+    return allowed.includes(value) ? value : fallback;
+  } catch (_error) {
+    return fallback;
+  }
+}
 
 function getRulerInterval(scale, cellSize) {
   const minimumLabelSpacing = 72;
@@ -121,6 +282,21 @@ function extractStepsTextFromRaw(raw) {
 }
 
 export default function App() {
+  const [locale, setLocale] = useState(() =>
+    readPreference("dmf-ui-locale", ["zh", "en"], "zh")
+  );
+  const [theme, setTheme] = useState(() =>
+    readPreference("dmf-ui-theme", ["light", "dark"], "light")
+  );
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [llmConfig, setLlmConfig] = useState({
+    baseUrl: "",
+    apiKey: "",
+    model: "",
+  });
+  const t = UI_COPY[locale];
+
   // Feature 1: grid settings + fit-to-view scale
   const [rows, setRows] = useState(120);
   const [cols, setCols] = useState(140);
@@ -184,9 +360,9 @@ export default function App() {
   );
 
   const statusText = useMemo(() => {
-    if (!steps.length || currentStep < 0) return "No step selected";
-    return `Step ${currentStep + 1} / ${steps.length}`;
-  }, [steps.length, currentStep]);
+    if (!steps.length || currentStep < 0) return t.noStepSelected;
+    return t.stepProgress(currentStep + 1, steps.length);
+  }, [steps.length, currentStep, t]);
   const activeStep = useMemo(
     () => (currentStep >= 0 && currentStep < steps.length ? steps[currentStep] : null),
     [currentStep, steps]
@@ -196,6 +372,17 @@ export default function App() {
     [steps]
   );
   const latestFrameRects = useMemo(() => latestStep?.rects || [], [latestStep]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+    try {
+      window.localStorage.setItem("dmf-ui-theme", theme);
+      window.localStorage.setItem("dmf-ui-locale", locale);
+    } catch (_error) {
+      // Preferences are optional when storage is unavailable.
+    }
+  }, [theme, locale]);
 
   function resizeCanvas() {
     const canvas = canvasRef.current;
@@ -289,6 +476,7 @@ export default function App() {
       majorGridEvery: GRID_MAJOR_INTERVAL,
       secondaryGridEvery: GRID_SECONDARY_INTERVAL,
       viewportScale: scale,
+      theme,
     });
 
     setWarningText(warning);
@@ -394,7 +582,7 @@ export default function App() {
   useEffect(() => {
     requestAnimationFrame(redrawCanvas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, steps, selectedDroplets, scale]);
+  }, [currentStep, steps, selectedDroplets, scale, theme]);
 
   useLayoutEffect(() => {
     const focus = zoomFocusRef.current;
@@ -557,6 +745,12 @@ export default function App() {
       sessionId,
       selectedDroplets: selectedDropletSnapshot,
     };
+    const configuredLlmValues = Object.fromEntries(
+      Object.entries(llmConfig).filter(([, value]) => value.trim())
+    );
+    const transportBody = Object.keys(configuredLlmValues).length
+      ? { ...requestBody, llmConfig: configuredLlmValues }
+      : requestBody;
     const requestRaw = JSON.stringify(requestBody);
     const requestedAt = new Date().toISOString();
     let rawEntryRecorded = false;
@@ -565,7 +759,7 @@ export default function App() {
       const response = await fetch("/api/steps-from-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: requestRaw,
+        body: JSON.stringify(transportBody),
       });
 
       const responseRaw = await response.text();
@@ -758,51 +952,53 @@ export default function App() {
   return (
     <div className="app">
       <section className="panel controls-panel">
-        <h1>Digital Microfluidics Grid Basics</h1>
-        <div className="grid-dim-row">
-          <label htmlFor="rowsInput">Rows / Columns</label>
+        <header className="controls-header">
+          <span className="controls-brand" aria-hidden="true">DMF</span>
+          <div>
+            <h1>{t.appTitle}</h1>
+            <p>{t.appSubtitle}</p>
+          </div>
+        </header>
+
+        <div className="control-section">
+          <div className="control-section-title">{t.gridSize}</div>
           <div className="grid-dim-inputs">
-            <input
-              id="rowsInput"
-              aria-label="Rows"
-              type="number"
-              min="1"
-              value={rows}
-              onChange={(e) => setRows(Math.max(1, Number(e.target.value) || 1))}
-            />
-            <span className="dim-separator">x</span>
-            <input
-              id="colsInput"
-              aria-label="Columns"
-              type="number"
-              min="1"
-              value={cols}
-              onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))}
-            />
+            <label className="dimension-field" htmlFor="rowsInput">
+              <span>{t.rows}</span>
+              <input id="rowsInput" aria-label={t.rows} type="number" min="1" value={rows}
+                onChange={(e) => setRows(Math.max(1, Number(e.target.value) || 1))} />
+            </label>
+            <span className="dim-separator">×</span>
+            <label className="dimension-field" htmlFor="colsInput">
+              <span>{t.columns}</span>
+              <input id="colsInput" aria-label={t.columns} type="number" min="1" value={cols}
+                onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))} />
+            </label>
           </div>
         </div>
 
-        <label htmlFor="fileInput">Load TXT Step File</label>
-        <input id="fileInput" type="file" accept=".txt" onChange={handleFileChange} />
-        <button
-          type="button"
-          onClick={handleExportAllSteps}
-          disabled={!steps.length || isExporting}
-        >
-          {isExporting ? "Exporting Steps..." : "Export Steps"}
-        </button>
-        <p className="hint">
-          Example: <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
-        </p>
-        <div className="selection-panel">
-          <div className="selection-panel-header">
-            <strong>Selected Droplets</strong>
-            <span>{selectedDroplets.length}</span>
-          </div>
-          <p className="hint">
-            点击画布中的液滴可选中或取消选中，系统会把这些液滴作为当前会话的内存输入。
+        <div className="control-section file-section">
+          <div className="control-section-title">{t.stepFile}</div>
+          <label className="file-input-label" htmlFor="fileInput">{t.loadTxt}</label>
+          <input className="file-input" id="fileInput" aria-label={t.loadTxt}
+            type="file" accept=".txt" onChange={handleFileChange} />
+          <button type="button" className="secondary-action-btn"
+            onClick={handleExportAllSteps} disabled={!steps.length || isExporting}>
+            {isExporting ? t.exportingSteps : t.exportSteps}
+          </button>
+          <p className="hint format-hint">
+            <span>{t.example}</span>
+            <code>(98,57)(8,4);(98,63)(8,4)-5000</code>
           </p>
-          <div className="selection-list" aria-label="Selected Droplets">
+        </div>
+
+        <div className="control-section selection-panel">
+          <div className="selection-panel-header">
+            <strong>{t.selectedDroplets}</strong>
+            <span className="count-badge">{selectedDroplets.length}</span>
+          </div>
+          <p className="hint">{t.selectionHint}</p>
+          <div className="selection-list" aria-label={t.selectedDroplets}>
             {selectedDroplets.length ? (
               selectedDroplets.map((rect) => (
                 <button
@@ -819,41 +1015,150 @@ export default function App() {
                 </button>
               ))
             ) : (
-              <div className="empty-selection">No droplets selected</div>
+              <div className="empty-selection">{t.noDroplets}</div>
             )}
           </div>
           <button
             type="button"
+            className="secondary-action-btn"
             onClick={() => setSelectedDroplets([])}
             disabled={!selectedDroplets.length}
           >
-            Clear Selected Droplets
+            {t.clearDroplets}
           </button>
         </div>
-        <button
-          type="button"
-          className="footer-export-btn"
-          onClick={handleExportLog}
-          disabled={!steps.length || isExporting}
-          title="Export TXT + GIF + JSON Context"
-        >
-          {isExporting ? "Exporting..." : "Export Log"}
-        </button>
+
+        <div className="controls-footer">
+          <div className="settings-anchor">
+            {settingsOpen ? (
+              <div className="interface-settings" role="group" aria-label={t.interfaceSettings}>
+                <div className="settings-row">
+                  <span>{t.language}</span>
+                  <div className="settings-options">
+                    <button type="button" aria-pressed={locale === "zh"}
+                      className={locale === "zh" ? "active" : ""} onClick={() => setLocale("zh")}>
+                      {t.chinese}
+                    </button>
+                    <button type="button" aria-pressed={locale === "en"}
+                      className={locale === "en" ? "active" : ""} onClick={() => setLocale("en")}>
+                      {t.english}
+                    </button>
+                  </div>
+                </div>
+                <div className="settings-row">
+                  <span>{t.appearance}</span>
+                  <div className="settings-options">
+                    <button type="button" aria-pressed={theme === "light"}
+                      className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}>
+                      {t.light}
+                    </button>
+                    <button type="button" aria-pressed={theme === "dark"}
+                      className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}>
+                      {t.dark}
+                    </button>
+                  </div>
+                </div>
+                <div className="settings-divider" />
+                <fieldset className="llm-settings">
+                  <legend>{t.llmConnection}</legend>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmBaseUrl">{t.apiBaseUrl}</label>
+                    <input
+                      id="llmBaseUrl"
+                      type="url"
+                      value={llmConfig.baseUrl}
+                      onChange={(event) =>
+                        setLlmConfig((current) => ({
+                          ...current,
+                          baseUrl: event.target.value,
+                        }))
+                      }
+                      placeholder={t.apiBaseUrlPlaceholder}
+                      autoComplete="off"
+                      spellCheck="false"
+                    />
+                  </div>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmApiKey">{t.apiKey}</label>
+                    <span className="secret-input-wrap">
+                      <input
+                        id="llmApiKey"
+                        type={apiKeyVisible ? "text" : "password"}
+                        value={llmConfig.apiKey}
+                        onChange={(event) =>
+                          setLlmConfig((current) => ({
+                            ...current,
+                            apiKey: event.target.value,
+                          }))
+                        }
+                        placeholder={t.apiKeyPlaceholder}
+                        autoComplete="off"
+                        spellCheck="false"
+                      />
+                      <button
+                        type="button"
+                        className="secret-visibility-btn"
+                        onClick={() => setApiKeyVisible((visible) => !visible)}
+                        aria-label={apiKeyVisible ? t.hideApiKey : t.showApiKey}
+                        title={apiKeyVisible ? t.hideApiKey : t.showApiKey}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                          <circle cx="12" cy="12" r="2.5" />
+                          {apiKeyVisible ? <path d="M4 4l16 16" /> : null}
+                        </svg>
+                      </button>
+                    </span>
+                  </div>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmModel">{t.model}</label>
+                    <input
+                      id="llmModel"
+                      type="text"
+                      value={llmConfig.model}
+                      onChange={(event) =>
+                        setLlmConfig((current) => ({
+                          ...current,
+                          model: event.target.value,
+                        }))
+                      }
+                      placeholder={t.modelPlaceholder}
+                      autoComplete="off"
+                      spellCheck="false"
+                    />
+                  </div>
+                  <p>{t.llmConfigHint}</p>
+                </fieldset>
+              </div>
+            ) : null}
+            <button type="button" className="settings-trigger" aria-expanded={settingsOpen}
+              onClick={() => setSettingsOpen((open) => !open)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6" />
+              </svg>
+              {t.interfaceSettings}
+            </button>
+          </div>
+          <button type="button" className="footer-export-btn" onClick={handleExportLog}
+            disabled={!steps.length || isExporting} title={t.exportAllTitle}>
+            {isExporting ? t.exporting : t.exportLog}
+          </button>
+        </div>
       </section>
 
       <section className="panel stage-panel">
         <div className="status-bar">
           <span>{statusText}</span>
-          <span aria-label="Grid scale">Scale: {Math.round(scale * 100)}%</span>
-          <span className="warning">{warningText}</span>
-          <div className="zoom-controls" aria-label="Grid zoom controls">
+          <span aria-label={t.scale}>{t.scale}: {Math.round(scale * 100)}%</span>
+          <span className="warning">{warningText ? t.outOfBounds : ""}</span>
+          <div className="zoom-controls" aria-label={t.zoomControls}>
             <button
               type="button"
               className="zoom-btn"
               onClick={() => zoomGrid(1 / GRID_ZOOM_FACTOR)}
               disabled={scale <= fitScaleRef.current + 0.0001}
-              aria-label="Zoom Out"
-              title="Zoom Out"
+              aria-label={t.zoomOut}
+              title={t.zoomOut}
             >
               −
             </button>
@@ -861,18 +1166,18 @@ export default function App() {
               type="button"
               className="zoom-fit-btn"
               onClick={fitToView}
-              aria-label="Fit to View"
-              title="Fit to View"
+              aria-label={t.fitView}
+              title={t.fitView}
             >
-              适应
+              {t.fitView}
             </button>
             <button
               type="button"
               className="zoom-btn"
               onClick={() => zoomGrid(GRID_ZOOM_FACTOR)}
               disabled={scale >= GRID_MAX_SCALE - 0.0001}
-              aria-label="Zoom In"
-              title="Zoom In"
+              aria-label={t.zoomIn}
+              title={t.zoomIn}
             >
               ＋
             </button>
@@ -881,7 +1186,7 @@ export default function App() {
         <div className="stage-workspace">
           <aside className="steps-dock">
             <div className="steps-dock-header">
-              <h2>Steps</h2>
+              <h2>{t.steps}</h2>
               <span>{steps.length}</span>
             </div>
             <StepList
@@ -889,6 +1194,9 @@ export default function App() {
               currentStep={currentStep}
               onSelectStep={(index) => selectStep(index)}
               compact
+              emptyText={t.noSteps}
+              ariaLabel={t.stepList}
+              stepLabel={t.stepLabel}
             />
           </aside>
           <div className="grid-viewport">
@@ -945,12 +1253,12 @@ export default function App() {
           </div>
         </div>
 
-        <div className="playback-mini" aria-label="Playback Controls">
+        <div className="playback-mini" aria-label={t.playbackControls}>
           <button
             type="button"
             className="icon-btn"
-            title="Back 10"
-            aria-label="Back 10"
+            title={t.back10}
+            aria-label={t.back10}
             onClick={() => jumpBy(-10)}
             disabled={!steps.length}
           >
@@ -959,8 +1267,8 @@ export default function App() {
           <button
             type="button"
             className="icon-btn"
-            title="Back 1"
-            aria-label="Back 1"
+            title={t.back1}
+            aria-label={t.back1}
             onClick={() => jumpBy(-1)}
             disabled={!steps.length}
           >
@@ -969,8 +1277,8 @@ export default function App() {
           <button
             type="button"
             className="icon-btn"
-            title={isPlaying ? "Pause" : "Play"}
-            aria-label={isPlaying ? "Pause" : "Play"}
+            title={isPlaying ? t.pause : t.play}
+            aria-label={isPlaying ? t.pause : t.play}
             onClick={togglePlayPause}
             disabled={!steps.length}
           >
@@ -979,8 +1287,8 @@ export default function App() {
           <button
             type="button"
             className="icon-btn"
-            title="Forward 1"
-            aria-label="Forward 1"
+            title={t.forward1}
+            aria-label={t.forward1}
             onClick={() => jumpBy(1)}
             disabled={!steps.length}
           >
@@ -989,8 +1297,8 @@ export default function App() {
           <button
             type="button"
             className="icon-btn"
-            title="Forward 10"
-            aria-label="Forward 10"
+            title={t.forward10}
+            aria-label={t.forward10}
             onClick={() => jumpBy(10)}
             disabled={!steps.length}
           >
@@ -999,8 +1307,8 @@ export default function App() {
           <button
             type="button"
             className="speed-btn"
-            title="Playback Speed"
-            aria-label="Playback Speed"
+            title={t.playbackSpeed}
+            aria-label={t.playbackSpeed}
             onClick={cyclePlaybackRate}
             disabled={!steps.length}
           >
@@ -1009,8 +1317,8 @@ export default function App() {
           <button
             type="button"
             className="icon-btn export-gif-btn"
-            title="Export GIF"
-            aria-label="Export GIF"
+            title={t.exportGif}
+            aria-label={t.exportGif}
             onClick={handleExportGif}
             disabled={!steps.length || isExporting}
           >
@@ -1025,7 +1333,7 @@ export default function App() {
             <span className="ai-chat-avatar" aria-hidden="true">AI</span>
             <div>
               <h2>DMF Assistant</h2>
-              <span>液滴操作与步骤生成</span>
+              <span>{t.assistantSubtitle}</span>
             </div>
           </div>
           <div className="ai-chat-header-actions">
@@ -1034,32 +1342,32 @@ export default function App() {
               className="chat-header-btn"
               onClick={handleExportJsonContext}
               disabled={isExporting}
-              aria-label="Export JSON Context"
-              title="Export JSON Context"
+              aria-label={t.exportContext}
+              title={t.exportContext}
             >
-              导出
+              {t.export}
             </button>
             <button
               type="button"
               className="chat-header-btn new-chat-btn"
               onClick={handleNewConversation}
-              aria-label="新建对话"
-              title="新建对话"
+              aria-label={t.newConversation}
+              title={t.newConversation}
             >
               <span aria-hidden="true">＋</span>
-              新建
+              {t.new}
             </button>
           </div>
         </header>
 
         <div className="conversation-content">
           <div className="chat-wrap">
-            <div className="chat-list" ref={chatListRef} aria-label="LLM Chat">
+            <div className="chat-list" ref={chatListRef} aria-label={t.chat}>
               {!chatMessages.length && !backendLoading ? (
                 <div className="chat-empty-state">
                   <span className="chat-empty-icon" aria-hidden="true">AI</span>
-                  <strong>开始一段 DMF 对话</strong>
-                  <p>描述液滴的位置、尺寸和操作，助手会生成对应步骤。</p>
+                  <strong>{t.emptyChatTitle}</strong>
+                  <p>{t.emptyChatDescription}</p>
                 </div>
               ) : null}
               {chatMessages.map((msg, idx) => (
@@ -1070,12 +1378,12 @@ export default function App() {
                   {msg.text}
                 </div>
               ))}
-              {backendLoading ? <div className="chat-bubble assistant">正在请求 LLM...</div> : null}
+              {backendLoading ? <div className="chat-bubble assistant">{t.requesting}</div> : null}
               {backendRawOutput || backendResultText ? (
                 <div className="backend-results">
                   {backendRawOutput ? (
                     <details className="backend-raw-details">
-                      <summary>Raw backend output</summary>
+                      <summary>{t.rawOutput}</summary>
                       <pre className="backend-result" aria-label="Backend Raw Output">
                         {backendRawOutput}
                       </pre>
@@ -1084,7 +1392,7 @@ export default function App() {
 
                   {backendResultText ? (
                     <details className="backend-raw-details">
-                      <summary>Generated steps</summary>
+                      <summary>{t.generatedSteps}</summary>
                       <pre className="backend-result" aria-label="Backend Result Text">
                         {backendResultText}
                       </pre>
@@ -1096,15 +1404,15 @@ export default function App() {
           </div>
 
           <div className="chat-composer">
-            <div className="preset-row" aria-label="预设对话">
+            <div className="preset-row" aria-label={t.presets}>
               {INPUT_PRESETS.map((preset) => (
                 <button
-                  key={preset.label}
+                  key={preset.id}
                   type="button"
                   className="preset-btn"
                   onClick={() => setBackendMessage(preset.text)}
                 >
-                  {preset.label}
+                  {preset.labels[locale]}
                 </button>
               ))}
             </div>
@@ -1113,20 +1421,20 @@ export default function App() {
                 ref={backendInputRef}
                 className="backend-input"
                 id="backendMessageInput"
-                aria-label="对话输入"
+                aria-label={t.composerLabel}
                 rows={1}
                 value={backendMessage}
                 onChange={(e) => setBackendMessage(e.target.value)}
                 onKeyDown={handleBackendInputKeyDown}
-                placeholder="描述需要执行的液滴操作…"
+                placeholder={t.composerPlaceholder}
               />
               <button
                 type="button"
                 className="send-message-btn"
                 onClick={handleGenerateFromBackend}
                 disabled={backendLoading}
-                aria-label="发送消息"
-                title="发送消息"
+                aria-label={t.send}
+                title={t.send}
               >
                 {backendLoading ? (
                   <span className="send-loading" aria-hidden="true">…</span>
@@ -1137,7 +1445,7 @@ export default function App() {
                 )}
               </button>
             </div>
-            <p className="composer-hint">示例：在（20，20）向右生成 3 个液滴</p>
+            <p className="composer-hint">{t.composerHint}</p>
           </div>
         </div>
       </section>
