@@ -40,7 +40,41 @@ const INPUT_PRESETS = [
     labels: { zh: "示例 3", en: "Example 3" },
     text: "现在在(10,8)有一个液滴尺寸为(1,1)，向右移动8步。",
   },
+  {
+    id: "extrude-one",
+    labels: { zh: "挤出生成", en: "Extrude" },
+    text: "在（20，20）向右挤出式生成 1 个尺寸为 1×1 的液滴",
+  },
+  {
+    id: "extrude-many",
+    labels: { zh: "多挤出生成", en: "Multi-extrude" },
+    text: "在（20，24）向右挤出生成 3 个尺寸为 1×1 的液滴",
+  },
+  {
+    id: "move",
+    labels: { zh: "移动", en: "Move" },
+    text: "将位于（20，20）的 1 个尺寸为 1×1 的液滴向右移动 20 格",
+  },
+  {
+    id: "rotate-mix",
+    labels: { zh: "混合", en: "Mix" },
+    text: "对位于（20，20）的 1 个尺寸为 1×1 的液滴做 3 圈旋转混匀",
+  },
+  {
+    id: "array-mix",
+    labels: { zh: "阵列混合", en: "Array mix" },
+    text: "对 3 个尺寸为 1×1 的液滴并行做 3 圈阵列混匀",
+  },
 ];
+const EMPTY_LLM_CONFIG = { baseUrl: "", apiKey: "", model: "" };
+
+function compactLlmConfig(config) {
+  return Object.fromEntries(
+    Object.entries(config)
+      .map(([key, value]) => [key, value.trim()])
+      .filter(([, value]) => value)
+  );
+}
 
 const UI_COPY = {
   zh: {
@@ -78,6 +112,13 @@ const UI_COPY = {
     showApiKey: "显示 API Key",
     hideApiKey: "隐藏 API Key",
     llmConfigHint: "留空使用服务器配置；API Key 不会保存或导出。",
+    saveLlmConfig: "保存设置",
+    testLlmConfig: "测试连接",
+    testingLlmConfig: "正在测试…",
+    llmConfigSaved: "已确认，将用于后续请求，仅当前页面有效。",
+    llmConfigUnsaved: "内容有变化，保存后才会用于聊天请求。",
+    llmTestSuccess: (latency) => `连接成功，耗时 ${latency} ms。`,
+    llmTestFailed: "测试失败",
     noStepSelected: "未选择步骤",
     stepProgress: (current, total) => `步骤 ${current} / ${total}`,
     scale: "缩放",
@@ -151,6 +192,13 @@ const UI_COPY = {
     showApiKey: "Show API Key",
     hideApiKey: "Hide API Key",
     llmConfigHint: "Blank fields use server settings. The API Key is not saved or exported.",
+    saveLlmConfig: "Save settings",
+    testLlmConfig: "Test connection",
+    testingLlmConfig: "Testing…",
+    llmConfigSaved: "Confirmed for later requests on this page only.",
+    llmConfigUnsaved: "Changes must be saved before chat requests use them.",
+    llmTestSuccess: (latency) => `Connection succeeded in ${latency} ms.`,
+    llmTestFailed: "Test failed",
     noStepSelected: "No step selected",
     stepProgress: (current, total) => `Step ${current} / ${total}`,
     scale: "Scale",
@@ -290,11 +338,10 @@ export default function App() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
-  const [llmConfig, setLlmConfig] = useState({
-    baseUrl: "",
-    apiKey: "",
-    model: "",
-  });
+  const [llmConfigDraft, setLlmConfigDraft] = useState(EMPTY_LLM_CONFIG);
+  const [llmConfig, setLlmConfig] = useState(EMPTY_LLM_CONFIG);
+  const [llmConfigConfirmed, setLlmConfigConfirmed] = useState(false);
+  const [llmConfigStatus, setLlmConfigStatus] = useState({ state: "idle" });
   const t = UI_COPY[locale];
 
   // Feature 1: grid settings + fit-to-view scale
@@ -357,6 +404,9 @@ export default function App() {
         viewportSize: axisViewport.height,
       }),
     [rows, scale, cellSize, axisViewport.originY, axisViewport.height]
+  );
+  const llmConfigDirty = ["baseUrl", "apiKey", "model"].some(
+    (key) => llmConfigDraft[key] !== llmConfig[key]
   );
 
   const statusText = useMemo(() => {
@@ -721,6 +771,53 @@ export default function App() {
     });
   }
 
+  function updateLlmConfigDraft(field, value) {
+    setLlmConfigDraft((current) => ({ ...current, [field]: value }));
+    setLlmConfigStatus({ state: "idle" });
+  }
+
+  function handleSaveLlmConfig() {
+    const confirmed = {
+      baseUrl: llmConfigDraft.baseUrl.trim(),
+      apiKey: llmConfigDraft.apiKey.trim(),
+      model: llmConfigDraft.model.trim(),
+    };
+    setLlmConfigDraft(confirmed);
+    setLlmConfig(confirmed);
+    setLlmConfigConfirmed(true);
+    setLlmConfigStatus({ state: "saved" });
+  }
+
+  async function handleTestLlmConfig() {
+    setLlmConfigStatus({ state: "testing" });
+    try {
+      const response = await fetch("/api/llm-config/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ llmConfig: compactLlmConfig(llmConfigDraft) }),
+      });
+      const responseRaw = await response.text();
+      let payload = {};
+      try {
+        payload = JSON.parse(responseRaw);
+      } catch (_error) {
+        payload = {};
+      }
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `Backend error: ${response.status}`);
+      }
+      setLlmConfigStatus({
+        state: "success",
+        latencyMs: Math.max(0, Number(payload.latencyMs) || 0),
+      });
+    } catch (error) {
+      setLlmConfigStatus({
+        state: "error",
+        error: String(error.message || error),
+      });
+    }
+  }
+
   // New: send message to backend and parse returned TXT content
   async function handleGenerateFromBackend() {
     const message = backendMessage.trim();
@@ -745,9 +842,7 @@ export default function App() {
       sessionId,
       selectedDroplets: selectedDropletSnapshot,
     };
-    const configuredLlmValues = Object.fromEntries(
-      Object.entries(llmConfig).filter(([, value]) => value.trim())
-    );
+    const configuredLlmValues = compactLlmConfig(llmConfig);
     const transportBody = Object.keys(configuredLlmValues).length
       ? { ...requestBody, llmConfig: configuredLlmValues }
       : requestBody;
@@ -1066,13 +1161,8 @@ export default function App() {
                     <input
                       id="llmBaseUrl"
                       type="url"
-                      value={llmConfig.baseUrl}
-                      onChange={(event) =>
-                        setLlmConfig((current) => ({
-                          ...current,
-                          baseUrl: event.target.value,
-                        }))
-                      }
+                      value={llmConfigDraft.baseUrl}
+                      onChange={(event) => updateLlmConfigDraft("baseUrl", event.target.value)}
                       placeholder={t.apiBaseUrlPlaceholder}
                       autoComplete="off"
                       spellCheck="false"
@@ -1084,13 +1174,8 @@ export default function App() {
                       <input
                         id="llmApiKey"
                         type={apiKeyVisible ? "text" : "password"}
-                        value={llmConfig.apiKey}
-                        onChange={(event) =>
-                          setLlmConfig((current) => ({
-                            ...current,
-                            apiKey: event.target.value,
-                          }))
-                        }
+                        value={llmConfigDraft.apiKey}
+                        onChange={(event) => updateLlmConfigDraft("apiKey", event.target.value)}
                         placeholder={t.apiKeyPlaceholder}
                         autoComplete="off"
                         spellCheck="false"
@@ -1115,19 +1200,48 @@ export default function App() {
                     <input
                       id="llmModel"
                       type="text"
-                      value={llmConfig.model}
-                      onChange={(event) =>
-                        setLlmConfig((current) => ({
-                          ...current,
-                          model: event.target.value,
-                        }))
-                      }
+                      value={llmConfigDraft.model}
+                      onChange={(event) => updateLlmConfigDraft("model", event.target.value)}
                       placeholder={t.modelPlaceholder}
                       autoComplete="off"
                       spellCheck="false"
                     />
                   </div>
                   <p>{t.llmConfigHint}</p>
+                  <div className="llm-settings-actions">
+                    <button type="button" onClick={handleSaveLlmConfig}>
+                      {t.saveLlmConfig}
+                    </button>
+                    <button
+                      type="button"
+                      className="test-llm-btn"
+                      onClick={handleTestLlmConfig}
+                      disabled={llmConfigStatus.state === "testing"}
+                    >
+                      {llmConfigStatus.state === "testing"
+                        ? t.testingLlmConfig
+                        : t.testLlmConfig}
+                    </button>
+                  </div>
+                  <p
+                    className={`llm-config-status ${llmConfigStatus.state}`}
+                    aria-live="polite"
+                  >
+                    {llmConfigStatus.state === "testing"
+                      ? t.testingLlmConfig
+                      : llmConfigStatus.state === "success"
+                        ? `${t.llmTestSuccess(llmConfigStatus.latencyMs)}${
+                            llmConfigDirty ? ` ${t.llmConfigUnsaved}` : ""
+                          }`
+                        : llmConfigStatus.state === "error"
+                          ? `${t.llmTestFailed}：${llmConfigStatus.error}`
+                          : llmConfigDirty
+                            ? t.llmConfigUnsaved
+                            : llmConfigStatus.state === "saved" ||
+                                (llmConfigConfirmed && !llmConfigDirty)
+                              ? t.llmConfigSaved
+                              : ""}
+                  </p>
                 </fieldset>
               </div>
             ) : null}

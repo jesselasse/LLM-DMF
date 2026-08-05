@@ -11,7 +11,11 @@ const {
   SequenceWorkspace,
   sequenceToText,
 } = require("./sequence_workspace");
-const { createLlmProcessEnv, normalizeLlmConfig } = require("./llm_runtime_config");
+const {
+  createLlmProcessEnv,
+  normalizeLlmConfig,
+  sanitizeLlmError,
+} = require("./llm_runtime_config");
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -136,7 +140,10 @@ function runLlmAgent(message, context, llmConfig) {
       }
       reject(
         new Error(
-          stderr.trim() || `llm_move_agent.py exited with non-zero code: ${code}`
+          sanitizeLlmError(
+            stderr.trim() || `llm_move_agent.py exited with non-zero code: ${code}`,
+            [llmConfig.apiKey]
+          )
         )
       );
     });
@@ -146,12 +153,89 @@ function runLlmAgent(message, context, llmConfig) {
   });
 }
 
+function runLlmConnectionTest(llmConfig) {
+  return new Promise((resolve, reject) => {
+    const pythonBin = process.env.PYTHON_BIN || "python3";
+    const scriptPath = path.join(__dirname, "llm_connection_test.py");
+    const child = spawn(pythonBin, [scriptPath], {
+      cwd: __dirname,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: createLlmProcessEnv(process.env, llmConfig),
+    });
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill("SIGTERM");
+      reject(new Error("LLM connection test timed out."));
+    }, 25000);
+    const settle = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      callback(value);
+    };
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", (error) => settle(reject, error));
+    child.on("close", (code) => {
+      if (code !== 0) {
+        settle(
+          reject,
+          new Error(
+            sanitizeLlmError(
+              stderr || `LLM connection test exited with non-zero code: ${code}`,
+              [llmConfig.apiKey]
+            )
+          )
+        );
+        return;
+      }
+      try {
+        settle(resolve, JSON.parse(stdout.trim()));
+      } catch (_error) {
+        settle(reject, new Error("LLM connection test returned invalid output."));
+      }
+    });
+  });
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     version: BACKEND_VERSION,
     sessions: sessionStore.size,
   });
+});
+
+app.post("/api/llm-config/test", async (req, res) => {
+  let llmConfig;
+  try {
+    llmConfig = normalizeLlmConfig(req.body && req.body.llmConfig);
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+
+  try {
+    const result = await runLlmConnectionTest(llmConfig);
+    return res.json({
+      ok: true,
+      model: String(result.model || llmConfig.model || ""),
+      latencyMs: Math.max(0, Number(result.latencyMs) || 0),
+    });
+  } catch (error) {
+    return res.status(502).json({
+      ok: false,
+      error: sanitizeLlmError(error.message, [llmConfig.apiKey]),
+    });
+  }
 });
 
 app.post("/api/session-state", (req, res) => {

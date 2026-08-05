@@ -455,6 +455,45 @@ body {
   line-height: 1.45;
 }
 
+.llm-settings-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.llm-settings-actions button {
+  height: 30px;
+  padding: 0 8px;
+  color: var(--text);
+  background: var(--control);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.llm-settings-actions .test-llm-btn {
+  color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.llm-config-status {
+  min-height: 13px;
+}
+
+.llm-config-status.saved,
+.llm-config-status.success {
+  color: #15803d;
+}
+
+html[data-theme="dark"] .llm-config-status.saved,
+html[data-theme="dark"] .llm-config-status.success {
+  color: #86efac;
+}
+
+.llm-config-status.error {
+  color: var(--danger);
+}
+
 .conversation-panel {
   display: grid;
   gap: 8px;

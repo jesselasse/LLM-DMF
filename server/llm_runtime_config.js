@@ -68,4 +68,19 @@ function createLlmProcessEnv(baseEnv, llmConfig) {
   };
 }
 
-module.exports = { createLlmProcessEnv, normalizeLlmConfig };
+function sanitizeLlmError(raw, secrets = []) {
+  let message = String(raw || "LLM request failed").trim();
+  secrets.filter(Boolean).forEach((secret) => {
+    message = message.split(secret).join("[redacted]");
+  });
+  if (/<!doctype html|<html[\s>]/i.test(message)) {
+    return "LLM endpoint returned an HTML error page. Check the API URL.";
+  }
+  return message.replace(/\s+/g, " ").slice(0, 400);
+}
+
+module.exports = {
+  createLlmProcessEnv,
+  normalizeLlmConfig,
+  sanitizeLlmError,
+};

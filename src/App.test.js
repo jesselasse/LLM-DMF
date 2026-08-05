@@ -78,6 +78,18 @@ test("presets still fill the composer and new conversation restores the initial 
   expect(input).toHaveValue("在（20，20）向右生成3个液滴");
 });
 
+test.each([
+  ["挤出生成", "在（20，20）向右挤出式生成 1 个尺寸为 1×1 的液滴"],
+  ["多挤出生成", "在（20，24）向右挤出生成 3 个尺寸为 1×1 的液滴"],
+  ["移动", "将位于（20，20）的 1 个尺寸为 1×1 的液滴向右移动 20 格"],
+  ["混合", "对位于（20，20）的 1 个尺寸为 1×1 的液滴做 3 圈旋转混匀"],
+  ["阵列混合", "对 3 个尺寸为 1×1 的液滴并行做 3 圈阵列混匀"],
+])("preset %s fills the exact requested prompt", (label, prompt) => {
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  expect(screen.getByRole("textbox", { name: "对话输入" })).toHaveValue(prompt);
+});
+
 test("send button keeps the existing backend request contract", async () => {
   const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
     ok: true,
@@ -147,6 +159,11 @@ test("temporary LLM settings are sent but never stored or exported", async () =>
   fireEvent.change(screen.getByRole("textbox", { name: "模型" }), {
     target: { value: "custom-model" },
   });
+  expect(screen.getByText("内容有变化，保存后才会用于聊天请求。")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
+  expect(
+    screen.getByText("已确认，将用于后续请求，仅当前页面有效。")
+  ).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
 
   const generationCalls = () =>
@@ -176,6 +193,55 @@ test("temporary LLM settings are sent but never stored or exported", async () =>
 
   fetchMock.mockRestore();
   delete window.showSaveFilePicker;
+});
+
+test("LLM connection test uses draft settings without saving them", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url) => {
+    if (url === "/api/llm-config/test") {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ ok: true, latencyMs: 42 }),
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => "{}",
+    };
+  });
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "界面设置" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "API 地址" }), {
+    target: { value: "https://custom.example/v1" },
+  });
+  fireEvent.change(screen.getByLabelText("API Key"), {
+    target: { value: "temporary-secret-key" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "模型" }), {
+    target: { value: "custom-model" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "测试连接" }));
+
+  const testCalls = () =>
+    fetchMock.mock.calls.filter(([url]) => url === "/api/llm-config/test");
+  await waitFor(() => expect(testCalls()).toHaveLength(1));
+  expect(JSON.parse(testCalls()[0][1].body)).toEqual({
+    llmConfig: {
+      baseUrl: "https://custom.example/v1",
+      apiKey: "temporary-secret-key",
+      model: "custom-model",
+    },
+  });
+  expect(
+    await screen.findByText(
+      "连接成功，耗时 42 ms。 内容有变化，保存后才会用于聊天请求。"
+    )
+  ).toBeInTheDocument();
+
+  fetchMock.mockRestore();
 });
 
 test("interface settings switch language and theme without changing prompt data", () => {

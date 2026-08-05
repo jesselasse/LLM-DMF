@@ -1,6 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createLlmProcessEnv, normalizeLlmConfig } = require("./llm_runtime_config");
+const {
+  createLlmProcessEnv,
+  normalizeLlmConfig,
+  sanitizeLlmError,
+} = require("./llm_runtime_config");
 
 test("blank runtime settings preserve server defaults", () => {
   const baseEnv = {
@@ -47,5 +51,16 @@ test("runtime settings reject invalid shapes and URLs", () => {
   assert.throws(
     () => normalizeLlmConfig({ apiKey: "x".repeat(4097) }),
     /apiKey is too long/
+  );
+});
+
+test("LLM errors hide secrets and collapse HTML responses", () => {
+  assert.equal(
+    sanitizeLlmError("request failed with temporary-secret", ["temporary-secret"]),
+    "request failed with [redacted]"
+  );
+  assert.equal(
+    sanitizeLlmError("NotFoundError: <!DOCTYPE html><html>not found</html>"),
+    "LLM endpoint returned an HTML error page. Check the API URL."
   );
 });
