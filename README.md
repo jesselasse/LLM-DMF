@@ -150,15 +150,25 @@ Typical prompt:
 
 ### `squeeze`
 
-Apply the squeezing template to one droplet or many droplets in parallel. Droplet positions
-and dimensions can be supplied explicitly, selected in the UI, or referenced from a workspace
-variable.
+Apply the squeezing/extrusion template to generate multiple droplets from a source droplet.
+This operation already contains its own generation path; do not call `generate_array` first.
+Droplet positions and dimensions can be supplied explicitly, selected in the UI, or referenced
+from a workspace variable. `count` controls the requested squeeze progression/output count.
 
 Typical prompt:
 
 ```text
 对位于（20，20）、尺寸为（3，2）的液滴执行一次向右挤压。
 ```
+
+挤出多个液滴时只需要给出源位置、尺寸、方向和数量，不需要提供液滴间隔：
+
+```text
+在（20，20）向右生成 3 个 2×2 液滴，在（60，60）向左生成 3 个一样大的液滴。
+```
+
+这类请求直接使用挤出操作；只有用户明确要求独立的阵列位置布局时才使用
+`generate_array`。
 
 Notes:
 
@@ -182,6 +192,38 @@ Typical prompt:
 对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。
 ```
 
+### `merge`
+
+合并两组相邻或近邻液滴。输入是两个等长数组，后端按索引配对：
+`droplets1[i]` 与 `droplets2[i]` 合并。每一对会先沿分离方向对向移动，直到边界相邻，
+再形变为一个紧凑、尽可能接近正方形的大矩形。矩形面积按该对液滴的面积总和计算；
+无法精确分解时会向上取整。每一对液滴必须在另一坐标轴上有投影重叠。
+
+典型提示：
+
+```text
+把当前选中的两个液滴合并。
+```
+
+`merge` 与其他操作一样支持显式液滴列表、当前选中液滴，以及工作空间变量。
+
+### Droplet workspace variables
+
+序列操作可以通过 `outputName` 将最后一帧的液滴集合保存到 workspace：
+
+```json
+{"workspaceVariable":"leftSqueezed"}
+```
+
+实际工具参数示例：
+
+```json
+{"outputName":"leftSqueezed", "x":20, "y":20, "w":2, "h":2, "direction":"right", "count":3}
+```
+
+后续操作可以引用该变量；如果再次使用同一个 `outputName`，变量会被新结果替换。变量
+保留液滴数组顺序，因此可以用于 `merge` 的两个等长数组按索引配对。
+
 Selected-droplet prompt:
 
 ```text
@@ -191,7 +233,8 @@ Selected-droplet prompt:
 #### Array input
 
 Array layout is operation-independent. First generate a named droplet array, then pass the
-workspace variable to `move`, `squeeze`, or `rotate_mix`.
+workspace variable to `move`, `merge`, `squeeze`, or `rotate_mix`. This applies only to an
+independent positional array; squeeze/extrusion itself generates its multiple droplets directly.
 
 Behavior:
 

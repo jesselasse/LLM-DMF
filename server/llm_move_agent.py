@@ -29,9 +29,11 @@ from typing import Any, Dict, List, Optional, Union
 from llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from move_backend import (
     GenerateDropletArray,
+    Merge,
     Move,
     RotateMix,
     Squeeze,
+    merge_sequences_by_step,
     normalize_droplets_input,
 )
 
@@ -174,6 +176,30 @@ def _build_required_map(tool_registry: Dict[str, Any]) -> Dict[str, List[str]]:
     return {name: _tool_required_args(tool_obj) for name, tool_obj in tool_registry.items()}
 
 
+def _last_sequence_rects(sequence: Any) -> List[Any]:
+    if not isinstance(sequence, list) or not sequence:
+        return []
+    last = sequence[-1]
+    if isinstance(last, (list, tuple)) and len(last) > 1:
+        return list(last[1]) if isinstance(last[1], list) else []
+    if isinstance(last, dict):
+        return list(last.get("rects", [])) if isinstance(last.get("rects"), list) else []
+    return []
+
+
+def _with_output_variable(
+    result: Dict[str, Any], output_name: Optional[str]
+) -> Dict[str, Any]:
+    name = str(output_name or "").strip()
+    if not name:
+        return result
+    if name in {"sequence", "currentFrameDroplets", "selectedDroplets"}:
+        raise ValueError("outputName conflicts with a reserved workspace variable.")
+    result["workspaceUpdates"] = {name: _last_sequence_rects(result.get("sequence", []))}
+    result["workspaceVariable"] = name
+    return result
+
+
 def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]:
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
     from langchain_core.tools import tool
@@ -204,6 +230,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     class MoveArgs(BaseModel):
         direction: str
         t: int
+        outputName: Optional[str] = Field(default=None)
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(
             default=None
         )
@@ -214,6 +241,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
 
     class RotateMixArgs(BaseModel):
         duration: int
+        outputName: Optional[str] = Field(default=None)
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(
             default=None
         )
@@ -225,13 +253,19 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     class SqueezeArgs(BaseModel):
         count: int
         direction: str
-        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(
+        outputName: Optional[str] = Field(default=None)
+        droplets: Optional[Union[DropletModel, WorkspaceVariableRef]] = Field(
             default=None
         )
         x: Optional[int] = Field(default=None)
         y: Optional[int] = Field(default=None)
         w: Optional[int] = Field(default=None)
         h: Optional[int] = Field(default=None)
+
+    class MergeArgs(BaseModel):
+        outputName: Optional[str] = Field(default=None)
+        droplets1: Union[List[DropletModel], WorkspaceVariableRef]
+        droplets2: Union[List[DropletModel], WorkspaceVariableRef]
 
     @tool("generate_array", args_schema=GenerateArrayArgs)
     def generate_array(
@@ -261,6 +295,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     def move(
         direction: str,
         t: int,
+        outputName: Optional[str] = None,
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
         x: Optional[int] = None,
         y: Optional[int] = None,
@@ -281,27 +316,32 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             selected_droplets=selected_droplets,
             workspace_variables=workspace_variables,
         )
-        return {
+        return _with_output_variable({
             "kind": "sequence",
             "sequence": Move(resolved, direction, t),
             "resolvedDroplets": resolved,
-        }
+        }, outputName)
 
     @tool("squeeze", args_schema=SqueezeArgs)
     def squeeze(
         count: int,
         direction: str,
-        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
+        outputName: Optional[str] = None,
+        droplets: Optional[Union[DropletModel, WorkspaceVariableRef]] = None,
         x: Optional[int] = None,
         y: Optional[int] = None,
         w: Optional[int] = None,
         h: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        Generate squeezing sequence from template.
-        count controls truncation (1->6, 2->11, each extra +5).
-        Accept one or more droplets directly or through a workspace variable.
-        Each droplet position and size controls its transformed squeeze template.
+        Generate multiple droplets by extruding/squeezing from each source droplet.
+        Source position/size, direction, and count are sufficient; no gap is
+        needed because the squeeze template generates output positions itself.
+        count is the requested squeeze output count and controls the template
+        progression (1->6, 2->11, each extra +5); this is not a generic array.
+        Accept one source droplet directly, from the current selection, or through
+        a workspace variable. For multiple sources, call squeeze multiple times;
+        the agent combines those paths by time step.
         """
         resolved = _resolve_droplets(
             droplets=droplets,
@@ -312,15 +352,39 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             selected_droplets=selected_droplets,
             workspace_variables=workspace_variables,
         )
-        return {
+        if len(resolved) != 1:
+            raise ValueError("squeeze accepts one source droplet per call; use multiple squeeze calls for multiple sources.")
+        return _with_output_variable({
             "kind": "sequence",
             "sequence": Squeeze(resolved, count, direction),
             "resolvedDroplets": resolved,
-        }
+        }, outputName)
+
+    @tool("merge", args_schema=MergeArgs)
+    def merge(
+        droplets1: Union[List[DropletModel], WorkspaceVariableRef],
+        droplets2: Union[List[DropletModel], WorkspaceVariableRef],
+        outputName: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Merge droplets1[i] with droplets2[i] in parallel."""
+        first = _resolve_droplets(
+            droplets=droplets1, x=None, y=None, w=None, h=None,
+            selected_droplets=[], workspace_variables=workspace_variables,
+        )
+        second = _resolve_droplets(
+            droplets=droplets2, x=None, y=None, w=None, h=None,
+            selected_droplets=[], workspace_variables=workspace_variables,
+        )
+        return _with_output_variable({
+            "kind": "sequence",
+            "sequence": Merge(first, second),
+            "resolvedDroplets": first + second,
+        }, outputName)
 
     @tool("rotate_mix", args_schema=RotateMixArgs)
     def rotate_mix(
         duration: int,
+        outputName: Optional[str] = None,
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
         x: Optional[int] = None,
         y: Optional[int] = None,
@@ -341,11 +405,11 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             selected_droplets=selected_droplets,
             workspace_variables=workspace_variables,
         )
-        return {
+        return _with_output_variable({
             "kind": "sequence",
             "sequence": RotateMix(resolved, duration),
             "resolvedDroplets": resolved,
-        }
+        }, outputName)
 
     model_name = os.getenv("OPENAI_MODEL") or LLM_MODEL
     llm = ChatOpenAI(
@@ -357,6 +421,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     tool_registry = {
         "generate_array": generate_array,
         "move": move,
+        "merge": merge,
         "squeeze": squeeze,
         "rotate_mix": rotate_mix,
     }
@@ -413,10 +478,13 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     system_prompt = (
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the backend sequence workspace.\n"
-        "For movement, call 'move'. For squeeze generation, call 'squeeze'. For circulation mixing, call 'rotate_mix'.\n"
-        "To create an array, first call 'generate_array' with an explicit output variable name. After receiving its result, call any operation with a workspaceVariable reference to that name.\n"
+        "For movement, call 'move'. To combine nearby droplets, call 'merge' with two equally sized arrays; droplets1[i] merges with droplets2[i]. For circulation mixing, call 'rotate_mix'.\n"
+        "For squeeze/extrusion generation, call 'squeeze' directly: source position, size, direction, and count are sufficient, and it internally generates the requested multiple droplets. NEVER ask for or invent an inter-droplet gap, and NEVER call 'generate_array' first for a squeeze/extrusion request.\n"
+        "Squeeze is not a generic array operation: each squeeze call describes one source droplet. For multiple sources, call squeeze multiple times, even when their parameters match; the backend combines all squeeze paths by time step. No inter-droplet gap is needed.\n"
+        "Use 'generate_array' only when the user explicitly asks for independent droplet positions/layout; after receiving its result, call another operation with a workspaceVariable reference to that name.\n"
         "When the UI provides selected droplets, operations may use them directly or explicitly reference the selectedDroplets workspace variable.\n"
         "Tool arguments may explicitly reference an available workspace variable using {\"workspaceVariable\": \"variableName\"}.\n"
+        "Sequence operations may provide outputName to save their resulting droplet collection in the workspace; reusing an existing outputName replaces that variable. Use the saved result for later move, merge, or rotate_mix calls instead of guessing coordinates.\n"
         "When information is insufficient, ask a follow-up question instead of calling tools.\n"
         "You may suggest defaults, but must ask user confirmation before applying them.\n"
         "If there are multiple droplets and request is ambiguous, ask clarification and do not call tools.\n"
@@ -456,6 +524,8 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     sequence_delta: List[Any] = []
     move_calls: List[Dict[str, Any]] = []
     workspace_updates: Dict[str, Any] = {}
+    sequence_tool_names: List[str] = []
+    squeeze_sequences: List[Any] = []
     agent_messages: List[Any] = list(messages)
     assistant_reply = ""
     had_tool_calls = False
@@ -494,7 +564,12 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                     workspace_variables.update(updates)
                     workspace_updates.update(updates)
             elif result_kind == "sequence":
-                sequence_delta.extend(tool_result.get("sequence", []))
+                tool_sequence = tool_result.get("sequence", [])
+                sequence_tool_names.append(name)
+                if name == "squeeze":
+                    squeeze_sequences.append(tool_sequence)
+                else:
+                    sequence_delta.extend(tool_sequence)
 
             move_calls.append(
                 {
@@ -526,6 +601,12 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                 ]
             )
             assistant_reply = (getattr(final_msg, "content", "") or "").strip()
+
+    if squeeze_sequences:
+        if all(name == "squeeze" for name in sequence_tool_names):
+            sequence_delta = merge_sequences_by_step(squeeze_sequences)
+        else:
+            sequence_delta.extend(merge_sequences_by_step(squeeze_sequences))
 
     return {
         "assistantReply": assistant_reply,

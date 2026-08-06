@@ -234,6 +234,138 @@ def Move(
     return merge_sequences_by_step(sequences)
 
 
+def _near_square_dimensions(cell_count: int) -> Tuple[int, int]:
+    """Choose a compact rectangle with at least ``cell_count`` cells."""
+    if cell_count <= 0:
+        raise ValueError("cell_count must be > 0.")
+    side = int(math.ceil(math.sqrt(cell_count)))
+    candidates = []
+    for width in range(1, side + 1):
+        height = int(math.ceil(cell_count / width))
+        candidates.append((abs(width - height), width * height - cell_count, width, height))
+    _, _, width, height = min(candidates)
+    return width, height
+
+
+def Deform(droplets: List[Rect]) -> ActivationSequence:
+    """Deform two adjacent rectangles into one compact rectangle."""
+    normalized = normalize_droplets_input(droplets)
+    if len(normalized) != 2:
+        raise ValueError("deform requires exactly two droplets.")
+    first, second = normalized
+    x1, y1, w1, h1 = first
+    x2, y2, w2, h2 = second
+    x_overlap = min(x1 + w1, x2 + w2) - max(x1, x2)
+    y_overlap = min(y1 + h1, y2 + h2) - max(y1, y2)
+    horizontal_gap = max(x1, x2) - min(x1 + w1, x2 + w2)
+    vertical_gap = max(y1, y2) - min(y1 + h1, y2 + h2)
+    if not ((x_overlap > 0 and vertical_gap == 0) or (y_overlap > 0 and horizontal_gap == 0)):
+        raise ValueError("deform requires two adjacent droplets.")
+
+    min_x = min(x1, x2)
+    min_y = min(y1, y2)
+    max_x = max(x1 + w1, x2 + w2)
+    max_y = max(y1 + h1, y2 + h2)
+    total_area = w1 * h1 + w2 * h2
+    bounding_w = max_x - min_x
+    bounding_h = max_y - min_y
+    # If the adjacent rectangles already form a filled rectangle, preserve
+    # that geometry exactly. No rotation or alternate near-square choice is
+    # needed in this case.
+    if bounding_w * bounding_h == total_area:
+        target_w, target_h = bounding_w, bounding_h
+    else:
+        target_w, target_h = _near_square_dimensions(total_area)
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+    merged = (
+        int(round(center_x - target_w / 2)),
+        int(round(center_y - target_h / 2)),
+        target_w,
+        target_h,
+    )
+    return [(0, [merged])]
+
+
+def _merge_pair(droplets: List[Rect]) -> ActivationSequence:
+    """Move one pair of nearby droplets together and deform them into one rectangle.
+
+    The droplets must be separated on one axis while their projections overlap
+    on the other axis. They move toward one another until touching, then a final
+    frame replaces both with a compact, near-square rectangle whose area is the
+    sum of the two input areas (rounded up when an exact factorization is not
+    possible).
+    """
+    normalized = normalize_droplets_input(droplets)
+    if len(normalized) != 2:
+        raise ValueError("merge pair requires exactly two droplets.")
+    first, second = normalized
+    ax, ay, aw, ah = first
+    bx, by, bw, bh = second
+
+    # Prefer horizontal joining when the y projections overlap.
+    y_overlap = min(ay + ah, by + bh) - max(ay, by)
+    x_overlap = min(ax + aw, bx + bw) - max(ax, bx)
+    movement = None
+    if y_overlap > 0 and (ax + aw <= bx or bx + bw <= ax):
+        if ax <= bx:
+            left, right = first, second
+            gap = max(0, bx - (ax + aw))
+            movement = (left, "right", right, "left", gap)
+        else:
+            left, right = second, first
+            gap = max(0, ax - (bx + bw))
+            movement = (left, "right", right, "left", gap)
+    elif x_overlap > 0 and (ay + ah <= by or by + bh <= ay):
+        if ay <= by:
+            top, bottom = first, second
+            gap = max(0, by - (ay + ah))
+            movement = (top, "down", bottom, "up", gap)
+        else:
+            top, bottom = second, first
+            gap = max(0, ay - (by + bh))
+            movement = (top, "down", bottom, "up", gap)
+    else:
+        raise ValueError("merge requires droplets with overlapping projection and a small gap.")
+
+    sequence: ActivationSequence = []
+    left_or_top, dir_a, right_or_bottom, dir_b, gap = movement
+    # Split movement between the two droplets while preserving non-overlap.
+    steps_a = (gap + 1) // 2
+    steps_b = gap // 2
+    current_a = left_or_top
+    current_b = right_or_bottom
+    for step in range(max(steps_a, steps_b)):
+        if step < steps_a:
+            current_a = _move_one(current_a, dir_a, 1)[-1][1][0]
+        if step < steps_b:
+            current_b = _move_one(current_b, dir_b, 1)[-1][1][0]
+        sequence.append((step, [current_a, current_b]))
+
+    final_a = current_a
+    final_b = current_b
+    deformation = Deform([final_a, final_b])
+    sequence.append((len(sequence), deformation[0][1]))
+    return sequence
+
+
+def Merge(droplets1: List[Rect], droplets2: List[Rect]) -> ActivationSequence:
+    """Merge two equally sized droplet arrays pairwise in parallel.
+
+    ``droplets1[i]`` is merged with ``droplets2[i]``. Each pair must have
+    overlapping projection on one axis and a small gap on the other axis.
+    """
+    normalized1 = normalize_droplets_input(droplets1)
+    normalized2 = normalize_droplets_input(droplets2)
+    if len(normalized1) != len(normalized2):
+        raise ValueError("merge droplet arrays must have the same length.")
+    pair_sequences = [
+        _merge_pair([first, second])
+        for first, second in zip(normalized1, normalized2)
+    ]
+    return merge_sequences_by_step(pair_sequences)
+
+
 def _squeeze_one(
     count: int,
     droplet: Rect,

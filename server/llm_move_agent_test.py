@@ -12,11 +12,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from langchain_core.messages import AIMessage  # noqa: E402
 
 from llm_move_agent import generate_payload  # noqa: E402
-from move_backend import GenerateDropletArray, Move, RotateMix, Squeeze  # noqa: E402
+from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, Squeeze  # noqa: E402
 
 
 class FakeChatOpenAI:
     responses = []
+    calls = []
 
     def __init__(self, **_kwargs):
         self._responses = list(self.responses)
@@ -25,6 +26,7 @@ class FakeChatOpenAI:
         return self
 
     def invoke(self, _messages):
+        self.calls.append(_messages)
         if not self._responses:
             raise AssertionError("unexpected LLM invocation")
         return self._responses.pop(0)
@@ -97,11 +99,117 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             ["generate_array", "move"],
         )
 
+    def test_squeeze_can_generate_multiple_without_array_tool(self):
+        FakeChatOpenAI.responses = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "squeeze",
+                        "args": {
+                            "count": 2,
+                            "direction": "right",
+                            "x": 10,
+                            "y": 10,
+                            "w": 5,
+                            "h": 5,
+                        },
+                        "id": "squeeze-call",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="已完成挤出生成。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "从一个液滴挤出生成两个液滴",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual([call["tool"] for call in result["moveCalls"]], ["squeeze"])
+        self.assertNotIn("generate_array", [call["tool"] for call in result["moveCalls"]])
+
+    def test_same_squeeze_parameters_use_one_multi_source_call(self):
+        FakeChatOpenAI.responses = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "squeeze",
+                        "args": {
+                            "count": 3,
+                            "direction": "right",
+                            "x": 20,
+                            "y": 20,
+                            "w": 2,
+                            "h": 2,
+                        },
+                        "id": "squeeze-call-1",
+                        "type": "tool_call",
+                    },
+                    {
+                        "name": "squeeze",
+                        "args": {
+                            "count": 3,
+                            "direction": "right",
+                            "x": 20,
+                            "y": 60,
+                            "w": 2,
+                            "h": 2,
+                        },
+                        "id": "squeeze-call-2",
+                        "type": "tool_call",
+                    },
+                ],
+            ),
+            AIMessage(content="已完成并行挤出。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "在两个位置向右挤出相同数量的液滴",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual([call["tool"] for call in result["moveCalls"]], ["squeeze", "squeeze"])
+        self.assertEqual(len(result["sequenceDelta"]), 16)
+
     def test_all_operations_accept_the_same_droplet_list(self):
         droplets = GenerateDropletArray(2, 0, 0, 1, 1, 2)
         self.assertTrue(Move(droplets, "right", 1))
         self.assertTrue(Squeeze(droplets, 1, "right"))
         self.assertTrue(RotateMix(droplets, 1))
+
+    def test_merge_moves_then_deforms_two_horizontal_droplets(self):
+        result = Merge([(0, 0, 2, 2)], [(5, 0, 1, 3)])
+        self.assertEqual(result[0], (0, [(1, 0, 2, 2), (4, 0, 1, 3)]))
+        self.assertEqual(result[1], (1, [(2, 0, 2, 2), (4, 0, 1, 3)]))
+        # Total area is 7, so the compact target is 3x3 rather than a long strip.
+        self.assertEqual(result[-1][1][0][2:], (3, 3))
+        self.assertEqual(len(result[-1][1]), 1)
+
+    def test_merge_requires_two_aligned_droplets(self):
+        with self.assertRaises(ValueError):
+            Merge([(0, 0, 1, 1)], [])
+        with self.assertRaises(ValueError):
+            Merge([(0, 0, 1, 1)], [(4, 4, 1, 1), (8, 8, 1, 1)])
+        with self.assertRaises(ValueError):
+            Merge([(0, 0, 1, 1)], [(4, 4, 1, 1)])
+
+    def test_merge_pairs_two_arrays_by_index(self):
+        result = Merge(
+            [(0, 0, 2, 2), (0, 10, 2, 2)],
+            [(4, 0, 2, 2), (4, 10, 2, 2)],
+        )
+        self.assertEqual(result[0][1], [(1, 0, 2, 2), (3, 0, 2, 2), (1, 10, 2, 2), (3, 10, 2, 2)])
+        self.assertEqual(result[-1][1], [(1, 0, 4, 2), (1, 10, 4, 2)])
+
+    def test_deform_accepts_adjacent_rectangles(self):
+        result = Deform([(0, 0, 2, 2), (2, 0, 1, 3)])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][1][0][2:], (3, 3))
+
+    def test_deform_preserves_an_already_filled_rectangle(self):
+        result = Deform([(23, 20, 2, 2), (25, 20, 1, 2)])
+        self.assertEqual(result, [(0, [(23, 20, 3, 2)])])
 
 
 if __name__ == "__main__":
