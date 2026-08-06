@@ -68,6 +68,41 @@ test("grid pointer coordinates remain aligned with the canvas", () => {
   expect(screen.getByText("(16, 32)")).toBeInTheDocument();
 });
 
+test("step progress slider seeks without changing the loaded sequence", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url) => {
+    if (url === "/api/session-state") {
+      return { ok: true, json: async () => ({}) };
+    }
+    return {
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          turnIndex: 0,
+          baseStepCount: 0,
+          assistantReply: "已生成",
+          stepsText:
+            "(1,1)(1,1)-1000\n(2,1)(1,1)-1000\n(3,1)(1,1)-1000",
+          selectedDroplets: [],
+        }),
+    };
+  });
+
+  render(<App />);
+  const progress = screen.getByRole("slider", { name: "步骤进度" });
+  expect(progress).toBeDisabled();
+
+  fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
+  await waitFor(() => expect(progress).toBeEnabled());
+  expect(progress).toHaveAttribute("max", "2");
+
+  fireEvent.change(progress, { target: { value: "2" } });
+  expect(screen.getByText("步骤 3 / 3")).toBeInTheDocument();
+  expect(progress).toHaveValue("2");
+
+  fetchMock.mockRestore();
+});
+
 test("presets still fill the composer and new conversation restores the initial prompt", () => {
   render(<App />);
   const input = screen.getByRole("textbox", { name: "对话输入" });

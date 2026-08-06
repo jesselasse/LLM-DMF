@@ -162,6 +162,7 @@ const UI_COPY = {
     stepList: "步骤列表",
     stepLabel: "步骤",
     playbackControls: "播放控制",
+    stepProgressControl: "步骤进度",
     back10: "后退 10 步",
     back1: "后退 1 步",
     pause: "暂停",
@@ -254,6 +255,7 @@ const UI_COPY = {
     stepList: "Step list",
     stepLabel: "Step",
     playbackControls: "Playback controls",
+    stepProgressControl: "Step progress",
     back10: "Back 10",
     back1: "Back 1",
     pause: "Pause",
@@ -485,6 +487,10 @@ export default function App() {
     [steps]
   );
   const latestFrameRects = useMemo(() => latestStep?.rects || [], [latestStep]);
+  const stepProgressPercent =
+    steps.length > 1 && currentStep >= 0
+      ? (currentStep / (steps.length - 1)) * 100
+      : 0;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1490,7 +1496,24 @@ export default function App() {
           </div>
         </div>
 
-        <div className="playback-mini" aria-label={t.playbackControls}>
+        <div className="playback-area">
+          <div className="step-progress-row">
+            <span>{t.stepProgressControl}</span>
+            <strong>{currentStep >= 0 ? currentStep + 1 : 0} / {steps.length}</strong>
+          </div>
+          <input
+            className="step-progress-range"
+            type="range"
+            min="0"
+            max={Math.max(steps.length - 1, 0)}
+            step="1"
+            value={Math.max(currentStep, 0)}
+            onChange={(event) => selectStep(Number(event.target.value))}
+            disabled={!steps.length}
+            aria-label={t.stepProgressControl}
+            style={{ "--step-progress": `${stepProgressPercent}%` }}
+          />
+          <div className="playback-mini" aria-label={t.playbackControls}>
           <button
             type="button"
             className="icon-btn"
@@ -1561,6 +1584,7 @@ export default function App() {
           >
             ◫
           </button>
+          </div>
         </div>
       </section>
 
