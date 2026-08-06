@@ -207,23 +207,6 @@ Typical prompt:
 
 `merge` 与其他操作一样支持显式液滴列表、当前选中液滴，以及工作空间变量。
 
-### Droplet workspace variables
-
-序列操作可以通过 `outputName` 将最后一帧的液滴集合保存到 workspace：
-
-```json
-{"workspaceVariable":"leftSqueezed"}
-```
-
-实际工具参数示例：
-
-```json
-{"outputName":"leftSqueezed", "x":20, "y":20, "w":2, "h":2, "direction":"right", "count":3}
-```
-
-后续操作可以引用该变量；如果再次使用同一个 `outputName`，变量会被新结果替换。变量
-保留液滴数组顺序，因此可以用于 `merge` 的两个等长数组按索引配对。
-
 Selected-droplet prompt:
 
 ```text
