@@ -117,7 +117,19 @@ Response body:
 
 ## Supported Backend Operations
 
-The LLM backend currently exposes these operations:
+The LLM backend currently exposes these tools:
+
+### `generate_array`
+
+Generate a reusable near-square, row-major droplet layout and store it under an explicit
+workspace variable name. The tool only creates droplet positions; it does not perform a
+movement, squeeze, or mixing operation.
+
+Any operation can then consume the result through a workspace reference:
+
+```json
+{ "workspaceVariable": "assayArray" }
+```
 
 ### `move`
 
@@ -126,7 +138,9 @@ Move one droplet or many droplets step by step.
 Input sources:
 
 - explicit single-droplet coordinates `(x, y, w, h)`
+- an explicit list of droplets
 - current UI-selected droplets from session context
+- a named workspace variable such as an array generated earlier
 
 Typical prompt:
 
@@ -136,18 +150,20 @@ Typical prompt:
 
 ### `squeeze`
 
-Generate droplets from the squeezing template.
+Apply the squeezing template to one droplet or many droplets in parallel. Droplet positions
+and dimensions can be supplied explicitly, selected in the UI, or referenced from a workspace
+variable.
 
 Typical prompt:
 
 ```text
-在（20，20）向右生成3个液滴。
+对位于（20，20）、尺寸为（3，2）的液滴执行一次向右挤压。
 ```
 
 Notes:
 
-- Supports `size=1` and non-uniform sizes such as `3*2`
-- Returned result is standard step text and can be rendered directly on the grid
+- Each droplet's own width and height control template scaling
+- Multiple droplets are merged by time step into one structured sequence
 
 ### `rotate_mix`
 
@@ -174,17 +190,12 @@ Selected-droplet prompt:
 
 #### Array input
 
-The same `rotate_mix` operation can arrange and mix many droplets in parallel.
-
-Implementation note:
-
-- first generate the array droplet coordinates
-- then call the multi-droplet `rotate_mix` path
+Array layout is operation-independent. First generate a named droplet array, then pass the
+workspace variable to `move`, `squeeze`, or `rotate_mix`.
 
 Behavior:
 
 - generate array coordinates from the requested origin and droplet size
-- compute the module envelope size from its full activation sequence
 - arrange droplets with the standard gap `4` when the user confirms the default layout
 - compute layout from the requested parallel count using a near-square grid
 

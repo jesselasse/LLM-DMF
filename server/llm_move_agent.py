@@ -28,11 +28,9 @@ from typing import Any, Dict, List, Optional, Union
 
 from llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from move_backend import (
+    GenerateDropletArray,
     Move,
-    MoveDroplets,
     RotateMix,
-    RotateMixArrayDroplets,
-    RotateMixDroplets,
     Squeeze,
     normalize_droplets_input,
 )
@@ -183,6 +181,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     from pydantic import BaseModel, Field
 
     selected_droplets = context.get("selectedDroplets", [])
+    workspace_variables = dict(context.get("workspaceVariables", {}))
 
     class DropletModel(BaseModel):
         x: int
@@ -193,7 +192,8 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     class WorkspaceVariableRef(BaseModel):
         workspaceVariable: str
 
-    class DropletArrayModel(BaseModel):
+    class GenerateArrayArgs(BaseModel):
+        outputName: str
         count: int
         x: int
         y: int
@@ -217,7 +217,6 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(
             default=None
         )
-        array: Optional[DropletArrayModel] = Field(default=None)
         x: Optional[int] = Field(default=None)
         y: Optional[int] = Field(default=None)
         w: Optional[int] = Field(default=None)
@@ -225,10 +224,38 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
 
     class SqueezeArgs(BaseModel):
         count: int
-        x: int
-        y: int
         direction: str
-        size: str
+        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(
+            default=None
+        )
+        x: Optional[int] = Field(default=None)
+        y: Optional[int] = Field(default=None)
+        w: Optional[int] = Field(default=None)
+        h: Optional[int] = Field(default=None)
+
+    @tool("generate_array", args_schema=GenerateArrayArgs)
+    def generate_array(
+        outputName: str,
+        count: int,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        gap: int,
+    ) -> Dict[str, Any]:
+        """Generate reusable droplet positions and store them in a workspace variable."""
+        name = str(outputName).strip()
+        if not name:
+            raise ValueError("outputName must be non-empty.")
+        if name in {"sequence", "currentFrameDroplets", "selectedDroplets"}:
+            raise ValueError("outputName conflicts with a reserved workspace variable.")
+        droplets = GenerateDropletArray(count, x, y, w, h, gap)
+        return {
+            "kind": "workspace_update",
+            "workspaceUpdates": {name: droplets},
+            "workspaceVariable": name,
+            "droplets": droplets,
+        }
 
     @tool("move", args_schema=MoveArgs)
     def move(
@@ -239,7 +266,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         y: Optional[int] = None,
         w: Optional[int] = None,
         h: Optional[int] = None,
-    ) -> List[Any]:
+    ) -> Dict[str, Any]:
         """
         Move one or more droplets along direction by t grid steps.
         You may provide a droplets list directly, or one droplet via x/y/w/h.
@@ -254,72 +281,71 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             selected_droplets=selected_droplets,
             workspace_variables=workspace_variables,
         )
-        if len(resolved) == 1:
-            return Move(resolved[0], direction, t)
-        return MoveDroplets(resolved, direction, t)
+        return {
+            "kind": "sequence",
+            "sequence": Move(resolved, direction, t),
+            "resolvedDroplets": resolved,
+        }
 
     @tool("squeeze", args_schema=SqueezeArgs)
-    def squeeze(count: int, x: int, y: int, direction: str, size: str) -> List[Any]:
+    def squeeze(
+        count: int,
+        direction: str,
+        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+        w: Optional[int] = None,
+        h: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """
         Generate squeezing sequence from template.
         count controls truncation (1->6, 2->11, each extra +5).
-        x,y are translation offsets; direction controls rotation.
-        size supports both uniform and non-uniform scaling:
-        e.g. "2" or "3*2" (also supports "3x2").
+        Accept one or more droplets directly or through a workspace variable.
+        Each droplet position and size controls its transformed squeeze template.
         """
-        return Squeeze(count, x, y, direction, size=size)
+        resolved = _resolve_droplets(
+            droplets=droplets,
+            x=x,
+            y=y,
+            w=w,
+            h=h,
+            selected_droplets=selected_droplets,
+            workspace_variables=workspace_variables,
+        )
+        return {
+            "kind": "sequence",
+            "sequence": Squeeze(resolved, count, direction),
+            "resolvedDroplets": resolved,
+        }
 
     @tool("rotate_mix", args_schema=RotateMixArgs)
     def rotate_mix(
         duration: int,
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
-        array: Optional[DropletArrayModel] = None,
         x: Optional[int] = None,
         y: Optional[int] = None,
         w: Optional[int] = None,
         h: Optional[int] = None,
-    ) -> List[Any]:
+    ) -> Dict[str, Any]:
         """
-        Generate circulation loops for one or more droplets, including an array layout.
+        Generate circulation loops for one or more droplets.
         Each droplet uses its own width/height as the loop size.
-        Provide exactly one input mode: an array description, droplets, one droplet via
-        x/y/w/h, or the current UI selection. Arrays use a near-square,
-        row-major layout; the standard gap is 4 and must be explicit.
+        Droplets may be explicit, selected in the UI, or referenced from the workspace.
         """
-        has_direct_input = droplets is not None or any(
-            value is not None for value in (x, y, w, h)
+        resolved = _resolve_droplets(
+            droplets=droplets,
+            x=x,
+            y=y,
+            w=w,
+            h=h,
+            selected_droplets=selected_droplets,
+            workspace_variables=workspace_variables,
         )
-        if array is not None and has_direct_input:
-            raise ValueError("cannot combine array with droplets or x/y/w/h.")
-        if array is not None:
-            if isinstance(array, dict):
-                values = array
-            elif hasattr(array, "model_dump"):
-                values = array.model_dump()
-            else:
-                values = array.dict()
-            resolved = RotateMixArrayDroplets(
-                values["count"],
-                duration,
-                size=(values["w"], values["h"]),
-                gap=values["gap"],
-                origin_x=values["x"],
-                origin_y=values["y"],
-            )
-        else:
-            resolved = _resolve_droplets(
-                droplets=droplets,
-                x=x,
-                y=y,
-                w=w,
-                h=h,
-                selected_droplets=selected_droplets,
-                workspace_variables=workspace_variables,
-            )
-        if len(resolved) == 1:
-            x0, y0, w0, h0 = resolved[0]
-            return RotateMix(x0, y0, duration, size=(w0, h0))
-        return RotateMixDroplets(resolved, duration)
+        return {
+            "kind": "sequence",
+            "sequence": RotateMix(resolved, duration),
+            "resolvedDroplets": resolved,
+        }
 
     model_name = os.getenv("OPENAI_MODEL") or LLM_MODEL
     llm = ChatOpenAI(
@@ -328,7 +354,12 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         base_url=LLM_BASE_URL,
         temperature=0,
     )
-    tool_registry = {"move": move, "squeeze": squeeze, "rotate_mix": rotate_mix}
+    tool_registry = {
+        "generate_array": generate_array,
+        "move": move,
+        "squeeze": squeeze,
+        "rotate_mix": rotate_mix,
+    }
     llm_with_tools = llm.bind_tools(list(tool_registry.values()))
     required_map = _build_required_map(tool_registry)
     
@@ -382,8 +413,9 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     system_prompt = (
         "You are a DMF workflow planner.\n"
         "You have FULL context of prior conversation and the backend sequence workspace.\n"
-        "For movement, call tool 'move'. For squeeze generation, call tool 'squeeze'. For circulation mixing, including array layouts, call tool 'rotate_mix'.\n"
-        "When the UI provides selected droplets, you may use them by calling move/rotate_mix without x/y/w/h.\n"
+        "For movement, call 'move'. For squeeze generation, call 'squeeze'. For circulation mixing, call 'rotate_mix'.\n"
+        "To create an array, first call 'generate_array' with an explicit output variable name. After receiving its result, call any operation with a workspaceVariable reference to that name.\n"
+        "When the UI provides selected droplets, operations may use them directly or explicitly reference the selectedDroplets workspace variable.\n"
         "Tool arguments may explicitly reference an available workspace variable using {\"workspaceVariable\": \"variableName\"}.\n"
         "When information is insufficient, ask a follow-up question instead of calling tools.\n"
         "You may suggest defaults, but must ask user confirmation before applying them.\n"
@@ -401,7 +433,6 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             messages.append(AIMessage(content=item["content"]))
 
     sequence = context.get("sequence", [])
-    workspace_variables = context.get("workspaceVariables", {})
     selected_text = (
         json.dumps(selected_droplets, ensure_ascii=False)
         if selected_droplets
@@ -422,97 +453,85 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         )
     )
 
-    ai_msg = llm_with_tools.invoke(messages)
-    tool_calls = getattr(ai_msg, "tool_calls", None) or []
-
-    if not tool_calls:
-        reply = (getattr(ai_msg, "content", "") or "").strip()
-        if not reply:
-            reply = _llm_generate_followup_for_no_toolcall(required_map)
-        return {
-            "assistantReply": reply,
-            "sequenceDelta": [],
-            "moveCalls": [],
-        }
-
-    tool_messages: List[ToolMessage] = []
     sequence_delta: List[Any] = []
     move_calls: List[Dict[str, Any]] = []
-    for call in tool_calls:
-        name = call.get("name")
-        if name not in tool_registry:
-            continue
-        args = call.get("args", {})
-        required = required_map.get(name, [])
-        try:
-            if name == "move":
-                tool_result = move.invoke(args)
-            elif name == "squeeze":
-                tool_result = squeeze.invoke(args)
-            else:
-                tool_result = rotate_mix.invoke(args)
-        except Exception as exc:  # noqa: BLE001
-            return {
-                "assistantReply": _llm_generate_followup_for_tool_error(
-                    name, required, args, f"{type(exc).__name__}: {exc}"
-                ),
-                "sequenceDelta": [],
-                "moveCalls": [],
-            }
-        sequence_delta.extend(tool_result)
-        resolved_droplets: List[Any] = []
-        if name in ("move", "rotate_mix"):
-            if name == "rotate_mix" and args.get("array") is not None:
-                array_value = args["array"]
-                resolved_droplets = RotateMixArrayDroplets(
-                    array_value["count"],
-                    args["duration"],
-                    size=(array_value["w"], array_value["h"]),
-                    gap=array_value["gap"],
-                    origin_x=array_value["x"],
-                    origin_y=array_value["y"],
-                )
-            else:
-                resolved_droplets = _resolve_droplets(
-                    droplets=args.get("droplets"),
-                    x=args.get("x"),
-                    y=args.get("y"),
-                    w=args.get("w"),
-                    h=args.get("h"),
-                    selected_droplets=selected_droplets,
-                    workspace_variables=workspace_variables,
-                )
-        move_calls.append(
-            {"tool": name, "args": args, "resolvedDroplets": resolved_droplets}
-        )
-        tool_messages.append(
-            ToolMessage(
-                content=json.dumps(tool_result, ensure_ascii=False),
-                tool_call_id=call["id"],
-                name=name,
-            )
-        )
+    workspace_updates: Dict[str, Any] = {}
+    agent_messages: List[Any] = list(messages)
+    assistant_reply = ""
+    had_tool_calls = False
 
-    if not sequence_delta:
-        raise RuntimeError("No executable tool output produced from tool calls.")
+    for _ in range(8):
+        ai_msg = llm_with_tools.invoke(agent_messages)
+        agent_messages.append(ai_msg)
+        tool_calls = getattr(ai_msg, "tool_calls", None) or []
+        if not tool_calls:
+            assistant_reply = (getattr(ai_msg, "content", "") or "").strip()
+            break
 
-    followup_messages: List[Any] = [
-        *messages,
-        ai_msg,
-        *tool_messages,
-        HumanMessage(
-            content=(
-                "请用一句中文回复用户你理解到的动作和结果，不要输出代码块。"
+        had_tool_calls = True
+        for call in tool_calls:
+            name = call.get("name")
+            if name not in tool_registry:
+                continue
+            args = call.get("args", {})
+            required = required_map.get(name, [])
+            try:
+                tool_result = tool_registry[name].invoke(args)
+            except Exception as exc:  # noqa: BLE001
+                return {
+                    "assistantReply": _llm_generate_followup_for_tool_error(
+                        name, required, args, f"{type(exc).__name__}: {exc}"
+                    ),
+                    "sequenceDelta": sequence_delta,
+                    "moveCalls": move_calls,
+                    "workspaceUpdates": workspace_updates,
+                }
+
+            result_kind = tool_result.get("kind")
+            if result_kind == "workspace_update":
+                updates = tool_result.get("workspaceUpdates", {})
+                if isinstance(updates, dict):
+                    workspace_variables.update(updates)
+                    workspace_updates.update(updates)
+            elif result_kind == "sequence":
+                sequence_delta.extend(tool_result.get("sequence", []))
+
+            move_calls.append(
+                {
+                    "tool": name,
+                    "args": args,
+                    "resolvedDroplets": tool_result.get("resolvedDroplets", []),
+                }
             )
-        ),
-    ]
-    final_msg = llm.invoke(followup_messages)
-    assistant_reply = (getattr(final_msg, "content", "") or "").strip()
+            agent_messages.append(
+                ToolMessage(
+                    content=json.dumps(tool_result, ensure_ascii=False),
+                    tool_call_id=call["id"],
+                    name=name,
+                )
+            )
+    else:
+        raise RuntimeError("LLM tool loop exceeded the maximum number of rounds.")
+
+    if not assistant_reply:
+        if not had_tool_calls:
+            assistant_reply = _llm_generate_followup_for_no_toolcall(required_map)
+        else:
+            final_msg = llm.invoke(
+                [
+                    *agent_messages,
+                    HumanMessage(
+                        content="请用一句中文回复用户你完成的动作和结果，不要输出代码块。"
+                    ),
+                ]
+            )
+            assistant_reply = (getattr(final_msg, "content", "") or "").strip()
 
     return {
         "assistantReply": assistant_reply,
         "sequenceDelta": sequence_delta,
         "moveCalls": move_calls,
+        "workspaceUpdates": workspace_updates,
     }
 
 

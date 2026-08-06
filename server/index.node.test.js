@@ -141,4 +141,19 @@ describe("structured sequence workspace", () => {
     assert.deepEqual(variables.selectedDroplets, selectedDroplets);
     assert.deepEqual(variables.sequence, workspace.snapshot());
   });
+
+  test("persists custom variables without allowing derived state overrides", () => {
+    const workspace = new SequenceWorkspace();
+    const droplets = [
+      [0, 0, 2, 1],
+      [6, 0, 2, 1],
+    ];
+    workspace.applyVariableUpdates({ assayArray: droplets });
+
+    assert.deepEqual(workspace.variables().assayArray, droplets);
+    assert.throws(
+      () => workspace.setVariable("currentFrameDroplets", droplets),
+      /reserved/
+    );
+  });
 });

@@ -1,4 +1,14 @@
 const DEFAULT_STEP_DURATION = 1000;
+const RESERVED_VARIABLE_NAMES = new Set([
+  "sequence",
+  "currentFrameDroplets",
+  "selectedDroplets",
+]);
+
+function cloneWorkspaceValue(value) {
+  if (value === undefined) throw new TypeError("workspace value cannot be undefined");
+  return JSON.parse(JSON.stringify(value));
+}
 
 function normalizeRect(value) {
   if (!value || typeof value !== "object") return null;
@@ -124,18 +134,22 @@ function mergeDeltaWithCurrentFrame(delta, frameRects, selectedDroplets) {
 class SequenceWorkspace {
   constructor(sequence = []) {
     this.sequence = normalizeSequence(sequence);
+    this.customVariables = {};
   }
 
   clear() {
     this.sequence = [];
+    this.customVariables = {};
   }
 
   replace(sequence) {
     this.sequence = normalizeSequence(sequence);
+    this.customVariables = {};
   }
 
   importText(text) {
     this.sequence = parseSequenceText(text);
+    this.customVariables = {};
   }
 
   snapshot() {
@@ -148,10 +162,25 @@ class SequenceWorkspace {
 
   variables(selectedDroplets = []) {
     return {
+      ...cloneWorkspaceValue(this.customVariables),
       sequence: this.snapshot(),
       currentFrameDroplets: this.currentFrame(),
       selectedDroplets: normalizeRects(selectedDroplets),
     };
+  }
+
+  setVariable(name, value) {
+    const normalizedName = String(name || "").trim();
+    if (!normalizedName) throw new TypeError("workspace variable name is required");
+    if (RESERVED_VARIABLE_NAMES.has(normalizedName)) {
+      throw new TypeError(`workspace variable name is reserved: ${normalizedName}`);
+    }
+    this.customVariables[normalizedName] = cloneWorkspaceValue(value);
+  }
+
+  applyVariableUpdates(updates) {
+    if (!updates || typeof updates !== "object" || Array.isArray(updates)) return;
+    Object.entries(updates).forEach(([name, value]) => this.setVariable(name, value));
   }
 
   applyDelta(delta, selectedDroplets) {

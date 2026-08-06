@@ -23,6 +23,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:server": "node --test server/*.node.test.js",
+    "test:python": ".venv/bin/python -m unittest server/llm_move_agent_test.py",
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:3001",

@@ -15,7 +15,7 @@ const { createLlmProcessEnv, normalizeLlmConfig } = require("./llm_runtime_confi
 
 const app = express();
 const port = process.env.PORT || 3001;
-const BACKEND_VERSION = "llm-move-v4-sequence-workspace";
+const BACKEND_VERSION = "llm-move-v5-generic-array-tools";
 
 // session_id -> { workspace, conversation, selectedDroplets, updatedAt }
 const sessionStore = new Map();
@@ -206,6 +206,7 @@ app.post("/api/steps-from-message", async (req, res) => {
 
     const result = await runLlmAgent(message, context, llmConfig);
     const assistantReply = String(result.assistantReply || "");
+    state.workspace.applyVariableUpdates(result.workspaceUpdates);
     const rawDelta = normalizeSequence(result.sequenceDelta);
     const moveCalls = Array.isArray(result.moveCalls) ? result.moveCalls : [];
     const resolvedSelectedDroplets = moveCalls.flatMap((call) =>
