@@ -35,7 +35,11 @@ function startProcess(label, command, args, env) {
 
 try {
   const pythonPath = ensurePythonEnvironment();
-  const sharedEnv = { ...process.env, PYTHON_BIN: pythonPath };
+  const sharedEnv = {
+    ...process.env,
+    PYTHON_BIN: pythonPath,
+    WATCHPACK_POLLING: process.env.WATCHPACK_POLLING || "true",
+  };
   const backendPath = path.join(projectRoot, "server", "index.js");
   const frontendPath = path.join(
     projectRoot,
@@ -47,7 +51,7 @@ try {
 
   console.log(`[dev] Python: ${pythonPath}`);
   console.log("[dev] Starting backend on http://localhost:3001");
-  startProcess("backend", process.execPath, ["--watch", backendPath], sharedEnv);
+  startProcess("backend", process.execPath, [backendPath], sharedEnv);
   console.log("[dev] Starting frontend on http://localhost:3000");
   startProcess("frontend", process.execPath, [frontendPath], sharedEnv);
 } catch (error) {

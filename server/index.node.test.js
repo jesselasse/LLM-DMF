@@ -3,8 +3,10 @@ const { describe, test } = require("node:test");
 const {
   getLastStepRectsFromSequenceText,
   mergeDeltaWithCurrentFrame,
+  normalizeTokenUsage,
   parseStepsText,
   rewindSessionToTurn,
+  sumTurnTokenUsage,
 } = require("./index");
 const {
   appendSequence,
@@ -192,4 +194,34 @@ test("editing a turn restores only the context before that turn", () => {
   assert.equal(state.conversation.length, 2);
   assert.equal(state.turns.length, 1);
   assert.deepEqual(state.selectedDroplets, [{ x: 1, y: 1, w: 1, h: 1 }]);
+});
+
+test("token usage is normalized and accumulated across retained turns", () => {
+  assert.deepEqual(normalizeTokenUsage({ inputTokens: 12, outputTokens: 3 }), {
+    available: false,
+    inputTokens: 12,
+    outputTokens: 3,
+    totalTokens: 15,
+  });
+  assert.deepEqual(
+    sumTurnTokenUsage([
+      {
+        tokenUsage: {
+          available: true,
+          inputTokens: 100,
+          outputTokens: 20,
+          totalTokens: 120,
+        },
+      },
+      {
+        tokenUsage: {
+          available: true,
+          inputTokens: 80,
+          outputTokens: 10,
+          totalTokens: 90,
+        },
+      },
+    ]),
+    { available: true, inputTokens: 180, outputTokens: 30, totalTokens: 210 }
+  );
 });

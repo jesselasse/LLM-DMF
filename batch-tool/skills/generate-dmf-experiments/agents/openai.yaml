@@ -1,0 +1,4 @@
+interface:
+  display_name: "DMF 实验方案生成"
+  short_description: "生成参数完整、层级正确且可审计的 DMF 批量实验方案"
+  default_prompt: "Use $generate-dmf-experiments to create an auditable DMF experiment suite with independent cases and multi-step conversations modeled correctly."

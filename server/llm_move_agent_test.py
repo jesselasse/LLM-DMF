@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from langchain_core.messages import AIMessage  # noqa: E402
 
+from llm_connection_test import tool_binding_options  # noqa: E402
 from llm_move_agent import generate_payload  # noqa: E402
 from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, Squeeze  # noqa: E402
 
@@ -18,8 +19,10 @@ from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, S
 class FakeChatOpenAI:
     responses = []
     calls = []
+    init_kwargs = []
 
-    def __init__(self, **_kwargs):
+    def __init__(self, **kwargs):
+        self.init_kwargs.append(kwargs)
         self._responses = list(self.responses)
 
     def bind_tools(self, _tools):
@@ -33,10 +36,17 @@ class FakeChatOpenAI:
 
 
 class LlmWorkspaceToolTests(unittest.TestCase):
+    def test_thinking_mode_does_not_force_an_unsupported_tool_choice(self):
+        with patch.dict(os.environ, {"OPENAI_THINKING_MODE": "enabled"}):
+            self.assertEqual(tool_binding_options(), {})
+        with patch.dict(os.environ, {"OPENAI_THINKING_MODE": "disabled"}):
+            self.assertEqual(tool_binding_options(), {"tool_choice": "required"})
+
     def test_array_result_can_feed_a_later_operation(self):
         FakeChatOpenAI.responses = [
             AIMessage(
                 content="",
+                usage_metadata={"input_tokens": 100, "output_tokens": 10, "total_tokens": 110},
                 tool_calls=[
                     {
                         "name": "generate_array",
@@ -56,6 +66,7 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             ),
             AIMessage(
                 content="",
+                usage_metadata={"input_tokens": 80, "output_tokens": 8, "total_tokens": 88},
                 tool_calls=[
                     {
                         "name": "move",
@@ -69,7 +80,10 @@ class LlmWorkspaceToolTests(unittest.TestCase):
                     }
                 ],
             ),
-            AIMessage(content="已完成阵列移动。"),
+            AIMessage(
+                content="已完成阵列移动。",
+                usage_metadata={"input_tokens": 60, "output_tokens": 6, "total_tokens": 66},
+            ),
         ]
 
         with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
@@ -98,6 +112,16 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             [call["tool"] for call in result["moveCalls"]],
             ["generate_array", "move"],
         )
+        self.assertEqual(
+            result["tokenUsage"],
+            {
+                "available": True,
+                "inputTokens": 240,
+                "outputTokens": 24,
+                "totalTokens": 264,
+            },
+        )
+        self.assertNotIn("temperature", FakeChatOpenAI.init_kwargs[-1])
 
     def test_squeeze_can_generate_multiple_without_array_tool(self):
         FakeChatOpenAI.responses = [

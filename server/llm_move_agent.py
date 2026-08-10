@@ -38,6 +38,13 @@ from move_backend import (
 )
 
 
+def _runtime_model_options() -> Dict[str, Any]:
+    thinking_mode = os.getenv("OPENAI_THINKING_MODE", "").strip()
+    if thinking_mode in {"enabled", "disabled"}:
+        return {"extra_body": {"thinking": {"type": thinking_mode}}}
+    return {}
+
+
 def _normalize_message_to_text(message: Any) -> str:
     text = "" if message is None else str(message)
     return text.strip()
@@ -174,6 +181,36 @@ def _tool_required_args(tool_obj: Any) -> List[str]:
 
 def _build_required_map(tool_registry: Dict[str, Any]) -> Dict[str, List[str]]:
     return {name: _tool_required_args(tool_obj) for name, tool_obj in tool_registry.items()}
+
+
+def _message_token_usage(message: Any) -> Dict[str, Any]:
+    usage = getattr(message, "usage_metadata", None)
+    if not isinstance(usage, dict):
+        metadata = getattr(message, "response_metadata", None)
+        usage = metadata.get("token_usage", {}) if isinstance(metadata, dict) else {}
+    if not isinstance(usage, dict) or not usage:
+        return {
+            "available": False,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "totalTokens": 0,
+        }
+
+    def safe_int(*names: str) -> int:
+        for name in names:
+            value = usage.get(name)
+            if isinstance(value, (int, float)) and value >= 0:
+                return int(value)
+        return 0
+
+    input_tokens = safe_int("input_tokens", "prompt_tokens")
+    output_tokens = safe_int("output_tokens", "completion_tokens")
+    return {
+        "available": True,
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
+        "totalTokens": safe_int("total_tokens") or input_tokens + output_tokens,
+    }
 
 
 def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -384,7 +421,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         model=model_name,
         api_key=LLM_API_KEY,
         base_url=LLM_BASE_URL,
-        temperature=0,
+        **_runtime_model_options(),
     )
     tool_registry = {
         "generate_array": generate_array,
@@ -395,7 +432,22 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     }
     llm_with_tools = llm.bind_tools(list(tool_registry.values()))
     required_map = _build_required_map(tool_registry)
-    
+    token_usage = {
+        "available": False,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+    }
+
+    def invoke_with_usage(model: Any, invoke_messages: Any) -> Any:
+        response = model.invoke(invoke_messages)
+        usage = _message_token_usage(response)
+        token_usage["available"] = token_usage["available"] or usage["available"]
+        token_usage["inputTokens"] += usage["inputTokens"]
+        token_usage["outputTokens"] += usage["outputTokens"]
+        token_usage["totalTokens"] += usage["totalTokens"]
+        return response
+
     def _llm_generate_followup_for_tool_error(
         tool_name: str, required: List[str], args: Any, error_text: str
     ) -> str:
@@ -411,7 +463,8 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             f"报错信息: {error_text}\n"
             "如果看起来是缺参数，就只问用户缺什么；可提醒用户可用默认值，但不要写成实现语句。"
         )
-        reply_msg = llm.invoke(
+        reply_msg = invoke_with_usage(
+            llm,
             [
                 SystemMessage(content="You generate concise Chinese follow-up questions."),
                 HumanMessage(content=prompt),
@@ -432,7 +485,8 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             "禁止出现：函数名、工具名、参数名、括号、等号、代码片段。\n"
             f"当前可用函数及必填参数: {required_map_data}\n"
         )
-        reply_msg = llm.invoke(
+        reply_msg = invoke_with_usage(
+            llm,
             [
                 SystemMessage(content="You generate concise Chinese follow-up questions."),
                 HumanMessage(content=prompt),
@@ -498,7 +552,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     had_tool_calls = False
 
     for _ in range(8):
-        ai_msg = llm_with_tools.invoke(agent_messages)
+        ai_msg = invoke_with_usage(llm_with_tools, agent_messages)
         agent_messages.append(ai_msg)
         tool_calls = getattr(ai_msg, "tool_calls", None) or []
         if not tool_calls:
@@ -522,6 +576,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                     "sequenceDelta": sequence_delta,
                     "moveCalls": move_calls,
                     "workspaceUpdates": workspace_updates,
+                    "tokenUsage": token_usage,
                 }
 
             result_kind = tool_result.get("kind")
@@ -559,7 +614,8 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         if not had_tool_calls:
             assistant_reply = _llm_generate_followup_for_no_toolcall(required_map)
         else:
-            final_msg = llm.invoke(
+            final_msg = invoke_with_usage(
+                llm,
                 [
                     *agent_messages,
                     HumanMessage(
@@ -580,6 +636,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "sequenceDelta": sequence_delta,
         "moveCalls": move_calls,
         "workspaceUpdates": workspace_updates,
+        "tokenUsage": token_usage,
     }
 
 

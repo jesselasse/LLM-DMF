@@ -7,14 +7,17 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "gifenc": "^1.0.3",
+    "lucide": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "batch": "node batch-tool/start.js",
     "server": "node --watch server/index.js",
     "server:once": "node server/index.js",
     "start": "node scripts/start-dev.js",
@@ -23,7 +26,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:server": "node --test server/*.node.test.js",
-    "test:python": ".venv/bin/python -m unittest server/llm_move_agent_test.py",
+    "test:batch": "node --test batch-tool/*.node.test.js",
+    "test:python": ".venv/bin/python -m unittest server/llm_move_agent_test.py && .venv/bin/python -m unittest discover -s batch-tool -p 'test_*.py'",
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:3001",
@@ -44,5 +48,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

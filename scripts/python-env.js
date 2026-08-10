@@ -37,7 +37,8 @@ function ensurePythonEnvironment() {
   const imports = ["-c", "import langchain_core, langchain_openai, pydantic"];
   if (succeeds(pythonPath, imports)) return pythonPath;
 
-  const bootstrapPython = process.env.PYTHON_BOOTSTRAP || "python3";
+  const bootstrapPython =
+    process.env.PYTHON_BOOTSTRAP || defaultBootstrapPython(process.platform);
   if (!succeeds(bootstrapPython, ["--version"])) {
     throw new Error(
       `Python bootstrap interpreter not found: ${bootstrapPython}. ` +
@@ -54,4 +55,13 @@ function ensurePythonEnvironment() {
   return pythonPath;
 }
 
-module.exports = { ensurePythonEnvironment, projectRoot };
+function defaultBootstrapPython(platform) {
+  return platform === "win32" ? "python" : "python3";
+}
+
+module.exports = {
+  defaultBootstrapPython,
+  ensurePythonEnvironment,
+  projectRoot,
+  pythonPath,
+};

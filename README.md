@@ -53,6 +53,18 @@ http://localhost:3001/api/health
 To prepare only the Python environment, run `npm run setup:python`. For separate debugging
 terminals, use `npm run start:frontend` and `npm run server`.
 
+## Batch Experiment Tool
+
+Run the independent batch experiment interface with:
+
+```bash
+npm run batch
+```
+
+Then open `http://localhost:3003`. The tool imports its own Excel template, runs complete,
+default-completion, and multi-flow experiments through the official backend, and writes local
+auditable outputs under `.local/experiments`. See `batch-tool/README.md` for the workbook format.
+
 ## Backend Sequence Workspace
 
 The frontend calls the application API, not the LLM directly. The backend request flow is:

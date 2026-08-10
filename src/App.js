@@ -67,7 +67,13 @@ const DEFAULT_INPUT_PRESETS = [
   },
 ];
 const PRESET_STORAGE_KEY = "dmf-chat-presets-v1";
-const EMPTY_LLM_CONFIG = { baseUrl: "", apiKey: "", model: "" };
+const EMPTY_LLM_CONFIG = { baseUrl: "", apiKey: "", model: "", thinkingMode: "auto" };
+const EMPTY_TOKEN_USAGE = {
+  available: false,
+  inputTokens: 0,
+  outputTokens: 0,
+  totalTokens: 0,
+};
 
 function cloneDefaultPresets() {
   return DEFAULT_INPUT_PRESETS.map((preset) => ({
@@ -100,11 +106,33 @@ function readChatPresets() {
 }
 
 function compactLlmConfig(config) {
-  return Object.fromEntries(
+  const compact = Object.fromEntries(
     Object.entries(config)
       .map(([key, value]) => [key, value.trim()])
       .filter(([, value]) => value)
   );
+  if (compact.thinkingMode === "auto") delete compact.thinkingMode;
+  return compact;
+}
+
+function normalizeTokenUsage(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const tokenCount = (value) => {
+    const count = Number(value);
+    return Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0;
+  };
+  const inputTokens = tokenCount(source.inputTokens);
+  const outputTokens = tokenCount(source.outputTokens);
+  return {
+    available: Boolean(source.available),
+    inputTokens,
+    outputTokens,
+    totalTokens: tokenCount(source.totalTokens) || inputTokens + outputTokens,
+  };
+}
+
+function formatTokenCount(value, locale) {
+  return Number(value || 0).toLocaleString(locale === "zh" ? "zh-CN" : "en-US");
 }
 
 const UI_COPY = {
@@ -134,22 +162,41 @@ const UI_COPY = {
     light: "浅色",
     dark: "深色",
     llmConnection: "LLM 连接",
+    llmProfile: "配置方案",
+    profileName: "配置名称",
+    defaultProfileName: "默认配置",
+    newProfile: "新建",
+    deleteProfile: "删除",
     apiBaseUrl: "API 地址",
     apiBaseUrlPlaceholder: "留空使用服务器配置",
     apiKey: "API Key",
-    apiKeyPlaceholder: "仅当前页面有效",
+    apiKeyPlaceholder: "输入 API Key",
+    savedApiKeyPlaceholder: "已在本地保存，留空继续使用",
     model: "模型",
     modelPlaceholder: "留空使用服务器配置",
+    loadModels: "获取模型",
+    loadingModels: "正在获取…",
+    modelsLoaded: (count) => `已获取 ${count} 个模型，可在输入框中选择。`,
+    thinkingMode: "推理模式",
+    thinkingAuto: "服务商默认",
+    thinkingDisabled: "关闭",
+    thinkingEnabled: "开启",
     showApiKey: "显示 API Key",
     hideApiKey: "隐藏 API Key",
-    llmConfigHint: "留空使用服务器配置；API Key 不会保存或导出。",
+    llmConfigHint: "保存在项目的 .local 目录中，不会提交到 Git。",
     saveLlmConfig: "保存设置",
     testLlmConfig: "测试连接",
     testingLlmConfig: "正在测试…",
-    llmConfigSaved: "已确认，将用于后续请求，仅当前页面有效。",
+    llmConfigSaved: "已保存到本地，将用于后续请求。",
     llmConfigUnsaved: "内容有变化，保存后才会用于聊天请求。",
     llmTestSuccess: (latency) => `连接成功，耗时 ${latency} ms。`,
     llmTestFailed: "测试失败",
+    importConfig: "导入配置",
+    exportConfig: "导出配置",
+    includeApiKeys: "导出时包含 API Key",
+    configImported: "配置已导入。",
+    configExportFailed: "导出配置失败",
+    configImportFailed: "导入配置失败",
     noStepSelected: "未选择步骤",
     stepProgress: (current, total) => `步骤 ${current} / ${total}`,
     scale: "缩放",
@@ -183,6 +230,8 @@ const UI_COPY = {
     rawOutput: "原始后端输出",
     generatedSteps: "生成的步骤",
     presets: "预设对话",
+    showPresets: "展开预设",
+    hidePresets: "收起预设",
     managePresets: "管理预设",
     closePresetManager: "关闭",
     newPreset: "新增预设",
@@ -199,6 +248,14 @@ const UI_COPY = {
     cancelEdit: "取消编辑",
     resend: "重新生成",
     composerHint: "示例：在（20，20）向右生成 3 个液滴",
+    tokenUsage: "Token 用量",
+    currentRequestTokens: "本轮",
+    sessionTokens: "会话",
+    inputTokens: "输入",
+    outputTokens: "输出",
+    totalTokens: "总计",
+    noTokenUsage: "尚无数据",
+    tokenUsageUnavailable: "模型未返回统计",
     outOfBounds: "部分液滴超出网格范围，以红色显示。",
   },
   en: {
@@ -227,22 +284,41 @@ const UI_COPY = {
     light: "Light",
     dark: "Dark",
     llmConnection: "LLM connection",
+    llmProfile: "Profile",
+    profileName: "Profile name",
+    defaultProfileName: "Default profile",
+    newProfile: "New",
+    deleteProfile: "Delete",
     apiBaseUrl: "API URL",
     apiBaseUrlPlaceholder: "Use server configuration when blank",
     apiKey: "API Key",
-    apiKeyPlaceholder: "Current page only",
+    apiKeyPlaceholder: "Enter API Key",
+    savedApiKeyPlaceholder: "Saved locally; leave blank to keep it",
     model: "Model",
     modelPlaceholder: "Use server configuration when blank",
+    loadModels: "Load models",
+    loadingModels: "Loading…",
+    modelsLoaded: (count) => `Loaded ${count} models; choose one in the field.`,
+    thinkingMode: "Reasoning mode",
+    thinkingAuto: "Provider default",
+    thinkingDisabled: "Off",
+    thinkingEnabled: "On",
     showApiKey: "Show API Key",
     hideApiKey: "Hide API Key",
-    llmConfigHint: "Blank fields use server settings. The API Key is not saved or exported.",
+    llmConfigHint: "Saved under the project's .local directory and never committed to Git.",
     saveLlmConfig: "Save settings",
     testLlmConfig: "Test connection",
     testingLlmConfig: "Testing…",
-    llmConfigSaved: "Confirmed for later requests on this page only.",
+    llmConfigSaved: "Saved locally for future requests.",
     llmConfigUnsaved: "Changes must be saved before chat requests use them.",
     llmTestSuccess: (latency) => `Connection succeeded in ${latency} ms.`,
     llmTestFailed: "Test failed",
+    importConfig: "Import config",
+    exportConfig: "Export config",
+    includeApiKeys: "Include API Keys in export",
+    configImported: "Configuration imported.",
+    configExportFailed: "Config export failed",
+    configImportFailed: "Config import failed",
     noStepSelected: "No step selected",
     stepProgress: (current, total) => `Step ${current} / ${total}`,
     scale: "Scale",
@@ -276,6 +352,8 @@ const UI_COPY = {
     rawOutput: "Raw backend output",
     generatedSteps: "Generated steps",
     presets: "Conversation presets",
+    showPresets: "Show presets",
+    hidePresets: "Hide presets",
     managePresets: "Manage presets",
     closePresetManager: "Close",
     newPreset: "New preset",
@@ -292,6 +370,14 @@ const UI_COPY = {
     cancelEdit: "Cancel edit",
     resend: "Regenerate",
     composerHint: "Example: generate 3 droplets to the right at (20, 20)",
+    tokenUsage: "Token usage",
+    currentRequestTokens: "Request",
+    sessionTokens: "Session",
+    inputTokens: "Input",
+    outputTokens: "Output",
+    totalTokens: "Total",
+    noTokenUsage: "No data yet",
+    tokenUsageUnavailable: "Usage unavailable",
     outOfBounds: "Some droplets are outside the grid and are shown in red.",
   },
 };
@@ -397,8 +483,15 @@ export default function App() {
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
   const [llmConfigDraft, setLlmConfigDraft] = useState(EMPTY_LLM_CONFIG);
   const [llmConfig, setLlmConfig] = useState(EMPTY_LLM_CONFIG);
+  const [llmProfiles, setLlmProfiles] = useState([]);
+  const [activeProfileId, setActiveProfileId] = useState("");
+  const [profileName, setProfileName] = useState("");
+  const [savedApiKeyConfigured, setSavedApiKeyConfigured] = useState(false);
+  const [includeApiKeysInExport, setIncludeApiKeysInExport] = useState(false);
   const [llmConfigConfirmed, setLlmConfigConfirmed] = useState(false);
   const [llmConfigStatus, setLlmConfigStatus] = useState({ state: "idle" });
+  const [availableModels, setAvailableModels] = useState([]);
+  const [modelDiscoveryStatus, setModelDiscoveryStatus] = useState({ state: "idle" });
   const t = UI_COPY[locale];
 
   // Feature 1: grid settings + fit-to-view scale
@@ -433,8 +526,11 @@ export default function App() {
   const [requestInputHeight, setRequestInputHeight] = useState(null);
   const [chatPresets, setChatPresets] = useState(readChatPresets);
   const [presetManagerOpen, setPresetManagerOpen] = useState(false);
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const [editingPresetId, setEditingPresetId] = useState("");
   const [presetDraft, setPresetDraft] = useState({ label: "", text: "" });
+  const [lastTokenUsage, setLastTokenUsage] = useState(null);
+  const [sessionTokenUsage, setSessionTokenUsage] = useState(EMPTY_TOKEN_USAGE);
   const [sessionId, setSessionId] = useState(createSessionId);
   const [selectedDroplets, setSelectedDroplets] = useState([]);
 
@@ -445,6 +541,10 @@ export default function App() {
   const fitScaleRef = useRef(GRID_MIN_SCALE);
   const isFitModeRef = useRef(true);
   const zoomFocusRef = useRef(null);
+  const configImportRef = useRef(null);
+  const localSettingsLoadedRef = useRef(false);
+  const initialPresetsRef = useRef(chatPresets);
+  const llmConfigTouchedRef = useRef(false);
 
   const displayGridWidth = cols * cellSize * scale;
   const displayGridHeight = rows * cellSize * scale;
@@ -470,9 +570,12 @@ export default function App() {
       }),
     [rows, scale, cellSize, axisViewport.originY, axisViewport.height]
   );
-  const llmConfigDirty = ["baseUrl", "apiKey", "model"].some(
-    (key) => llmConfigDraft[key] !== llmConfig[key]
-  );
+  const persistedProfileName =
+    llmProfiles.find((profile) => profile.id === activeProfileId)?.name || "";
+  const llmConfigDirty =
+    ["baseUrl", "apiKey", "model", "thinkingMode"].some(
+      (key) => llmConfigDraft[key] !== llmConfig[key]
+    ) || profileName !== persistedProfileName;
 
   const statusText = useMemo(() => {
     if (!steps.length || currentStep < 0) return t.noStepSelected;
@@ -504,10 +607,52 @@ export default function App() {
   }, [theme, locale]);
 
   useEffect(() => {
+    let active = true;
+    async function loadLocalSettings() {
+      try {
+        const response = await fetch("/api/local-settings");
+        const raw = await response.text();
+        const payload = raw ? JSON.parse(raw) : {};
+        if (!response.ok) throw new Error(payload.error || `Backend error: ${response.status}`);
+        if (!active) return;
+        if (Array.isArray(payload.profiles) && payload.profiles.length) {
+          applyLocalSettings(payload, { preserveDraft: llmConfigTouchedRef.current });
+        }
+        if (Array.isArray(payload.presets)) {
+          setChatPresets(payload.presets);
+        } else {
+          await fetch("/api/local-settings/presets", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ presets: initialPresetsRef.current }),
+          });
+        }
+      } catch (_error) {
+        // Browser storage remains the fallback when the backend is unavailable.
+      } finally {
+        if (active) localSettingsLoadedRef.current = true;
+      }
+    }
+    loadLocalSettings();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(chatPresets));
     } catch (_error) {
       // Custom presets remain available for this page when storage is unavailable.
+    }
+    if (localSettingsLoadedRef.current) {
+      fetch("/api/local-settings/presets", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presets: chatPresets }),
+      }).catch(() => {
+        // Browser storage remains the fallback when the backend is unavailable.
+      });
     }
   }, [chatPresets]);
 
@@ -855,20 +1000,154 @@ export default function App() {
   }
 
   function updateLlmConfigDraft(field, value) {
+    llmConfigTouchedRef.current = true;
     setLlmConfigDraft((current) => ({ ...current, [field]: value }));
     setLlmConfigStatus({ state: "idle" });
   }
 
-  function handleSaveLlmConfig() {
+  function applyLocalSettings(payload, { preserveDraft = false } = {}) {
+    const profiles = Array.isArray(payload.profiles) ? payload.profiles : [];
+    const activeId = String(payload.activeProfileId || "");
+    const activeProfile = profiles.find((profile) => profile.id === activeId);
+    setLlmProfiles(profiles);
+    if (preserveDraft) return;
+    setActiveProfileId(activeProfile?.id || "");
+    setProfileName(activeProfile?.name || "");
+    const loadedConfig = activeProfile
+      ? {
+          baseUrl: String(activeProfile.baseUrl || ""),
+          apiKey: "",
+          model: String(activeProfile.model || ""),
+          thinkingMode: String(activeProfile.thinkingMode || "auto"),
+        }
+      : EMPTY_LLM_CONFIG;
+    setLlmConfigDraft(loadedConfig);
+    setLlmConfig(loadedConfig);
+    setSavedApiKeyConfigured(Boolean(activeProfile?.hasApiKey));
+    setLlmConfigConfirmed(Boolean(activeProfile));
+    llmConfigTouchedRef.current = false;
+  }
+
+  async function handleSaveLlmConfig() {
     const confirmed = {
       baseUrl: llmConfigDraft.baseUrl.trim(),
       apiKey: llmConfigDraft.apiKey.trim(),
       model: llmConfigDraft.model.trim(),
+      thinkingMode: llmConfigDraft.thinkingMode,
     };
-    setLlmConfigDraft(confirmed);
-    setLlmConfig(confirmed);
-    setLlmConfigConfirmed(true);
-    setLlmConfigStatus({ state: "saved" });
+    try {
+      const response = await fetch("/api/local-settings/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: {
+            id: activeProfileId,
+            name: profileName.trim() || t.defaultProfileName,
+            ...confirmed,
+          },
+        }),
+      });
+      const raw = await response.text();
+      const payload = raw ? JSON.parse(raw) : {};
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `Backend error: ${response.status}`);
+      }
+      applyLocalSettings(payload);
+      setLlmConfigStatus({ state: "saved" });
+    } catch (error) {
+      setLlmConfigStatus({ state: "error", error: String(error.message || error) });
+    }
+  }
+
+  async function handleSelectLlmProfile(profileId) {
+    try {
+      const response = await fetch("/api/local-settings/active-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId }),
+      });
+      const raw = await response.text();
+      const payload = raw ? JSON.parse(raw) : {};
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Profile switch failed");
+      applyLocalSettings(payload);
+      setLlmConfigStatus({ state: "saved" });
+    } catch (error) {
+      setLlmConfigStatus({ state: "error", error: String(error.message || error) });
+    }
+  }
+
+  function handleNewLlmProfile() {
+    llmConfigTouchedRef.current = true;
+    setActiveProfileId("");
+    setProfileName(t.defaultProfileName);
+    setSavedApiKeyConfigured(false);
+    setLlmConfigDraft(EMPTY_LLM_CONFIG);
+    setLlmConfig(EMPTY_LLM_CONFIG);
+    setLlmConfigConfirmed(false);
+    setLlmConfigStatus({ state: "idle" });
+  }
+
+  async function handleDeleteLlmProfile() {
+    if (!activeProfileId) return;
+    try {
+      const response = await fetch(`/api/local-settings/profile/${encodeURIComponent(activeProfileId)}`, {
+        method: "DELETE",
+      });
+      const raw = await response.text();
+      const payload = raw ? JSON.parse(raw) : {};
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Profile deletion failed");
+      applyLocalSettings(payload);
+      setLlmConfigStatus({ state: "saved" });
+    } catch (error) {
+      setLlmConfigStatus({ state: "error", error: String(error.message || error) });
+    }
+  }
+
+  async function handleExportLocalSettings() {
+    try {
+      const response = await fetch(
+        `/api/local-settings/export?includeSecrets=${includeApiKeysInExport}`
+      );
+      const raw = await response.text();
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      await saveBlob(new Blob([raw], { type: "application/json;charset=utf-8" }), {
+        suggestedName: "llm-dmf-settings.json",
+        description: "LLM-DMF Local Settings",
+        accept: { "application/json": [".json"] },
+      });
+    } catch (error) {
+      setLlmConfigStatus({
+        state: "error",
+        error: `${t.configExportFailed}: ${String(error.message || error)}`,
+      });
+    }
+  }
+
+  async function handleImportLocalSettings(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const imported = JSON.parse(await file.text());
+      const response = await fetch("/api/local-settings/import", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(imported),
+      });
+      const raw = await response.text();
+      const payload = raw ? JSON.parse(raw) : {};
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `Backend error: ${response.status}`);
+      }
+      applyLocalSettings(payload);
+      if (Array.isArray(payload.presets)) setChatPresets(payload.presets);
+      setLlmConfigStatus({ state: "saved", message: t.configImported });
+    } catch (error) {
+      setLlmConfigStatus({
+        state: "error",
+        error: `${t.configImportFailed}: ${String(error.message || error)}`,
+      });
+    }
   }
 
   async function handleTestLlmConfig() {
@@ -898,6 +1177,32 @@ export default function App() {
         state: "error",
         error: String(error.message || error),
       });
+    }
+  }
+
+  async function handleLoadLlmModels() {
+    setModelDiscoveryStatus({ state: "loading" });
+    try {
+      const response = await fetch("/api/llm-config/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ llmConfig: compactLlmConfig(llmConfigDraft) }),
+      });
+      const raw = await response.text();
+      let payload = {};
+      try {
+        payload = raw ? JSON.parse(raw) : {};
+      } catch (_error) {
+        payload = {};
+      }
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `Backend error: ${response.status}`);
+      }
+      const models = Array.isArray(payload.models) ? payload.models : [];
+      setAvailableModels(models);
+      setModelDiscoveryStatus({ state: "success", count: models.length });
+    } catch (error) {
+      setModelDiscoveryStatus({ state: "error", error: String(error.message || error) });
     }
   }
 
@@ -999,6 +1304,8 @@ export default function App() {
         throw new Error(payload.error || `Backend error: ${response.status}`);
       }
       setBackendRawOutput(rawOutput);
+      setLastTokenUsage(normalizeTokenUsage(payload.tokenUsage));
+      setSessionTokenUsage(normalizeTokenUsage(payload.sessionTokenUsage));
 
       const resolvedTurnIndex = Number.isInteger(payload.turnIndex)
         ? payload.turnIndex
@@ -1140,6 +1447,13 @@ export default function App() {
     setPresetManagerOpen(true);
     if (chatPresets.length) editPreset(chatPresets[0]);
     else startNewPreset();
+  }
+
+  function togglePresets() {
+    setPresetsOpen((open) => {
+      if (open) setPresetManagerOpen(false);
+      return !open;
+    });
   }
 
   function startNewPreset() {
@@ -1296,6 +1610,8 @@ export default function App() {
     setEditingTurnIndex(null);
     setDraftBeforeEdit("");
     setRequestInputHeight(null);
+    setLastTokenUsage(null);
+    setSessionTokenUsage(EMPTY_TOKEN_USAGE);
     setBackendRawOutput("");
     setBackendResultText("");
     setBackendMessage(DEFAULT_BACKEND_MESSAGE);
@@ -1623,6 +1939,33 @@ export default function App() {
                 <fieldset className="llm-settings">
                   <legend>{t.llmConnection}</legend>
                   <div className="llm-setting-field">
+                    <label htmlFor="llmProfile">{t.llmProfile}</label>
+                    <div className="profile-picker-row">
+                      <select
+                        id="llmProfile"
+                        value={activeProfileId}
+                        onChange={(event) => handleSelectLlmProfile(event.target.value)}
+                      >
+                        {!activeProfileId ? <option value="">{t.newProfile}</option> : null}
+                        {llmProfiles.map((profile) => (
+                          <option key={profile.id} value={profile.id}>{profile.name}</option>
+                        ))}
+                      </select>
+                      <button type="button" onClick={handleNewLlmProfile}>{t.newProfile}</button>
+                      <button type="button" onClick={handleDeleteLlmProfile}
+                        disabled={!activeProfileId}>{t.deleteProfile}</button>
+                    </div>
+                  </div>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmProfileName">{t.profileName}</label>
+                    <input id="llmProfileName" type="text" value={profileName}
+                      onChange={(event) => {
+                        llmConfigTouchedRef.current = true;
+                        setProfileName(event.target.value);
+                      }}
+                      placeholder={t.defaultProfileName} autoComplete="off" />
+                  </div>
+                  <div className="llm-setting-field">
                     <label htmlFor="llmBaseUrl">{t.apiBaseUrl}</label>
                     <input id="llmBaseUrl" type="url" value={llmConfigDraft.baseUrl}
                       onChange={(event) => updateLlmConfigDraft("baseUrl", event.target.value)}
@@ -1634,7 +1977,8 @@ export default function App() {
                       <input id="llmApiKey" type={apiKeyVisible ? "text" : "password"}
                         value={llmConfigDraft.apiKey}
                         onChange={(event) => updateLlmConfigDraft("apiKey", event.target.value)}
-                        placeholder={t.apiKeyPlaceholder} autoComplete="off" spellCheck="false" />
+                        placeholder={savedApiKeyConfigured ? t.savedApiKeyPlaceholder : t.apiKeyPlaceholder}
+                        autoComplete="off" spellCheck="false" />
                       <button type="button" className="secret-visibility-btn"
                         onClick={() => setApiKeyVisible((visible) => !visible)}
                         aria-label={apiKeyVisible ? t.hideApiKey : t.showApiKey}
@@ -1650,17 +1994,58 @@ export default function App() {
                   <div className="llm-setting-field">
                     <label htmlFor="llmModel">{t.model}</label>
                     <input id="llmModel" type="text" value={llmConfigDraft.model}
+                      list="llmModelOptions"
                       onChange={(event) => updateLlmConfigDraft("model", event.target.value)}
                       placeholder={t.modelPlaceholder} autoComplete="off" spellCheck="false" />
+                    <datalist id="llmModelOptions">
+                      {availableModels.map((model) => <option key={model} value={model} />)}
+                    </datalist>
+                  </div>
+                  <div className="llm-setting-field">
+                    <label htmlFor="llmThinkingMode">{t.thinkingMode}</label>
+                    <select id="llmThinkingMode" value={llmConfigDraft.thinkingMode}
+                      onChange={(event) => updateLlmConfigDraft("thinkingMode", event.target.value)}>
+                      <option value="auto">{t.thinkingAuto}</option>
+                      <option value="disabled">{t.thinkingDisabled}</option>
+                      <option value="enabled">{t.thinkingEnabled}</option>
+                    </select>
                   </div>
                   <p>{t.llmConfigHint}</p>
                   <div className="llm-settings-actions">
                     <button type="button" onClick={handleSaveLlmConfig}>{t.saveLlmConfig}</button>
+                    <button type="button" onClick={handleLoadLlmModels}
+                      disabled={modelDiscoveryStatus.state === "loading"}>
+                      {modelDiscoveryStatus.state === "loading" ? t.loadingModels : t.loadModels}
+                    </button>
                     <button type="button" className="test-llm-btn" onClick={handleTestLlmConfig}
                       disabled={llmConfigStatus.state === "testing"}>
                       {llmConfigStatus.state === "testing" ? t.testingLlmConfig : t.testLlmConfig}
                     </button>
                   </div>
+                  {modelDiscoveryStatus.state !== "idle" ? (
+                    <p className={`llm-config-status ${modelDiscoveryStatus.state}`} aria-live="polite">
+                      {modelDiscoveryStatus.state === "loading"
+                        ? t.loadingModels
+                        : modelDiscoveryStatus.state === "success"
+                          ? t.modelsLoaded(modelDiscoveryStatus.count)
+                          : modelDiscoveryStatus.error}
+                    </p>
+                  ) : null}
+                  <div className="local-config-actions">
+                    <input ref={configImportRef} type="file" accept="application/json,.json"
+                      onChange={handleImportLocalSettings} aria-label={t.importConfig} />
+                    <button type="button" onClick={() => configImportRef.current?.click()}>
+                      {t.importConfig}
+                    </button>
+                    <button type="button" onClick={handleExportLocalSettings}>
+                      {t.exportConfig}
+                    </button>
+                  </div>
+                  <label className="include-secret-option">
+                    <input type="checkbox" checked={includeApiKeysInExport}
+                      onChange={(event) => setIncludeApiKeysInExport(event.target.checked)} />
+                    <span>{t.includeApiKeys}</span>
+                  </label>
                   <p className={`llm-config-status ${llmConfigStatus.state}`} aria-live="polite">
                     {llmConfigStatus.state === "testing"
                       ? t.testingLlmConfig
@@ -1671,7 +2056,7 @@ export default function App() {
                           : llmConfigDirty
                             ? t.llmConfigUnsaved
                             : llmConfigStatus.state === "saved" || (llmConfigConfirmed && !llmConfigDirty)
-                              ? t.llmConfigSaved
+                              ? llmConfigStatus.message || t.llmConfigSaved
                               : ""}
                   </p>
                 </fieldset>
@@ -1718,6 +2103,24 @@ export default function App() {
         </header>
 
         <div className="conversation-content">
+          <div className="token-usage-bar" aria-label={t.tokenUsage}>
+            <strong>{t.tokenUsage}</strong>
+            {lastTokenUsage === null ? (
+              <span>{t.noTokenUsage}</span>
+            ) : lastTokenUsage.available ? (
+              <>
+                <span>{t.currentRequestTokens}</span>
+                <span>{t.inputTokens} {formatTokenCount(lastTokenUsage.inputTokens, locale)}</span>
+                <span>{t.outputTokens} {formatTokenCount(lastTokenUsage.outputTokens, locale)}</span>
+                <span>{t.totalTokens} {formatTokenCount(lastTokenUsage.totalTokens, locale)}</span>
+                <span className="session-token-total">
+                  {t.sessionTokens} {formatTokenCount(sessionTokenUsage.totalTokens, locale)}
+                </span>
+              </>
+            ) : (
+              <span>{t.tokenUsageUnavailable}</span>
+            )}
+          </div>
           <div className="chat-wrap">
             <div className="chat-list" ref={chatListRef} aria-label={t.chat}>
               {!chatMessages.length && !backendLoading ? (
@@ -1775,31 +2178,47 @@ export default function App() {
           </div>
 
           <div className="chat-composer">
-            <div className="preset-toolbar">
-              <div className="preset-row" aria-label={t.presets}>
-                {chatPresets.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className="preset-btn"
-                    onClick={() => setBackendMessage(preset.text)}
-                    disabled={backendLoading}
-                  >
-                    {preset.labels[locale]}
-                  </button>
-                ))}
-              </div>
+            <div className="preset-section">
               <button
                 type="button"
-                className="manage-presets-btn"
-                onClick={presetManagerOpen ? () => setPresetManagerOpen(false) : openPresetManager}
-                aria-expanded={presetManagerOpen}
+                className="preset-collapse-btn"
+                onClick={togglePresets}
+                aria-expanded={presetsOpen}
+                aria-label={presetsOpen ? t.hidePresets : t.showPresets}
               >
-                {presetManagerOpen ? t.closePresetManager : t.managePresets}
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="m6.5 8 3.5 3.5L13.5 8" />
+                </svg>
+                {t.presets}
+                <small>{chatPresets.length}</small>
               </button>
-            </div>
-            {presetManagerOpen ? (
-              <div className="preset-manager">
+              {presetsOpen ? (
+                <div className="preset-content">
+                  <div className="preset-toolbar">
+                    <div className="preset-row" aria-label={t.presets}>
+                      {chatPresets.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className="preset-btn"
+                          onClick={() => setBackendMessage(preset.text)}
+                          disabled={backendLoading}
+                        >
+                          {preset.labels[locale]}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="manage-presets-btn"
+                      onClick={presetManagerOpen ? () => setPresetManagerOpen(false) : openPresetManager}
+                      aria-expanded={presetManagerOpen}
+                    >
+                      {presetManagerOpen ? t.closePresetManager : t.managePresets}
+                    </button>
+                  </div>
+                  {presetManagerOpen ? (
+                    <div className="preset-manager">
                 <div className="preset-manager-topline">
                   <select
                     aria-label={t.managePresets}
@@ -1864,8 +2283,11 @@ export default function App() {
                     </>
                   ) : null}
                 </div>
-              </div>
-            ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             {Number.isInteger(editingTurnIndex) ? (
               <div className="composer-edit-notice" role="status">
                 <span>{t.editingMessage(editingTurnIndex + 1)}</span>

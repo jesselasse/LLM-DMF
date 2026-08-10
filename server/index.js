@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const { spawn } = require("child_process");
+const { ensurePythonEnvironment } = require("../scripts/python-env");
 const {
   getLastStepRects,
   mergeDeltaWithCurrentFrame: mergeSequenceDeltaWithCurrentFrame,
@@ -13,9 +14,19 @@ const {
 } = require("./sequence_workspace");
 const {
   createLlmProcessEnv,
+  listLlmModels,
   normalizeLlmConfig,
   sanitizeLlmError,
 } = require("./llm_runtime_config");
+const {
+  activeLlmConfig,
+  normalizePresets,
+  normalizeSettings,
+  publicSettings,
+  readLocalSettings,
+  saveProfile,
+  writeLocalSettings,
+} = require("./local_settings");
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -23,12 +34,19 @@ const BACKEND_VERSION = "llm-move-v5-generic-array-tools";
 
 // session_id -> { workspace, conversation, selectedDroplets, updatedAt }
 const sessionStore = new Map();
+let resolvedPythonBin = "";
 
 app.use(express.json());
 
 function normalizeSessionId(raw) {
   const value = String(raw || "").trim();
   return value || "default";
+}
+
+function getPythonBin() {
+  if (process.env.PYTHON_BIN) return process.env.PYTHON_BIN;
+  if (!resolvedPythonBin) resolvedPythonBin = ensurePythonEnvironment();
+  return resolvedPythonBin;
 }
 
 function ensureSessionState(sessionId) {
@@ -50,6 +68,43 @@ function ensureSessionState(sessionId) {
 
 function normalizeSelectedDroplets(raw) {
   return normalizeRects(raw);
+}
+
+function resolveLlmConfig(raw) {
+  return {
+    ...activeLlmConfig(readLocalSettings()),
+    ...normalizeLlmConfig(raw),
+  };
+}
+
+function normalizeTokenUsage(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const tokenCount = (value) => {
+    const count = Number(value);
+    return Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0;
+  };
+  const inputTokens = tokenCount(source.inputTokens);
+  const outputTokens = tokenCount(source.outputTokens);
+  return {
+    available: Boolean(source.available),
+    inputTokens,
+    outputTokens,
+    totalTokens: tokenCount(source.totalTokens) || inputTokens + outputTokens,
+  };
+}
+
+function sumTurnTokenUsage(turns) {
+  return (Array.isArray(turns) ? turns : []).reduce(
+    (total, turn) => {
+      const usage = normalizeTokenUsage(turn && turn.tokenUsage);
+      total.available = total.available || usage.available;
+      total.inputTokens += usage.inputTokens;
+      total.outputTokens += usage.outputTokens;
+      total.totalTokens += usage.totalTokens;
+      return total;
+    },
+    { available: false, inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+  );
 }
 
 function syncSessionState(state, payload) {
@@ -127,7 +182,7 @@ function mergeDeltaWithCurrentFrame(deltaText, frameRects, selectedDroplets) {
 
 function runLlmAgent(message, context, llmConfig) {
   return new Promise((resolve, reject) => {
-    const pythonBin = process.env.PYTHON_BIN || "python3";
+    const pythonBin = getPythonBin();
     const scriptPath = path.join(__dirname, "llm_move_agent.py");
     const child = spawn(pythonBin, [scriptPath], {
       cwd: __dirname,
@@ -174,7 +229,7 @@ function runLlmAgent(message, context, llmConfig) {
 
 function runLlmConnectionTest(llmConfig) {
   return new Promise((resolve, reject) => {
-    const pythonBin = process.env.PYTHON_BIN || "python3";
+    const pythonBin = getPythonBin();
     const scriptPath = path.join(__dirname, "llm_connection_test.py");
     const child = spawn(pythonBin, [scriptPath], {
       cwd: __dirname,
@@ -234,10 +289,86 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.get("/api/local-settings", (_req, res) => {
+  return res.json(publicSettings(readLocalSettings()));
+});
+
+app.put("/api/local-settings/profile", (req, res) => {
+  try {
+    const saved = writeLocalSettings(
+      saveProfile(readLocalSettings(), req.body && req.body.profile)
+    );
+    return res.json({ ok: true, ...publicSettings(saved) });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.put("/api/local-settings/active-profile", (req, res) => {
+  try {
+    const current = readLocalSettings();
+    const activeProfileId = String((req.body && req.body.profileId) || "").trim();
+    if (!current.profiles.some((profile) => profile.id === activeProfileId)) {
+      throw new Error("profile does not exist");
+    }
+    const saved = writeLocalSettings({ ...current, activeProfileId });
+    return res.json({ ok: true, ...publicSettings(saved) });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.delete("/api/local-settings/profile/:profileId", (req, res) => {
+  try {
+    const current = readLocalSettings();
+    const profiles = current.profiles.filter(
+      (profile) => profile.id !== String(req.params.profileId || "")
+    );
+    const saved = writeLocalSettings({ ...current, profiles });
+    return res.json({ ok: true, ...publicSettings(saved) });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.put("/api/local-settings/presets", (req, res) => {
+  try {
+    const current = readLocalSettings();
+    const presets = normalizePresets(req.body && req.body.presets);
+    const saved = writeLocalSettings({ ...current, presets });
+    return res.json({ ok: true, presets: saved.presets });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.get("/api/local-settings/export", (req, res) => {
+  const includeSecrets = req.query.includeSecrets === "true";
+  res.set("Content-Disposition", "attachment; filename=llm-dmf-settings.json");
+  return res.json(publicSettings(readLocalSettings(), includeSecrets));
+});
+
+app.put("/api/local-settings/import", (req, res) => {
+  try {
+    const current = readLocalSettings();
+    const imported = normalizeSettings(req.body);
+    imported.profiles = imported.profiles.map((profile) => {
+      const existing = current.profiles.find((entry) => entry.id === profile.id);
+      return !profile.apiKey && existing?.apiKey
+        ? { ...profile, apiKey: existing.apiKey }
+        : profile;
+    });
+    const saved = writeLocalSettings(imported);
+    return res.json({ ok: true, ...publicSettings(saved) });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
 app.post("/api/llm-config/test", async (req, res) => {
   let llmConfig;
   try {
-    llmConfig = normalizeLlmConfig(req.body && req.body.llmConfig);
+    llmConfig = resolveLlmConfig(req.body && req.body.llmConfig);
   } catch (error) {
     return res.status(400).json({ ok: false, error: error.message });
   }
@@ -253,6 +384,20 @@ app.post("/api/llm-config/test", async (req, res) => {
     return res.status(502).json({
       ok: false,
       error: sanitizeLlmError(error.message, [llmConfig.apiKey]),
+    });
+  }
+});
+
+app.post("/api/llm-config/models", async (req, res) => {
+  let llmConfig;
+  try {
+    llmConfig = resolveLlmConfig(req.body && req.body.llmConfig);
+    const result = await listLlmModels(llmConfig);
+    return res.json({ ok: true, models: result.models });
+  } catch (error) {
+    return res.status(502).json({
+      ok: false,
+      error: sanitizeLlmError(error.message, [llmConfig?.apiKey]),
     });
   }
 });
@@ -285,7 +430,7 @@ app.post("/api/steps-from-message", async (req, res) => {
     const editTurnIndex = hasEditTurn ? Number(req.body.editTurnIndex) : null;
     let llmConfig;
     try {
-      llmConfig = normalizeLlmConfig(req.body && req.body.llmConfig);
+      llmConfig = resolveLlmConfig(req.body && req.body.llmConfig);
     } catch (error) {
       return res.status(400).json({ error: error.message });
     }
@@ -342,6 +487,7 @@ app.post("/api/steps-from-message", async (req, res) => {
       throw error;
     }
     const assistantReply = String(result.assistantReply || "");
+    const tokenUsage = normalizeTokenUsage(result.tokenUsage);
     state.workspace.applyVariableUpdates(result.workspaceUpdates);
     const rawDelta = normalizeSequence(result.sequenceDelta);
     const moveCalls = Array.isArray(result.moveCalls) ? result.moveCalls : [];
@@ -355,7 +501,7 @@ app.post("/api/steps-from-message", async (req, res) => {
 
     state.conversation.push({ role: "user", content: message });
     state.conversation.push({ role: "assistant", content: assistantReply });
-    state.turns.push(turnSnapshot);
+    state.turns.push({ ...turnSnapshot, tokenUsage });
     state.selectedDroplets = normalizeSelectedDroplets(effectiveSelectedDroplets);
     state.updatedAt = Date.now();
     sessionStore.set(sessionId, state);
@@ -366,6 +512,8 @@ app.post("/api/steps-from-message", async (req, res) => {
       turnIndex,
       baseStepCount: turnSnapshot.sequenceBefore.length,
       assistantReply,
+      tokenUsage,
+      sessionTokenUsage: sumTurnTokenUsage(state.turns),
       stepsTextDelta: sequenceToText(delta),
       stepsTextDeltaRaw: sequenceToText(rawDelta),
       stepsText: state.workspace.toText(),
@@ -392,6 +540,9 @@ module.exports = {
   getLastStepRectsFromSequenceText,
   mergeDeltaWithCurrentFrame,
   parseStepsText: parseSequenceText,
+  normalizeTokenUsage,
+  resolveLlmConfig,
   rewindSessionToTurn,
+  sumTurnTokenUsage,
   sessionStore,
 };

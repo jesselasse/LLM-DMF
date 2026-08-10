@@ -3,6 +3,15 @@ import App from "./App";
 
 beforeEach(() => {
   window.localStorage.clear();
+  global.fetch = jest.fn(async (url) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    text: async () =>
+      url === "/api/local-settings"
+        ? JSON.stringify({ activeProfileId: "", profiles: [], presets: null })
+        : "{}",
+  }));
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
     configurable: true,
     value: jest.fn(),
@@ -22,6 +31,10 @@ beforeEach(() => {
     }),
   });
 });
+
+function openPresets() {
+  fireEvent.click(screen.getByRole("button", { name: "展开预设" }));
+}
 
 test("renders core sections", () => {
   render(<App />);
@@ -107,6 +120,7 @@ test("presets still fill the composer and new conversation restores the initial 
   render(<App />);
   const input = screen.getByRole("textbox", { name: "对话输入" });
 
+  openPresets();
   fireEvent.click(screen.getByRole("button", { name: "PCR" }));
   expect(input).toHaveValue("PCR示例：在（20，20）向右生成3个液滴，再向下移动6步。");
 
@@ -122,6 +136,7 @@ test.each([
   ["阵列混合", "对 3 个尺寸为 1×1 的液滴并行做 3 圈阵列混匀"],
 ])("preset %s fills the exact requested prompt", (label, prompt) => {
   render(<App />);
+  openPresets();
   fireEvent.click(screen.getByRole("button", { name: label }));
   expect(screen.getByRole("textbox", { name: "对话输入" })).toHaveValue(prompt);
 });
@@ -134,6 +149,18 @@ test("send button keeps the existing backend request contract", async () => {
       JSON.stringify({
         assistantReply: "收到",
         stepsText: "(14,21)(1,1)-1000",
+        tokenUsage: {
+          available: true,
+          inputTokens: 120,
+          outputTokens: 30,
+          totalTokens: 150,
+        },
+        sessionTokenUsage: {
+          available: true,
+          inputTokens: 120,
+          outputTokens: 30,
+          totalTokens: 150,
+        },
       }),
   });
 
@@ -162,16 +189,45 @@ test("send button keeps the existing backend request contract", async () => {
   expect(screen.getByLabelText("Backend Result Text")).toHaveTextContent(
     "(14,21)(1,1)-1000"
   );
+  const tokenUsage = screen.getByLabelText("Token 用量");
+  expect(tokenUsage).toHaveTextContent("本轮");
+  expect(tokenUsage).toHaveTextContent("输入 120");
+  expect(tokenUsage).toHaveTextContent("输出 30");
+  expect(tokenUsage).toHaveTextContent("总计 150");
+  expect(tokenUsage).toHaveTextContent("会话 150");
 
   fetchMock.mockRestore();
 });
 
-test("temporary LLM settings are sent but never stored or exported", async () => {
-  const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({
-    ok: true,
-    status: 200,
-    text: async () =>
-      JSON.stringify({ assistantReply: "收到", stepsText: "(14,21)(1,1)-1000" }),
+test("saved LLM settings use a local profile without leaking into context exports", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url) => {
+    if (url === "/api/local-settings/profile") {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          ok: true,
+          activeProfileId: "profile-1",
+          profiles: [{
+            id: "profile-1",
+            name: "默认配置",
+            baseUrl: "https://custom.example/v1",
+            model: "custom-model",
+            hasApiKey: true,
+          }],
+          presets: null,
+        }),
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(
+        url === "/api/local-settings"
+          ? { activeProfileId: "", profiles: [], presets: null }
+          : { assistantReply: "收到", stepsText: "(14,21)(1,1)-1000" }
+      ),
+    };
   });
   let writtenBlob;
   const write = jest.fn(async (blob) => {
@@ -192,14 +248,12 @@ test("temporary LLM settings are sent but never stored or exported", async () =>
   fireEvent.change(screen.getByLabelText("API Key"), {
     target: { value: "temporary-secret-key" },
   });
-  fireEvent.change(screen.getByRole("textbox", { name: "模型" }), {
+  fireEvent.change(screen.getByRole("combobox", { name: "模型" }), {
     target: { value: "custom-model" },
   });
   expect(screen.getByText("内容有变化，保存后才会用于聊天请求。")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
-  expect(
-    screen.getByText("已确认，将用于后续请求，仅当前页面有效。")
-  ).toBeInTheDocument();
+  expect(await screen.findByText("已保存到本地，将用于后续请求。")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
 
   const generationCalls = () =>
@@ -208,7 +262,6 @@ test("temporary LLM settings are sent but never stored or exported", async () =>
   const requestBody = JSON.parse(generationCalls()[0][1].body);
   expect(requestBody.llmConfig).toEqual({
     baseUrl: "https://custom.example/v1",
-    apiKey: "temporary-secret-key",
     model: "custom-model",
   });
   expect(JSON.stringify({ ...window.localStorage })).not.toContain(
@@ -256,7 +309,7 @@ test("LLM connection test uses draft settings without saving them", async () => 
   fireEvent.change(screen.getByLabelText("API Key"), {
     target: { value: "temporary-secret-key" },
   });
-  fireEvent.change(screen.getByRole("textbox", { name: "模型" }), {
+  fireEvent.change(screen.getByRole("combobox", { name: "模型" }), {
     target: { value: "custom-model" },
   });
   fireEvent.click(screen.getByRole("button", { name: "测试连接" }));
@@ -278,6 +331,101 @@ test("LLM connection test uses draft settings without saving them", async () => 
   ).toBeInTheDocument();
 
   fetchMock.mockRestore();
+});
+
+test("available models can be loaded from a custom OpenAI-compatible API", async () => {
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url) => {
+    if (url === "/api/llm-config/models") {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          ok: true,
+          models: ["model-a", "model-b"],
+        }),
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => "{}",
+    };
+  });
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "界面设置" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "API 地址" }), {
+    target: { value: "https://custom.example/v1" },
+  });
+  fireEvent.change(screen.getByLabelText("API Key"), {
+    target: { value: "plain-key" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "获取模型" }));
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+    "/api/llm-config/models",
+    expect.objectContaining({ method: "POST" })
+  ));
+  expect(await screen.findByText("已获取 2 个模型，可在输入框中选择。")).toBeInTheDocument();
+  expect(document.querySelector('#llmModelOptions option[value="model-a"]')).not.toBeNull();
+  expect(document.querySelector('#llmModelOptions option[value="model-b"]')).not.toBeNull();
+
+  fetchMock.mockRestore();
+});
+
+test("local profiles load automatically and config export requires explicit secret opt-in", async () => {
+  const write = jest.fn(async () => {});
+  Object.defineProperty(window, "showSaveFilePicker", {
+    configurable: true,
+    value: jest.fn().mockResolvedValue({
+      createWritable: async () => ({ write, close: jest.fn() }),
+    }),
+  });
+  const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (url) => ({
+    ok: true,
+    status: 200,
+    text: async () =>
+      url === "/api/local-settings"
+        ? JSON.stringify({
+            activeProfileId: "profile-a",
+            profiles: [{
+              id: "profile-a",
+              name: "Profile A",
+              baseUrl: "https://example.test/v1",
+              model: "model-a",
+              hasApiKey: true,
+            }],
+            presets: [],
+          })
+        : JSON.stringify({ version: 1, activeProfileId: "profile-a", profiles: [] }),
+  }));
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "界面设置" }));
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "配置名称" })).toHaveValue("Profile A")
+  );
+  expect(screen.getByLabelText("API Key")).toHaveAttribute(
+    "placeholder",
+    "已在本地保存，留空继续使用"
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "导出配置" }));
+  await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/local-settings/export?includeSecrets=false"
+  );
+
+  fireEvent.click(screen.getByRole("checkbox", { name: "导出时包含 API Key" }));
+  fireEvent.click(screen.getByRole("button", { name: "导出配置" }));
+  await waitFor(() => expect(write).toHaveBeenCalledTimes(2));
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/local-settings/export?includeSecrets=true"
+  );
+
+  fetchMock.mockRestore();
+  delete window.showSaveFilePicker;
 });
 
 test("interface settings switch language and theme without changing prompt data", () => {
@@ -412,6 +560,7 @@ test("failed send restores the message for retry", async () => {
 
 test("preset manager can create and reuse a local preset", () => {
   render(<App />);
+  openPresets();
   fireEvent.click(screen.getByRole("button", { name: "管理预设" }));
   fireEvent.click(screen.getByRole("button", { name: "＋" }));
   fireEvent.change(screen.getByRole("textbox", { name: "名称" }), {
@@ -435,6 +584,7 @@ test("preset manager can delete a built-in preset and keep that choice locally",
     json: async () => ({}),
   });
   const { unmount } = render(<App />);
+  openPresets();
   fireEvent.click(screen.getByRole("button", { name: "管理预设" }));
   fireEvent.click(screen.getByRole("button", { name: "删除预设" }));
 
@@ -445,6 +595,25 @@ test("preset manager can delete a built-in preset and keep that choice locally",
 
   unmount();
   render(<App />);
+  openPresets();
   expect(screen.queryByRole("button", { name: "PCR" })).not.toBeInTheDocument();
   fetchMock.mockRestore();
+});
+
+test("presets are collapsed by default and can be expanded again", () => {
+  render(<App />);
+  const toggle = screen.getByRole("button", { name: "展开预设" });
+
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("button", { name: "PCR" })).not.toBeInTheDocument();
+
+  fireEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "收起预设" })).toHaveAttribute(
+    "aria-expanded",
+    "true"
+  );
+  expect(screen.getByRole("button", { name: "PCR" })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "收起预设" }));
+  expect(screen.queryByRole("button", { name: "PCR" })).not.toBeInTheDocument();
 });

@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DMF Tester</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark">DT</span>
+          <div>
+            <h1>DMF Tester</h1>
+            <span class="product-label" data-i18n="productLabel">自动化测评</span>
+          </div>
+        </div>
+        <div class="header-meta">
+          <nav class="page-nav" aria-label="实验评测平台导航">
+            <a class="page-nav-link active" data-page-target="prepare" href="#prepare"><i data-lucide="table-properties" aria-hidden="true"></i><span data-i18n="navPrepare">方案设计</span></a>
+            <a class="page-nav-link" data-page-target="run" href="#run"><i data-lucide="play" aria-hidden="true"></i><span data-i18n="navRun">实验运行</span></a>
+            <a class="page-nav-link" data-page-target="results" href="#results">
+              <i data-lucide="chart-no-axes-column" aria-hidden="true"></i><span data-i18n="navResults">结果审查</span><span class="nav-count" id="resultsNavCount">0</span>
+            </a>
+            <a class="page-nav-link" data-page-target="settings" href="#settings"><i data-lucide="settings-2" aria-hidden="true"></i><span data-i18n="navSettings">设置</span></a>
+          </nav>
+          <div class="backend-status" id="backendStatus"><span class="status-dot"></span><span id="backendStatusText">正在检查后端…</span></div>
+        </div>
+      </header>
+
+      <div class="page-view" id="preparePage">
+        <section class="page-intro project-intro">
+          <div>
+            <h2 data-i18n="prepareTitle">方案设计</h2>
+            <p data-i18n="prepareSubtitle">管理方案、测试用例与评测规则。</p>
+          </div>
+        </section>
+
+        <div class="prepare-workspace">
+        <section class="source-card">
+          <div class="project-picker">
+            <div class="source-section-title">
+              <strong data-i18n="savedProjects">方案库</strong>
+            </div>
+            <select id="projectSelect" aria-label="方案库"><option value="">暂无已保存方案</option></select>
+            <div class="project-primary-actions">
+              <button class="button secondary project-action" id="newProjectButton" type="button" title="新建方案" aria-label="新建方案"><i data-lucide="plus" aria-hidden="true"></i><span data-i18n="newProject">新建</span></button>
+              <button class="button secondary project-action" id="loadProjectButton" type="button" title="打开方案" aria-label="打开方案"><i data-lucide="folder-open" aria-hidden="true"></i><span data-i18n="open">打开</span></button>
+            </div>
+            <div class="project-actions">
+              <button class="button secondary project-action" id="renameProjectButton" type="button" title="重命名方案" aria-label="重命名方案"><i data-lucide="pencil" aria-hidden="true"></i><span data-i18n="renameProject">重命名</span></button>
+              <button class="button secondary project-action" id="openStorageSettings" type="button"><i data-lucide="settings-2" aria-hidden="true"></i><span data-i18n="changeLocation">修改位置</span></button>
+              <label class="button secondary project-action file-button" title="导入完整方案" aria-label="导入完整方案"><i data-lucide="upload" aria-hidden="true"></i><span data-i18n="importProject">导入</span><input id="projectImportInput" type="file" accept=".json" /></label>
+              <a class="button secondary project-action disabled-link" id="exportProjectButton" href="#" title="导出完整方案" aria-label="导出完整方案"><i data-lucide="download" aria-hidden="true"></i><span data-i18n="exportProject">导出</span></a>
+              <button class="button secondary project-action" id="resetProjectRunsButton" type="button" title="清除运行结果" aria-label="清除运行结果"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span data-i18n="clearRuns">清除结果</span></button>
+              <button class="button secondary project-action danger-text" id="deleteProjectButton" type="button" title="删除方案" aria-label="删除方案"><i data-lucide="trash-2" aria-hidden="true"></i><span data-i18n="deleteProject">删除</span></button>
+            </div>
+            <div class="project-location" id="projectLocation">方案保存在本机</div>
+          </div>
+          <div class="source-divider"></div>
+          <div class="source-section-title"><strong data-i18n="sourceMethod">方案来源</strong></div>
+          <div class="segmented" role="tablist" aria-label="项目创建方式">
+            <button class="segment active" type="button" data-source="file"><i data-lucide="file-spreadsheet" aria-hidden="true"></i><span data-i18n="fromFile">文件</span></button>
+            <button class="segment" type="button" data-source="manual"><i data-lucide="pencil-line" aria-hidden="true"></i><span data-i18n="fromManual">编辑</span></button>
+            <button class="segment" type="button" data-source="ai"><i data-lucide="sparkles" aria-hidden="true"></i><span data-i18n="fromAi">AI 生成</span></button>
+          </div>
+        </section>
+
+        <section class="editor-panel">
+          <div class="creation-pane-host" id="creationPaneHost">
+          <div class="source-pane file-source-pane" id="fileSourcePane">
+            <label class="import-dropzone" id="importDropzone">
+              <i data-lucide="file-spreadsheet" aria-hidden="true"></i>
+              <strong data-i18n="dropFile">拖入或选择 Excel</strong>
+              <span data-i18n="dropFileHint">支持 .xlsx</span>
+              <input id="workbookInput" type="file" accept=".xlsx" />
+            </label>
+            <a class="button secondary" href="/api/template"><i data-lucide="download" aria-hidden="true"></i><span data-i18n="downloadTemplate">下载模板</span></a>
+          </div>
+
+          <div class="source-pane manual-source-pane" id="manualSourcePane" hidden></div>
+
+          <div class="source-pane ai-layout" id="aiSourcePane" hidden>
+            <section class="ai-chat-card">
+              <div class="section-heading">
+                <div class="heading-with-icon"><i data-lucide="sparkles" aria-hidden="true"></i><div><strong data-i18n="aiDesigner">AI 方案生成</strong><span data-i18n="aiUsesProfile">调用当前 LLM 配置</span></div></div>
+                <span id="aiTokenUsage"></span>
+              </div>
+              <div class="ai-messages" id="aiMessages" aria-live="polite">
+                <div class="empty" data-i18n="aiEmpty">描述实验目标与覆盖范围。</div>
+              </div>
+              <div class="ai-composer">
+                <textarea id="aiInput" rows="1" data-i18n-placeholder="aiPlaceholder" placeholder="描述实验目标、范围与重复次数"></textarea>
+                <button class="icon-button primary send-button" id="aiSendButton" type="button" title="发送" aria-label="发送"><i data-lucide="send-horizontal" aria-hidden="true"></i></button>
+              </div>
+            </section>
+          </div>
+          <div class="notice" id="prepareNotice" role="status"></div>
+          </div>
+          <div class="editor-toolbar">
+            <label class="project-name-field">
+              <span data-i18n="projectName">方案名称</span>
+              <input id="editorExperimentName" value="LLM-DMF 实验方案" />
+            </label>
+            <div class="setup-actions">
+              <div class="bulk-control"><input id="bulkRepeatsInput" type="number" min="1" max="100" value="1" aria-label="统一重复次数" /><button class="button secondary" id="applyBulkRepeats" type="button" data-i18n="applyAllRepeats">统一次数</button></div>
+              <button class="button secondary compact-action" id="toggleSourcePanel" type="button" title="收起方案来源" aria-label="收起方案来源"><i id="sourcePanelIcon" data-lucide="chevrons-up" aria-hidden="true"></i><span id="sourcePanelLabel">收起来源</span></button>
+              <button class="button secondary" id="addExperimentButton" type="button"><i data-lucide="plus" aria-hidden="true"></i><span data-i18n="addExperiment">新增用例</span></button>
+              <button class="button secondary" id="exportEditorWorkbook" type="button"><i data-lucide="download" aria-hidden="true"></i><span data-i18n="exportExcel">导出方案</span></button>
+              <button class="button primary" id="saveProjectButton" type="button"><i data-lucide="arrow-right" aria-hidden="true"></i><span data-i18n="saveAndRun">提交方案</span></button>
+            </div>
+          </div>
+          <div class="editor-experiments" id="editorExperiments"></div>
+          <div class="notice" id="editorNotice" role="status"></div>
+        </section>
+        </div>
+      </div>
+
+      <div class="page-view" id="runPage" hidden>
+        <section class="page-intro">
+          <div>
+            <h2 data-i18n="runTitle">运行配置</h2>
+            <p id="runProjectSummary" data-i18n="noRunProject">请先选择实验方案。</p>
+          </div>
+          <button class="button secondary" id="backToPrepare" type="button"><i data-lucide="arrow-left" aria-hidden="true"></i><span data-i18n="editProject">返回方案</span></button>
+        </section>
+
+        <section class="setup-panel" id="runPanel">
+          <div class="run-options">
+            <label><span data-i18n="followupReply">默认追问响应</span><input id="defaultReplyInput" value="请使用默认参数并生成" /></label>
+            <label><span data-i18n="configLabel">运行标识</span><input id="configLabelInput" value="基准配置" /></label>
+          </div>
+          <details class="advanced-options">
+            <summary data-i18n="advancedRun">运行参数</summary>
+            <div class="advanced-options-grid">
+              <label><span data-i18n="concurrency">并发数</span><input id="concurrencyInput" type="number" min="1" max="10" value="1" /></label>
+              <label><span data-i18n="timeout">单次超时（秒）</span><input id="timeoutInput" type="number" min="5" max="1800" value="240" /></label>
+            </div>
+          </details>
+          <details class="suite-preview" id="suitePreviewPanel">
+            <summary id="suitePreviewSummary">运行范围</summary>
+            <div class="suite-preview-list" id="suitePreviewList"></div>
+          </details>
+          <div class="run-actions">
+            <button class="button primary" id="startButton" type="button" disabled><i data-lucide="play" aria-hidden="true"></i><span id="startButtonLabel" data-i18n="start">启动运行</span></button>
+            <button class="button secondary" id="pauseButton" type="button" disabled><i data-lucide="pause" aria-hidden="true"></i><span id="pauseButtonLabel" data-i18n="pause">暂停</span></button>
+            <button class="button danger" id="stopButton" type="button" disabled><i data-lucide="square" aria-hidden="true"></i><span data-i18n="stop">终止</span></button>
+            <a class="button secondary hidden" id="downloadResults" href="#"><i data-lucide="download" aria-hidden="true"></i><span data-i18n="downloadResults">导出结果</span></a>
+          </div>
+          <div class="notice" id="notice" role="status"></div>
+        </section>
+
+        <section class="progress-panel" id="progressPanel" hidden>
+          <div class="progress-title"><strong id="progressText">0 / 0</strong><span id="currentText">等待启动</span></div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="counts">
+            <span data-i18n="passed">通过 <strong id="passedCount">0</strong></span>
+            <span data-i18n="failed">失败 <strong id="failedCount">0</strong></span>
+            <span data-i18n="review">待复核 <strong id="reviewCount">0</strong></span>
+            <span data-i18n="runError">运行错误 <strong id="errorCount">0</strong></span>
+          </div>
+          <div class="run-observability">
+            <section class="active-runs-card">
+              <div class="section-heading"><strong data-i18n="activeRuns">活动任务</strong><span id="runPhaseText">等待启动</span></div>
+              <div class="active-run-list" id="activeRunList"><div class="empty compact-empty">暂无活动任务</div></div>
+            </section>
+            <section class="run-log-card">
+              <div class="section-heading"><strong data-i18n="runLogs">运行日志</strong><span data-i18n="logLimit">保留最近 400 条</span></div>
+              <div class="run-log-list" id="runLogList" aria-live="polite"><div class="empty compact-empty">运行事件将在此记录</div></div>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <div class="page-view" id="resultsPage" hidden>
+        <section class="page-intro results-intro">
+          <div><h2 data-i18n="resultsTitle">结果审查</h2><p id="resultsSummary">运行结果、评测结论与执行记录。</p></div>
+          <div class="setup-actions results-layout-actions">
+            <button class="icon-button" id="toggleResultsSidebar" type="button" title="收起运行记录" aria-label="收起运行记录"><i id="resultsSidebarIcon" data-lucide="panel-left-close" aria-hidden="true"></i></button>
+            <button class="icon-button" id="toggleEvidencePanel" type="button" title="收起审计信息" aria-label="收起审计信息"><i id="evidencePanelIcon" data-lucide="panel-right-close" aria-hidden="true"></i></button>
+            <a class="button secondary hidden" id="downloadResultsViewer" href="#"><i data-lucide="download" aria-hidden="true"></i><span data-i18n="downloadResults">导出结果</span></a>
+          </div>
+        </section>
+        <div class="notice results-notice" id="resultsNotice" role="status"></div>
+        <section class="results-layout" id="resultsLayout">
+          <aside class="results-sidebar">
+            <div class="sidebar-title"><strong data-i18n="experimentResults">运行记录</strong><select id="statusFilter"><option value="" data-i18n="allStatuses">全部状态</option><option value="passed" data-i18n="statusPassed">通过</option><option value="failed" data-i18n="statusFailed">失败</option><option value="review" data-i18n="statusReview">待复核</option><option value="error" data-i18n="statusError">运行错误</option></select></div>
+            <div class="result-list" id="resultList"><div class="empty">暂无运行记录</div></div>
+          </aside>
+          <section class="result-viewer">
+            <div class="viewer-toolbar"><button class="icon-button" id="previousResult" type="button" aria-label="上一条记录" disabled><i data-lucide="chevron-left" aria-hidden="true"></i></button><div class="viewer-heading"><strong id="viewerTitle">尚未选择记录</strong><span id="viewerSubtitle"></span></div><button class="icon-button" id="nextResult" type="button" aria-label="下一条记录" disabled><i data-lucide="chevron-right" aria-hidden="true"></i></button></div>
+            <div class="viewer-content">
+              <div class="workspace-card"><div class="result-workspace"><aside class="workspace-step-sidebar"><div class="workspace-step-title"><span data-i18n="activationSequence">激活序列</span><span id="workspaceStepCount">0</span></div><div class="workspace-step-list" id="workspaceStepList"><div class="empty compact-empty">暂无步骤</div></div></aside><div class="canvas-card"><canvas id="resultCanvas" width="700" height="600"></canvas><div class="step-controls"><button class="icon-button" id="firstStep" type="button" aria-label="第一步" disabled><i data-lucide="skip-back" aria-hidden="true"></i></button><button class="icon-button" id="previousStep" type="button" aria-label="上一步" disabled><i data-lucide="chevron-left" aria-hidden="true"></i></button><button class="icon-button primary-soft" id="playSteps" type="button" aria-label="自动播放" disabled><i id="playStepsIcon" data-lucide="play" aria-hidden="true"></i></button><button class="icon-button" id="nextStep" type="button" aria-label="下一步" disabled><i data-lucide="chevron-right" aria-hidden="true"></i></button><button class="icon-button" id="lastStep" type="button" aria-label="最后一步" disabled><i data-lucide="skip-forward" aria-hidden="true"></i></button><input id="stepSlider" type="range" min="0" max="0" value="0" /><select id="playbackSpeed" aria-label="播放速度"><option value="1000">1×</option><option value="500">2×</option><option value="250">4×</option></select><span id="stepText">0 / 0</span></div></div></div></div>
+              <div class="evidence-card"><div class="result-status" id="resultStatus">—</div><section class="manual-review-panel" aria-labelledby="manualReviewTitle"><div class="manual-review-heading"><strong id="manualReviewTitle" data-i18n="manualReview">人工判定</strong><span id="manualReviewState">未设置</span></div><div class="manual-review-actions"><button class="button review-pass" id="manualPassButton" type="button" disabled><i data-lucide="circle-check" aria-hidden="true"></i><span data-i18n="markPassed">判为通过</span></button><button class="button review-fail" id="manualFailButton" type="button" disabled><i data-lucide="circle-x" aria-hidden="true"></i><span data-i18n="markFailed">判为失败</span></button><button class="button secondary review-clear" id="clearManualReviewButton" type="button" disabled><i data-lucide="undo-2" aria-hidden="true"></i><span data-i18n="clearManualReview">撤销</span></button></div></section><dl class="facts" id="resultFacts"></dl><section class="audit-section"><h2 data-i18n="experimentPrompt">输入提示</h2><div class="readable-block" id="resultPrompt">选择记录后查看</div></section><section class="audit-section"><h2 data-i18n="criteria">评测规则</h2><div class="criteria-list" id="resultCriteria"><div class="empty compact-empty">选择记录后查看</div></div></section><h2 data-i18n="semanticAudit">执行审计</h2><div class="step-detail-list" id="stepDetailList"><div class="empty">选择记录后查看操作参数与激活序列</div></div></div>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <div class="page-view" id="settingsPage" hidden>
+        <section class="page-intro"><div><h2 data-i18n="settingsTitle">设置</h2><p data-i18n="settingsSubtitle">存储、模型与界面偏好。</p></div><div class="setup-actions"><a class="button secondary" href="/api/settings/export"><i data-lucide="download" aria-hidden="true"></i><span data-i18n="exportConfig">导出配置</span></a><label class="button secondary file-button"><i data-lucide="upload" aria-hidden="true"></i><span data-i18n="importConfig">导入配置</span><input id="settingsImportInput" type="file" accept=".json" /></label></div></section>
+        <div class="settings-grid">
+          <section class="settings-card">
+            <div class="section-heading"><div><strong data-i18n="storage">数据存储</strong><span data-i18n="storageHint">可使用绝对路径或项目内相对路径</span></div></div>
+            <div class="settings-fields"><label><span data-i18n="projectLocation">方案存储目录</span><input id="projectRootInput" /></label><label><span data-i18n="resultLocation">结果存储目录</span><input id="outputRootInput" /></label><button class="button primary" id="saveStorageButton" type="button"><i data-lucide="save" aria-hidden="true"></i><span data-i18n="saveSettings">应用设置</span></button></div>
+          </section>
+          <section class="settings-card">
+            <div class="section-heading"><div><strong data-i18n="interface">界面偏好</strong><span data-i18n="interfaceHint">设置会在下次打开时继续使用</span></div></div>
+            <div class="settings-fields two-columns"><label><span data-i18n="language">语言</span><select id="languageSelect"><option value="zh">中文</option><option value="en">English</option><option value="es">Español</option></select></label><label><span data-i18n="appearance">外观</span><select id="themeSelect"><option value="light" data-i18n="light">白天</option><option value="dark" data-i18n="dark">黑夜</option></select></label></div>
+          </section>
+          <section class="settings-card llm-settings-card">
+            <div class="section-heading"><div><strong data-i18n="llmSettings">模型连接</strong><span data-i18n="llmHint">任务执行与 AI 方案生成共用当前配置</span></div></div>
+            <div class="settings-fields two-columns"><label><span data-i18n="profile">配置</span><select id="llmProfileSelect"></select></label><label><span data-i18n="profileName">配置名称</span><input id="llmProfileName" /></label><label><span>API URL</span><input id="llmBaseUrl" placeholder="https://api.example.com/v1" /></label><label><span data-i18n="model">模型</span><input id="llmModel" list="llmModelOptions" autocomplete="off" /></label><label><span data-i18n="thinkingMode">推理模式</span><select id="llmThinkingMode"><option value="auto" data-i18n="thinkingAuto">服务商默认</option><option value="disabled" data-i18n="thinkingDisabled">关闭</option><option value="enabled" data-i18n="thinkingEnabled">开启</option></select></label><label><span>API Key</span><input id="llmApiKey" type="password" autocomplete="new-password" placeholder="留空则保留已经保存的 Key" /></label></div>
+            <div class="setup-actions"><button class="button primary" id="saveLlmButton" type="button"><i data-lucide="save" aria-hidden="true"></i><span data-i18n="saveProfile">应用配置</span></button><button class="button secondary" id="loadLlmModelsButton" type="button"><i data-lucide="list-filter" aria-hidden="true"></i><span data-i18n="loadModels">获取模型</span></button><button class="button secondary" id="testLlmButton" type="button"><i data-lucide="plug-zap" aria-hidden="true"></i><span data-i18n="testConnection">连接测试</span></button></div>
+          </section>
+        </div>
+        <div class="notice" id="settingsNotice" role="status"></div>
+      </div>
+    </main>
+    <datalist id="operationOptions"><option value="挤出生成"></option><option value="多挤出式生成"></option><option value="移动"></option><option value="混合"></option><option value="阵列混合"></option><option value="合并"></option><option value="阵列生成"></option></datalist>
+    <datalist id="llmModelOptions"></datalist>
+    <script src="/vendor/lucide/lucide.min.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -324,7 +324,7 @@ body {
   z-index: 20;
   display: grid;
   gap: 12px;
-  width: 222px;
+  width: 292px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -408,12 +408,32 @@ body {
   font-size: 10px;
 }
 
-.llm-setting-field input {
+.llm-setting-field input,
+.llm-setting-field select {
   width: 100%;
   height: 31px;
   min-width: 0;
   padding: 0 9px;
   font-size: 11px;
+}
+
+.profile-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px;
+}
+
+.profile-picker-row select {
+  min-width: 0;
+  height: 31px;
+  font-size: 11px;
+}
+
+.profile-picker-row button {
+  width: auto;
+  height: 31px;
+  padding: 0 7px;
+  font-size: 9px;
 }
 
 .secret-input-wrap {
@@ -463,7 +483,7 @@ body {
 
 .llm-settings-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 
@@ -480,6 +500,38 @@ body {
   color: #fff;
   border-color: var(--primary);
   background: var(--primary);
+}
+
+.local-config-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.local-config-actions input[type="file"] {
+  display: none;
+}
+
+.local-config-actions button {
+  height: 28px;
+  padding: 0 7px;
+  color: var(--muted);
+  background: var(--subtle);
+  font-size: 9px;
+}
+
+.include-secret-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.include-secret-option input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
 }
 
 .llm-config-status {
@@ -547,6 +599,54 @@ textarea {
 .backend-input {
   min-height: 48px;
   max-height: 160px;
+}
+
+.preset-section,
+.preset-content {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.preset-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--muted);
+  background: var(--subtle);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.preset-collapse-btn > svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: rotate(-90deg);
+  transition: transform 120ms ease;
+}
+
+.preset-collapse-btn[aria-expanded="true"] > svg {
+  transform: rotate(0deg);
+}
+
+.preset-collapse-btn > small {
+  min-width: 18px;
+  margin-left: auto;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-size: 9px;
+  text-align: center;
 }
 
 .preset-row {
@@ -1005,9 +1105,35 @@ button:disabled {
 
 .conversation-content {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
+}
+
+.token-usage-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.token-usage-bar strong {
+  color: var(--text);
+  font-size: 10px;
+}
+
+.session-token-total {
+  margin-left: auto;
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .ai-chat-header {
