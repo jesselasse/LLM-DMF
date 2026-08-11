@@ -478,22 +478,22 @@ def GenerateDropletArray(
     h: int,
     gap: int,
 ) -> List[Rect]:
-    """Generate a near-square, row-major array of droplet rectangles."""
+    """Generate a near-square array using ``gap`` as origin-to-origin spacing."""
     if not isinstance(count, int):
         raise TypeError("count must be int.")
     if count <= 0:
         raise ValueError("count must be >= 1.")
     if not isinstance(gap, int):
         raise TypeError("gap must be int.")
-    if gap < 0:
-        raise ValueError("gap must be >= 0.")
     _validate_rect((x, y, w, h))
+    if gap <= w:
+        raise ValueError("gap must be greater than droplet width.")
 
     columns = int(math.ceil(math.sqrt(count)))
     return [
         (
-            x + (index % columns) * (w + gap),
-            y + (index // columns) * (h + gap),
+            x + (index % columns) * gap,
+            y + (index // columns) * gap,
             w,
             h,
         )

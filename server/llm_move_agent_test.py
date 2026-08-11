@@ -57,7 +57,7 @@ class LlmWorkspaceToolTests(unittest.TestCase):
                             "y": 0,
                             "w": 2,
                             "h": 1,
-                            "gap": 2,
+                            "gap": 4,
                         },
                         "id": "array-call",
                         "type": "tool_call",
@@ -100,13 +100,13 @@ class LlmWorkspaceToolTests(unittest.TestCase):
         expected_array = [
             (0, 0, 2, 1),
             (4, 0, 2, 1),
-            (0, 3, 2, 1),
-            (4, 3, 2, 1),
+            (0, 4, 2, 1),
+            (4, 4, 2, 1),
         ]
         self.assertEqual(result["workspaceUpdates"]["assayArray"], expected_array)
         self.assertEqual(
             result["sequenceDelta"],
-            [(0, [(1, 0, 2, 1), (5, 0, 2, 1), (1, 3, 2, 1), (5, 3, 2, 1)])],
+            [(0, [(1, 0, 2, 1), (5, 0, 2, 1), (1, 4, 2, 1), (5, 4, 2, 1)])],
         )
         self.assertEqual(
             [call["tool"] for call in result["moveCalls"]],
@@ -122,6 +122,59 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             },
         )
         self.assertNotIn("temperature", FakeChatOpenAI.init_kwargs[-1])
+
+    def test_workspace_current_droplets_chain_merge_then_mix(self):
+        FakeChatOpenAI.responses = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "generate_array",
+                        "args": {"outputName": "left", "count": 2, "x": 0, "y": 0, "w": 2, "h": 2, "gap": 4},
+                        "id": "left-array", "type": "tool_call",
+                    },
+                    {
+                        "name": "generate_array",
+                        "args": {"outputName": "top", "count": 2, "x": 0, "y": 4, "w": 2, "h": 2, "gap": 4},
+                        "id": "top-array", "type": "tool_call",
+                    },
+                ],
+            ),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "merge",
+                        "args": {
+                            "droplets1": {"workspaceVariable": "left"},
+                            "droplets2": {"workspaceVariable": "top"},
+                        },
+                        "id": "merge-call", "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "rotate_mix",
+                        "args": {"duration": 1},
+                        "id": "mix-call", "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="已完成合并和混匀。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "生成两组阵列，合并后混匀",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual([call["tool"] for call in result["moveCalls"]], [
+            "generate_array", "generate_array", "merge", "rotate_mix"
+        ])
+        self.assertEqual(len(result["workspaceTransitions"]), 2)
+        self.assertTrue(result["currentDroplets"])
 
     def test_squeeze_can_generate_multiple_without_array_tool(self):
         FakeChatOpenAI.responses = [
@@ -201,6 +254,14 @@ class LlmWorkspaceToolTests(unittest.TestCase):
         self.assertTrue(Move(droplets, "right", 1))
         self.assertTrue(Squeeze(droplets, 1, "right"))
         self.assertTrue(RotateMix(droplets, 1))
+
+    def test_array_gap_is_origin_spacing_and_exceeds_width(self):
+        self.assertEqual(
+            GenerateDropletArray(4, 10, 20, 2, 2, 8),
+            [(10, 20, 2, 2), (18, 20, 2, 2), (10, 28, 2, 2), (18, 28, 2, 2)],
+        )
+        with self.assertRaises(ValueError):
+            GenerateDropletArray(2, 0, 0, 2, 2, 2)
 
     def test_merge_moves_then_deforms_two_horizontal_droplets(self):
         result = Merge([(0, 0, 2, 2)], [(5, 0, 1, 3)])

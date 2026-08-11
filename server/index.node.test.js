@@ -159,6 +159,34 @@ describe("structured sequence workspace", () => {
       /reserved/
     );
   });
+
+  test("tracks consumed and produced droplets separately from compact sequence", () => {
+    const workspace = new SequenceWorkspace(
+      parseSequenceText("(0,0)(2,2);(0,2)(2,2)-1000")
+    );
+    const before = workspace.dropletRecords();
+    const delta = [[0, [[0, 0, 2, 4]]]];
+    workspace.applyComposedDelta(delta);
+    workspace.applyTransitions([
+      {
+        consumedDroplets: [[0, 0, 2, 2], [0, 2, 2, 2]],
+        producedDroplets: [[0, 0, 2, 4]],
+      },
+    ]);
+    const after = workspace.dropletRecords();
+    assert.equal(before.length, 2);
+    assert.equal(after.length, 1);
+    assert.notEqual(after[0].id, before[0].id);
+    assert.deepEqual(workspace.currentFrame(), [{ x: 0, y: 0, w: 2, h: 4 }]);
+    assert.deepEqual(getLastStepRects(workspace.snapshot()), workspace.currentFrame());
+  });
+
+  test("coordinate arrays do not create current droplets by themselves", () => {
+    const workspace = new SequenceWorkspace();
+    workspace.applyVariableUpdates({ layout: [[0, 0, 2, 2], [4, 0, 2, 2]] });
+    assert.deepEqual(workspace.currentFrame(), []);
+    assert.deepEqual(workspace.variables().layout, [[0, 0, 2, 2], [4, 0, 2, 2]]);
+  });
 });
 
 test("editing a turn restores only the context before that turn", () => {

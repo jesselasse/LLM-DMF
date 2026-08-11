@@ -464,8 +464,6 @@ app.post("/api/steps-from-message", async (req, res) => {
       selectedDropletsBefore: normalizeSelectedDroplets(state.selectedDroplets),
       conversationLengthBefore: state.conversation.length,
     };
-    const currentFrameRects = state.workspace.currentFrame();
-
     const context = {
       sequence: state.workspace.snapshot(),
       workspaceVariables: state.workspace.variables(state.selectedDroplets),
@@ -497,12 +495,22 @@ app.post("/api/steps-from-message", async (req, res) => {
     const effectiveSelectedDroplets = resolvedSelectedDroplets.length
       ? resolvedSelectedDroplets
       : state.selectedDroplets;
-    const delta = state.workspace.applyDelta(rawDelta, effectiveSelectedDroplets);
+    const hasWorkspaceTransitions = Array.isArray(result.workspaceTransitions);
+    const delta = hasWorkspaceTransitions
+      ? state.workspace.applyComposedDelta(rawDelta)
+      : state.workspace.applyDelta(rawDelta, effectiveSelectedDroplets);
+    if (hasWorkspaceTransitions) {
+      state.workspace.applyTransitions(result.workspaceTransitions);
+    }
 
     state.conversation.push({ role: "user", content: message });
     state.conversation.push({ role: "assistant", content: assistantReply });
     state.turns.push({ ...turnSnapshot, tokenUsage });
-    state.selectedDroplets = normalizeSelectedDroplets(effectiveSelectedDroplets);
+    state.selectedDroplets = normalizeSelectedDroplets(
+      Array.isArray(result.selectedDroplets)
+        ? result.selectedDroplets
+        : effectiveSelectedDroplets
+    );
     state.updatedAt = Date.now();
     sessionStore.set(sessionId, state);
 
@@ -519,7 +527,8 @@ app.post("/api/steps-from-message", async (req, res) => {
       stepsText: state.workspace.toText(),
       moveCalls,
       selectedDroplets: state.selectedDroplets,
-      currentFrameRects,
+      currentFrameRects: state.workspace.currentFrame(),
+      dropletRecords: state.workspace.dropletRecords(),
     });
   } catch (error) {
     return res.status(502).json({

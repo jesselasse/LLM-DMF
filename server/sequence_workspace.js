@@ -28,6 +28,16 @@ function normalizeRects(raw) {
   return raw.map(normalizeRect).filter(Boolean);
 }
 
+function normalizeDropletGroups(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (normalizeRect(item)) return [normalizeRect(item)];
+      return normalizeRects(item);
+    })
+    .filter((group) => group.length);
+}
+
 function normalizeDuration(value) {
   const duration = Number(value);
   return Number.isInteger(duration) && duration >= 0
@@ -135,21 +145,37 @@ class SequenceWorkspace {
   constructor(sequence = []) {
     this.sequence = normalizeSequence(sequence);
     this.customVariables = {};
+    this.droplets = [];
+    this.nextDropletId = 1;
+    this._seedDropletsFromFrame(getLastStepRects(this.sequence));
+  }
+
+  _seedDropletsFromFrame(rects) {
+    this.droplets = normalizeRects(rects).map((rect) => ({
+      id: `droplet-${this.nextDropletId++}`,
+      rects: [rect],
+    }));
   }
 
   clear() {
     this.sequence = [];
     this.customVariables = {};
+    this.droplets = [];
+    this.nextDropletId = 1;
   }
 
   replace(sequence) {
     this.sequence = normalizeSequence(sequence);
     this.customVariables = {};
+    this.nextDropletId = 1;
+    this._seedDropletsFromFrame(getLastStepRects(this.sequence));
   }
 
   importText(text) {
     this.sequence = parseSequenceText(text);
     this.customVariables = {};
+    this.nextDropletId = 1;
+    this._seedDropletsFromFrame(getLastStepRects(this.sequence));
   }
 
   snapshot() {
@@ -157,7 +183,11 @@ class SequenceWorkspace {
   }
 
   currentFrame() {
-    return getLastStepRects(this.sequence);
+    return this.droplets.flatMap((droplet) => droplet.rects);
+  }
+
+  dropletRecords() {
+    return cloneWorkspaceValue(this.droplets);
   }
 
   variables(selectedDroplets = []) {
@@ -166,7 +196,34 @@ class SequenceWorkspace {
       sequence: this.snapshot(),
       currentFrameDroplets: this.currentFrame(),
       selectedDroplets: normalizeRects(selectedDroplets),
+      droplets: this.dropletRecords(),
     };
+  }
+
+  applyTransitions(transitions) {
+    if (!Array.isArray(transitions)) return;
+    transitions.forEach((transition) => {
+      const consumedGroups = normalizeDropletGroups(transition && transition.consumedDroplets);
+      const producedGroups = normalizeDropletGroups(transition && transition.producedDroplets);
+      consumedGroups.forEach((group) => {
+        const index = this.droplets.findIndex((droplet) =>
+          droplet.rects.length === group.length &&
+          droplet.rects.every((rect, rectIndex) => rectKey(rect) === rectKey(group[rectIndex]))
+        );
+        if (index >= 0) this.droplets.splice(index, 1);
+        else {
+          group.forEach((rect) => {
+            const rectIndex = this.droplets.findIndex((droplet) =>
+              droplet.rects.some((candidate) => rectKey(candidate) === rectKey(rect))
+            );
+            if (rectIndex >= 0) this.droplets.splice(rectIndex, 1);
+          });
+        }
+      });
+      producedGroups.forEach((group) => {
+        this.droplets.push({ id: `droplet-${this.nextDropletId++}`, rects: group });
+      });
+    });
   }
 
   setVariable(name, value) {
@@ -189,6 +246,12 @@ class SequenceWorkspace {
       this.currentFrame(),
       selectedDroplets
     );
+    this.sequence = appendSequence(this.sequence, processedDelta);
+    return processedDelta;
+  }
+
+  applyComposedDelta(delta) {
+    const processedDelta = normalizeSequence(delta);
     this.sequence = appendSequence(this.sequence, processedDelta);
     return processedDelta;
   }

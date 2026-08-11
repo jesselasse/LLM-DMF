@@ -182,6 +182,10 @@ Typical prompt:
 这类请求直接使用挤出操作；只有用户明确要求独立的阵列位置布局时才使用
 `generate_array`。
 
+操作完成后，workspace 会自动把操作产生的最后一帧液滴作为当前液滴集合，供下一步
+操作继续使用。用户不需要为这些结果命名；`generate_array` 保存的只是坐标集合，只有
+后续操作实际引用这些坐标时才会将其作为液滴输入。
+
 Notes:
 
 - Each droplet's own width and height control template scaling
@@ -234,13 +238,16 @@ independent positional array; squeeze/extrusion itself generates its multiple dr
 Behavior:
 
 - generate array coordinates from the requested origin and droplet size
-- arrange droplets with the standard gap `4` when the user confirms the default layout
+- treat `gap` as the distance between neighboring droplet origins
+- require `gap` to be greater than the droplet width
 - compute layout from the requested parallel count using a near-square grid
 
 Layout rule:
 
 - `cols = ceil(sqrt(count))`
 - `rows = ceil(count / cols)`
+- `x = originX + col * gap`
+- `y = originY + row * gap`
 - fill positions row by row
 - if the last row is not full, the remaining slots are left unused
 
