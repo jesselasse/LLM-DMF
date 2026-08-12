@@ -470,6 +470,29 @@ def RotateMix(
     return merge_sequences_by_step(sequences)
 
 
+def Split(droplets: List[Rect]) -> ActivationSequence:
+    """Split each droplet across its long axis and move the halves apart.
+
+    The long dimension must be even so both products have equal dimensions. For
+    square droplets the horizontal axis is used deterministically.
+    """
+    normalized = normalize_droplets_input(droplets)
+    sequences: List[ActivationSequence] = []
+    for x, y, w, h in normalized:
+        if w < h and h % 2:
+            raise ValueError("split requires an even long-side length.")
+        if w >= h:
+            if w % 2:
+                raise ValueError("split requires an even long-side length.")
+            half = w // 2
+            products = [(x - half, y, half, h), (x + half, y, half, h)]
+        else:
+            half = h // 2
+            products = [(x, y - half, w, half), (x, y + half, w, half)]
+        sequences.append([(0, [(x, y, w, h)]), (1, products)])
+    return merge_sequences_by_step(sequences)
+
+
 def GenerateDropletArray(
     count: int,
     x: int,

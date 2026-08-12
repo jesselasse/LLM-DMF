@@ -35,6 +35,7 @@ from move_backend import (
     Merge,
     Move,
     RotateMix,
+    Split,
     Squeeze,
     normalize_droplets_input,
 )
@@ -315,6 +316,13 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         droplets1: Union[List[DropletModel], WorkspaceVariableRef]
         droplets2: Union[List[DropletModel], WorkspaceVariableRef]
 
+    class SplitArgs(BaseModel):
+        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(default=None)
+        x: Optional[int] = Field(default=None)
+        y: Optional[int] = Field(default=None)
+        w: Optional[int] = Field(default=None)
+        h: Optional[int] = Field(default=None)
+
     @tool("generate_array", args_schema=GenerateArrayArgs)
     def generate_array(
         outputName: str,
@@ -467,6 +475,29 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             "producedDroplets": _last_rects(operation_sequence, resolved),
         }
 
+    @tool("split", args_schema=SplitArgs)
+    def split(
+        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+        w: Optional[int] = None,
+        h: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Split each droplet across its even long side and move halves apart."""
+        resolved = _resolve_droplets(
+            droplets=droplets, x=x, y=y, w=w, h=h,
+            selected_droplets=selected_droplets,
+            workspace_variables=workspace_variables,
+        )
+        operation_sequence = Split(resolved)
+        return {
+            "kind": "sequence",
+            "sequence": operation_sequence,
+            "resolvedDroplets": resolved,
+            "consumedDroplets": resolved,
+            "producedDroplets": _last_rects(operation_sequence, []),
+        }
+
     model_name = os.getenv("OPENAI_MODEL") or LLM_MODEL
     llm = ChatOpenAI(
         model=model_name,
@@ -480,6 +511,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "merge": merge,
         "squeeze": squeeze,
         "rotate_mix": rotate_mix,
+        "split": split,
     }
     llm_with_tools = llm.bind_tools(list(tool_registry.values()))
     required_map = _build_required_map(tool_registry)
@@ -553,6 +585,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "You have FULL context of prior conversation and the backend sequence workspace.\n"
         "The workspace maintains the current droplet collection between tool rounds. After an operation, its produced droplets become the current droplets for the next dependent operation.\n"
         "For movement, call 'move'. To combine nearby droplets, call 'merge' with two equally sized arrays; droplets1[i] merges with droplets2[i]. For circulation mixing, call 'rotate_mix'.\n"
+        "To split droplets, call 'split'. It divides each droplet across its long side and moves the equal halves apart; the long side must be even. For square droplets use the horizontal axis.\n"
         "For squeeze/extrusion generation, call 'squeeze' directly: source position, size, direction, and count are sufficient, and it internally generates the requested multiple droplets. NEVER ask for or invent an inter-droplet gap, and NEVER call 'generate_array' first for a squeeze/extrusion request.\n"
         "Squeeze is not a generic array operation: each squeeze call describes one source droplet. For multiple sources, call squeeze multiple times, even when their parameters match; the backend combines all squeeze paths by time step. No inter-droplet gap is needed.\n"
         "Use 'generate_array' only when the user explicitly asks for independent droplet positions/layout; after receiving its result, call another operation with a workspaceVariable reference to that name.\n"

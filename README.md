@@ -279,6 +279,11 @@ Selected-droplet prompt:
 `merge` 支持显式的两个液滴数组和两个工作空间坐标变量。单对合并使用两个长度为 1 的
 数组；批量合并要求两个数组长度相同并按索引对应。
 
+### `split`
+
+沿液滴的长边将其等分为两个相同尺寸的液滴，并使两个部分沿相反方向移动。长边长度必须
+为偶数；方形液滴默认沿水平方向分裂。支持显式坐标、当前选中液滴和 workspace 变量。
+
 #### Array input
 
 Array layout is operation-independent. First generate a named droplet array, then pass the
@@ -323,6 +328,21 @@ npm run test:server
 npm test -- --watchAll=false --runInBand
 npm run test:batch
 ```
+
+## Standalone TXT Baseline
+
+`llm_txt_baseline.py` is an independent LangChain baseline for comparison. It does not use
+the frontend, Express API, operation functions, or `SequenceWorkspace`; the LLM directly emits
+the complete TXT activation sequence through one structured tool call.
+
+Run it with the project Python environment and a JSON request on stdin:
+
+```bash
+echo '{"message":"在（1，0）有一个2×1液滴，将它分裂"}' \\
+  | .venv/bin/python llm_txt_baseline.py
+```
+
+The JSON response contains `stepsText`, `assistantReply`, and `tokenUsage`.
 
 ## Step Text Format
 

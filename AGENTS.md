@@ -14,3 +14,79 @@
 ## Scope
 
 These rules apply to all code in this repository, especially `server/llm_*` and any future LLM agent/router modules.
+
+## Verification Rules
+
+After changing functionality, run the smallest relevant test set below and broaden it when the
+change crosses subsystem boundaries. Tests should run without starting the interactive frontend
+unless runtime or browser behavior specifically needs verification.
+
+### Python operations and LLM tools
+
+Run when changing `server/*.py`, operation schemas, sequence calculations, tool routing, or
+in-request workspace behavior:
+
+```bash
+npm run test:python
+```
+
+These tests mock `ChatOpenAI`; they validate deterministic tool calls and state flow without using
+a real model or consuming API tokens.
+
+### Node backend and workspace
+
+Run when changing the Express API, session state, sequence workspace, local settings, runtime LLM
+configuration, or Node/Python response handling:
+
+```bash
+npm run test:server
+```
+
+### React frontend
+
+Run when changing `src/`, API response consumption, canvas behavior, chat state, or settings UI:
+
+```bash
+CI=true npm test -- --watchAll=false --runInBand
+```
+
+These frontend tests use mocked API responses and do not require the dev server.
+
+### Batch experiment tool
+
+Run when changing `batch-tool/` or a shared backend contract used by it:
+
+```bash
+npm run test:batch
+```
+
+### Production and syntax checks
+
+Run a production build for frontend/build configuration changes or broad integrations:
+
+```bash
+CI=true npm run build
+```
+
+Use focused syntax and diff checks where applicable:
+
+```bash
+python -m py_compile server/llm_move_agent.py server/move_backend.py
+node --check server/index.js
+node --check server/sequence_workspace.js
+git diff --check
+```
+
+### Real runtime verification
+
+Unit tests do not prove that a real LLM will interpret every natural-language request correctly.
+Start the application with `npm start` and perform a real request only when the change depends on:
+
+- live model interpretation or tool selection
+- environment variables or OpenAI-compatible endpoint behavior
+- the complete browser -> Node -> Python -> LLM network path
+- visual canvas rendering or browser-only interaction
+
+Do not claim real-LLM or browser end-to-end coverage unless it was actually run. In the final
+report, list the commands that passed and clearly identify any relevant test that was not run or
+did not complete.

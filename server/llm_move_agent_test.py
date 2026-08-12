@@ -13,7 +13,7 @@ from langchain_core.messages import AIMessage  # noqa: E402
 
 from llm_connection_test import tool_binding_options  # noqa: E402
 from llm_move_agent import generate_payload  # noqa: E402
-from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, Squeeze  # noqa: E402
+from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, Split, Squeeze  # noqa: E402
 
 
 class FakeChatOpenAI:
@@ -36,6 +36,18 @@ class FakeChatOpenAI:
 
 
 class LlmWorkspaceToolTests(unittest.TestCase):
+    def test_split_moves_equal_halves_apart_and_supports_long_axis(self):
+        self.assertEqual(
+            Split([(1, 0, 2, 1)]),
+            [(0, [(1, 0, 2, 1)]), (1, [(0, 0, 1, 1), (2, 0, 1, 1)])],
+        )
+        self.assertEqual(
+            Split([(4, 5, 2, 4)]),
+            [(0, [(4, 5, 2, 4)]), (1, [(4, 3, 2, 2), (4, 7, 2, 2)])],
+        )
+        with self.assertRaises(ValueError):
+            Split([(0, 0, 3, 2)])
+
     def test_thinking_mode_does_not_force_an_unsupported_tool_choice(self):
         with patch.dict(os.environ, {"OPENAI_THINKING_MODE": "enabled"}):
             self.assertEqual(tool_binding_options(), {})
