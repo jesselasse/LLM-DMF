@@ -11,6 +11,10 @@ A React + Express project for visualizing DMF step text on a grid and generating
 - Marks out-of-bound droplets in red and shows warnings
 - Shows a clickable step list for frame navigation
 - Sends natural-language requests to the backend and renders returned step text
+- Supports local OpenAI-compatible LLM profiles, model discovery, connection testing, and
+  automatic/enabled/disabled reasoning modes
+- Shows per-turn and retained-session token usage when the configured model reports it
+- Supports editing an earlier chat turn and restoring the sequence/session state from before it
 
 ## Project Structure
 
@@ -19,12 +23,12 @@ A React + Express project for visualizing DMF step text on a grid and generating
 - `server/llm_move_agent.py`: LLM tool router
 - `server/move_backend.py`: backend operations and shared droplet layout helpers
 - `server/backend_test_samples.txt`: natural-language backend test samples
+- `batch-tool/`: independent batch experiment design, execution, replay, and review interface
 
 ## Requirements
 
 - Node.js with `npm`
-- Python environment with the required LLM dependencies installed
-- Recommended Python environment: `conda` env `rag`
+- Python available on the machine; the project-managed `.venv` is prepared automatically
 
 ## Install
 
@@ -84,6 +88,9 @@ The in-memory workspace is the authoritative sequence state for a session. It ow
 - current-frame lookup
 - delta concatenation and time-step reindexing
 - preservation of unselected static droplets across generated frames
+- internal droplet records with workspace-only IDs and their current rectangle content
+- operation transitions from consumed droplets to produced droplets
+- immediate current-droplet updates between dependent tool rounds in one natural-language request
 - TXT parsing at import boundaries and TXT serialization at response boundaries
 
 The workspace also exposes typed variables to the LLM tool environment:
@@ -91,6 +98,8 @@ The workspace also exposes typed variables to the LLM tool environment:
 - `sequence`: the complete structured sequence
 - `currentFrameDroplets`: droplets in the latest frame
 - `selectedDroplets`: the current UI selection
+- `droplets`: internal droplet records used to associate logical droplets with their activation
+  rectangles; these IDs are workspace implementation details and are not user-facing inputs
 
 Tool arguments can explicitly reference a compatible value with a structured reference such
 as `{ "workspaceVariable": "selectedDroplets" }`. The backend resolves the reference and
@@ -98,6 +107,30 @@ validates the resulting value before invoking the deterministic computation func
 
 The LLM does not compose TXT activation lines. It only decides which registered function to
 call and supplies schema-validated arguments. Server restart currently clears all workspaces.
+
+Each sequence-producing operation reports its consumed and produced rectangles. The workspace
+uses those transitions to maintain current droplets while keeping the compact activation sequence
+format unchanged. This allows dependent operations such as array coordinates → merge → mix to
+run within one request. Explicit coordinates that are not already in the workspace can serve as
+initial droplets for the first operation. `selectedDroplets` remains the pre-operation UI/LLM
+selection and is updated separately from operation consumption.
+
+The workspace current-droplet content corresponds to the final activation frame produced by the
+latest completed operation. Sequence frames remain compact lists of `(x, y, w, h)` rectangles;
+workspace-only IDs are maintained alongside that representation and never appear in TXT output.
+
+`generate_array` is a coordinate-layout tool rather than a sequence operation. Its named result
+becomes a reusable coordinate variable and does not create activation frames by itself.
+
+## LLM Configuration
+
+The settings panel stores multiple local LLM profiles under `.local/settings.json`. A profile can
+contain an OpenAI-compatible API URL, API key, model name, and reasoning mode. The application can
+test the active connection and load model IDs from the compatible `/models` endpoint.
+
+Configuration export omits API keys unless secret export is explicitly requested. Saved API keys
+remain local and are not included in ordinary chat/context exports. Blank request-level settings
+use the active local profile and then the server environment configuration.
 
 ## Backend API
 
@@ -121,11 +154,29 @@ Response body:
 {
   "sessionId": "demo-session",
   "assistantReply": "...",
+  "tokenUsage": {
+    "available": true,
+    "inputTokens": 120,
+    "outputTokens": 30,
+    "totalTokens": 150
+  },
+  "sessionTokenUsage": {
+    "available": true,
+    "inputTokens": 120,
+    "outputTokens": 30,
+    "totalTokens": 150
+  },
   "stepsTextDelta": "(10,9)(1,1)-1000\n(10,10)(1,1)-1000",
   "stepsText": "...",
-  "moveCalls": []
+  "moveCalls": [],
+  "selectedDroplets": [],
+  "currentFrameRects": [],
+  "dropletRecords": []
 }
 ```
+
+The API also accepts `editTurnIndex` to regenerate an earlier conversation turn from its saved
+pre-turn sequence and selection state.
 
 ## Supported Backend Operations
 
@@ -162,10 +213,11 @@ Typical prompt:
 
 ### `squeeze`
 
-Apply the squeezing/extrusion template to generate multiple droplets from a source droplet.
-This operation already contains its own generation path; do not call `generate_array` first.
-Droplet positions and dimensions can be supplied explicitly, selected in the UI, or referenced
-from a workspace variable. `count` controls the requested squeeze progression/output count.
+Apply the squeezing/extrusion template to generate multiple droplets from one source droplet.
+Each tool call describes one source. A natural-language request may invoke multiple independent
+squeeze calls with different positions, sizes, directions, and counts; their paths run in parallel
+and are merged by time step. No array gap is required. `count` controls the squeeze progression and
+output count.
 
 Typical prompt:
 
@@ -186,10 +238,7 @@ Typical prompt:
 操作继续使用。用户不需要为这些结果命名；`generate_array` 保存的只是坐标集合，只有
 后续操作实际引用这些坐标时才会将其作为液滴输入。
 
-Notes:
-
-- Each droplet's own width and height control template scaling
-- Multiple droplets are merged by time step into one structured sequence
+Each source droplet's width and height control template scaling.
 
 ### `rotate_mix`
 
@@ -208,6 +257,12 @@ Typical prompt:
 对处于位置（20，30）尺寸为（3，2）的液滴做3圈旋转混匀。
 ```
 
+Selected-droplet prompt:
+
+```text
+对当前选中的液滴做3圈旋转混匀。
+```
+
 ### `merge`
 
 合并两组相邻或近邻液滴。输入是两个等长数组，后端按索引配对：
@@ -221,19 +276,15 @@ Typical prompt:
 把当前选中的两个液滴合并。
 ```
 
-`merge` 与其他操作一样支持显式液滴列表、当前选中液滴，以及工作空间变量。
-
-Selected-droplet prompt:
-
-```text
-对当前选中的液滴做3圈旋转混匀。
-```
+`merge` 支持显式的两个液滴数组和两个工作空间坐标变量。单对合并使用两个长度为 1 的
+数组；批量合并要求两个数组长度相同并按索引对应。
 
 #### Array input
 
 Array layout is operation-independent. First generate a named droplet array, then pass the
-workspace variable to `move`, `merge`, `squeeze`, or `rotate_mix`. This applies only to an
-independent positional array; squeeze/extrusion itself generates its multiple droplets directly.
+workspace variable to `move`, `merge`, or `rotate_mix`. This applies only to an independent
+positional array. A squeeze call accepts one source coordinate and generates its own output
+droplets, so a multi-coordinate array is not a squeeze input.
 
 Behavior:
 
@@ -262,6 +313,15 @@ Typical prompt:
 
 ```text
 对处于位置（20，30）尺寸为（3，2）的16个液滴做3圈旋转混匀。使用默认阵列排布。
+```
+
+## Tests
+
+```bash
+npm run test:python
+npm run test:server
+npm test -- --watchAll=false --runInBand
+npm run test:batch
 ```
 
 ## Step Text Format
