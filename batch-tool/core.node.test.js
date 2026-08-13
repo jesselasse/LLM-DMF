@@ -74,7 +74,7 @@ async function startFakeBackend({ failSecondMulti = false, rawDeltaAvailable = f
         delta = "(20,24)(1,1)-1000";
       } else if (id === "E003" && session.turns === 2) {
         if (failSecondMulti) return json(res, 502, { error: "模拟第二步失败" });
-        moveCalls = [{ tool: "rotate_mix", args: { duration: 3, droplets: [{ x: 20, y: 24, w: 1, h: 1 }] } }];
+        moveCalls = [{ tool: "rotate_mix", args: { cycles: 3, droplets: [{ x: 20, y: 24, w: 1, h: 1 }] } }];
         delta = "(20,25)(1,1)-1000";
       } else if (id === "E003") {
         moveCalls = [{ tool: "move", args: { direction: "down", t: 10, droplets: [{ x: 20, y: 25, w: 1, h: 1 }] } }];

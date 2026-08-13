@@ -25,7 +25,7 @@ An array movement should use `阵列生成 + 移动` with `数量=n；位置=x,y
 
 - `squeeze(count, direction, droplet)`: `count >= 1`; direction is up, down, left, or right; exactly one source droplet per call; no gap parameter. Source coordinates are not guaranteed final output coordinates.
 - `move(direction, t, droplets)`: `t >= 0`; accepts one or more explicit droplets or a generated-array reference.
-- `rotate_mix(duration, droplets)`: `duration >= 1`; accepts one or more explicit droplets or a generated-array reference. Each droplet's width and height define its loop dimensions.
+- `rotate_mix(cycles, droplets)`: `cycles >= 1`; accepts one or more explicit droplets or a generated-array reference. Each droplet's width and height define its loop dimensions.
 - `merge(droplets1, droplets2)`: both lists must have equal length and merge pairwise by index. Each pair must overlap on one axis and be separated on the other so the droplets can move together.
 - `generate_array(outputName, count, x, y, w, h, gap)`: `count >= 1`, `w > 0`, `h > 0`, and `gap >= 0`. The backend chooses a compact near-square row-major layout and stores it under an internal workspace name.
 

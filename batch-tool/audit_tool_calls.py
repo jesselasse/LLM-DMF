@@ -120,7 +120,7 @@ def replay_with_outputs(calls: list[dict[str, Any]]) -> tuple[list[Any], List[Re
             generated_outputs = list(generated[-1][1]) if generated else resolved_inputs
         elif tool == "rotate_mix":
             resolved_inputs = _resolved(call)
-            generated = RotateMix(resolved_inputs, int(args["duration"]))
+            generated = RotateMix(resolved_inputs, int(args["cycles"]))
             sequence.extend(generated)
             generated_outputs = list(generated[-1][1]) if generated else resolved_inputs
         elif tool == "merge":

@@ -292,7 +292,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         h: Optional[int] = Field(default=None)
 
     class RotateMixArgs(BaseModel):
-        duration: int
+        cycles: int
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(
             default=None
         )
@@ -445,7 +445,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
 
     @tool("rotate_mix", args_schema=RotateMixArgs)
     def rotate_mix(
-        duration: int,
+        cycles: int,
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
         x: Optional[int] = None,
         y: Optional[int] = None,
@@ -466,7 +466,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             selected_droplets=selected_droplets,
             workspace_variables=workspace_variables,
         )
-        operation_sequence = RotateMix(resolved, duration)
+        operation_sequence = RotateMix(resolved, cycles)
         return {
             "kind": "sequence",
             "sequence": operation_sequence,

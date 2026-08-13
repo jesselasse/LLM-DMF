@@ -226,8 +226,8 @@ const FRIENDLY_ARG_NAMES = new Map([
   ["距离", "t"],
   ["步数", "t"],
   ["t", "t"],
-  ["圈数", "duration"],
-  ["duration", "duration"],
+  ["圈数", "cycles"],
+  ["cycles", "cycles"],
   ["间距", "gap"],
   ["gap", "gap"],
 ]);

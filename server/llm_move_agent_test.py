@@ -170,7 +170,7 @@ class LlmWorkspaceToolTests(unittest.TestCase):
                 tool_calls=[
                     {
                         "name": "rotate_mix",
-                        "args": {"duration": 1},
+                        "args": {"cycles": 1},
                         "id": "mix-call", "type": "tool_call",
                     }
                 ],
