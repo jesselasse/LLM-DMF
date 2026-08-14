@@ -323,6 +323,13 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         w: Optional[int] = Field(default=None)
         h: Optional[int] = Field(default=None)
 
+    class InitializeDropletsArgs(BaseModel):
+        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(default=None)
+        x: Optional[int] = Field(default=None)
+        y: Optional[int] = Field(default=None)
+        w: Optional[int] = Field(default=None)
+        h: Optional[int] = Field(default=None)
+
     @tool("generate_array", args_schema=GenerateArrayArgs)
     def generate_array(
         outputName: str,
@@ -345,6 +352,39 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             "workspaceUpdates": {name: droplets},
             "workspaceVariable": name,
             "droplets": droplets,
+        }
+
+    request_started_empty = not normalize_droplets_input(
+        workspace_variables.get("currentFrameDroplets", [])
+    ) if workspace_variables.get("currentFrameDroplets") else True
+    initialized_this_request = False
+    sequence_operation_started = False
+
+    @tool("initialize_droplets", args_schema=InitializeDropletsArgs)
+    def initialize_droplets(
+        droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = None,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+        w: Optional[int] = None,
+        h: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Record pre-existing droplets as the initial workspace frame before operations begin."""
+        nonlocal initialized_this_request
+        if not request_started_empty:
+            raise ValueError("initialization is only available when the request starts with an empty workspace.")
+        if initialized_this_request or sequence_operation_started:
+            raise ValueError("initialization must occur once before sequence operations.")
+        resolved = _resolve_droplets(
+            droplets=droplets, x=x, y=y, w=w, h=h,
+            selected_droplets=[], workspace_variables=workspace_variables,
+        )
+        initialized_this_request = True
+        return {
+            "kind": "sequence",
+            "sequence": [(0, resolved)],
+            "resolvedDroplets": resolved,
+            "consumedDroplets": [],
+            "producedDroplets": resolved,
         }
 
     @tool("move", args_schema=MoveArgs)
@@ -507,6 +547,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     )
     tool_registry = {
         "generate_array": generate_array,
+        "initialize_droplets": initialize_droplets,
         "move": move,
         "merge": merge,
         "squeeze": squeeze,
@@ -585,6 +626,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "You have FULL context of prior conversation and the backend sequence workspace.\n"
         "The workspace maintains the current droplet collection between tool rounds. After an operation, its produced droplets become the current droplets for the next dependent operation.\n"
         "For movement, call 'move'. To combine nearby droplets, call 'merge' with two equally sized arrays; droplets1[i] merges with droplets2[i]. For circulation mixing, call 'rotate_mix'.\n"
+        "When the request starts with an empty workspace and refers to droplets that already exist before the requested operations, call 'initialize_droplets' once before all sequence operations to record their initial frame. Do not initialize a squeeze source. A generated coordinate array must be initialized before another operation consumes it.\n"
         "To split droplets, call 'split'. It divides each droplet across its long side and moves the equal halves apart; the long side must be even. For square droplets use the horizontal axis.\n"
         "For squeeze/extrusion generation, call 'squeeze' directly: source position, size, direction, and count are sufficient, and it internally generates the requested multiple droplets. NEVER ask for or invent an inter-droplet gap, and NEVER call 'generate_array' first for a squeeze/extrusion request.\n"
         "Squeeze is not a generic array operation: each squeeze call describes one source droplet. For multiple sources, call squeeze multiple times, even when their parameters match; the backend combines all squeeze paths by time step. No inter-droplet gap is needed.\n"
@@ -683,6 +725,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                     workspace_variables.update(updates)
                     workspace_updates.update(updates)
             elif result_kind == "sequence":
+                sequence_operation_started = True
                 tool_sequence = tool_result.get("sequence", [])
                 consumed = normalize_droplets_input(
                     tool_result.get("consumedDroplets", [])

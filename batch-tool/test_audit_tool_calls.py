@@ -4,6 +4,15 @@ from audit_tool_calls import replay_with_outputs
 
 
 class AuditToolCallOutputsTest(unittest.TestCase):
+    def test_initialize_droplets_replays_as_the_initial_frame(self):
+        sequence, outputs = replay_with_outputs([{
+            "tool": "initialize_droplets",
+            "args": {"x": 1, "y": 2, "w": 1, "h": 1},
+            "resolvedDroplets": [{"x": 1, "y": 2, "w": 1, "h": 1}],
+        }])
+        self.assertEqual(sequence, [(0, [(1, 2, 1, 1)])])
+        self.assertEqual(outputs, [(1, 2, 1, 1)])
+
     def test_squeeze_outputs_exclude_the_source_in_every_direction(self):
         source = {"x": 60, "y": 60, "w": 2, "h": 3}
         for direction in ("right", "left", "up", "down"):

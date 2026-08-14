@@ -122,6 +122,11 @@ workspace-only IDs are maintained alongside that representation and never appear
 `generate_array` is a coordinate-layout tool rather than a sequence operation. Its named result
 becomes a reusable coordinate variable and does not create activation frames by itself.
 
+When a request begins with an empty workspace but refers to droplets that already exist, the LLM
+may first use `initialize_droplets` to record one initial frame. This is used for pre-existing
+explicit droplets or generated arrays before they are moved, merged, mixed, or split; squeeze
+sources are not initialized.
+
 ## LLM Configuration
 
 The settings panel stores multiple local LLM profiles under `.local/settings.json`. A profile can

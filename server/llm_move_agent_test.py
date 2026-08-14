@@ -36,6 +36,34 @@ class FakeChatOpenAI:
 
 
 class LlmWorkspaceToolTests(unittest.TestCase):
+    def test_initialize_droplets_records_an_initial_frame_before_move(self):
+        FakeChatOpenAI.responses = [
+            AIMessage(content="", tool_calls=[{
+                "name": "initialize_droplets",
+                "args": {"x": 1, "y": 2, "w": 1, "h": 1},
+                "id": "initialize", "type": "tool_call",
+            }]),
+            AIMessage(content="", tool_calls=[{
+                "name": "move",
+                "args": {"direction": "right", "t": 1},
+                "id": "move", "type": "tool_call",
+            }]),
+            AIMessage(content="已完成移动。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "将已有液滴向右移动一步",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual(result["sequenceDelta"], [
+            (0, [(1, 2, 1, 1)]),
+            (0, [(2, 2, 1, 1)]),
+        ])
+        self.assertEqual(result["workspaceTransitions"], [
+            {"tool": "initialize_droplets", "consumedDroplets": [], "producedDroplets": [(1, 2, 1, 1)]},
+            {"tool": "move", "consumedDroplets": [(1, 2, 1, 1)], "producedDroplets": [(2, 2, 1, 1)]},
+        ])
+
     def test_split_moves_equal_halves_apart_and_supports_long_axis(self):
         self.assertEqual(
             Split([(1, 0, 2, 1)]),

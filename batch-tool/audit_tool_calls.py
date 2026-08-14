@@ -106,6 +106,11 @@ def replay_with_outputs(calls: list[dict[str, Any]]) -> tuple[list[Any], List[Re
             )
             resolved_inputs: List[Rect] = []
             generated = []
+        elif tool == "initialize_droplets":
+            resolved_inputs = _resolved(call)
+            generated = [(0, resolved_inputs)]
+            sequence.extend(generated)
+            generated_outputs = resolved_inputs
         elif tool == "squeeze":
             resolved_inputs = _resolved(call)
             generated = Squeeze(resolved_inputs, int(args["count"]), args["direction"])
