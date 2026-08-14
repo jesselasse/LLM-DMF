@@ -349,6 +349,14 @@ echo '{"message":"在（1，0）有一个2×1液滴，将它分裂"}' \\
 
 The JSON response contains `stepsText`, `assistantReply`, and `tokenUsage`.
 
+To evaluate every prompt in a sectioned UTF-8 file such as `benchmark/测试样例7.txt`, pass the
+file directly. The JSON result contains one entry per non-empty, non-heading line.
+
+```bash
+.venv/bin/python llm_txt_baseline.py --input-file benchmark/测试样例7.txt \
+  > benchmark/baseline-测试样例7.json
+```
+
 ## Step Text Format
 
 Each line is one frame:

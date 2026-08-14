@@ -7,9 +7,11 @@ Output is one JSON object containing the model-generated ``stepsText``.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -58,6 +60,13 @@ You must finish by calling emit_txt_sequence exactly once. The tool arguments ar
 """
 
 
+def _runtime_model_options() -> Dict[str, Any]:
+    thinking_mode = os.getenv("OPENAI_THINKING_MODE", "").strip()
+    if thinking_mode in {"enabled", "disabled"}:
+        return {"extra_body": {"thinking": {"type": thinking_mode}}}
+    return {}
+
+
 def _token_usage(message: Any) -> Dict[str, Any]:
     usage = getattr(message, "usage_metadata", None)
     if not isinstance(usage, dict):
@@ -89,8 +98,13 @@ def generate(message: str) -> Dict[str, Any]:
     if not base_url or not api_key:
         raise RuntimeError("OPENAI_BASE_URL and OPENAI_API_KEY are required")
     model = os.getenv("OPENAI_MODEL") or "gpt-5.4"
-    llm = ChatOpenAI(model=model, api_key=api_key, base_url=base_url)
-    response = llm.bind_tools([emit_txt_sequence], tool_choice="emit_txt_sequence").invoke(
+    llm = ChatOpenAI(
+        model=model,
+        api_key=api_key,
+        base_url=base_url,
+        **_runtime_model_options(),
+    )
+    response = llm.bind_tools([emit_txt_sequence]).invoke(
         [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=message.strip())]
     )
     calls = getattr(response, "tool_calls", None) or []
@@ -101,13 +115,63 @@ def generate(message: str) -> Dict[str, Any]:
     return {**result, "tokenUsage": _token_usage(response), "model": model}
 
 
-def main() -> int:
-    try:
-        payload = json.load(sys.stdin)
-        message = str(payload.get("message") or "").strip()
+def _single_request(payload: Any) -> Dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("stdin JSON must be an object")
+    message = str(payload.get("message") or "").strip()
+    if not message:
+        raise ValueError("message is required")
+    return generate(message)
+
+
+def _file_requests(path: Path) -> list[Dict[str, Any]]:
+    section = "unsectioned"
+    section_index = 0
+    results = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        message = raw_line.strip()
         if not message:
-            raise ValueError("message is required")
-        output = generate(message)
+            continue
+        if message.startswith("#"):
+            section = message[1:].strip() or "unsectioned"
+            section_index = 0
+            continue
+        section_index += 1
+        try:
+            result = generate(message)
+            results.append({
+                "section": section,
+                "index": section_index,
+                "message": message,
+                "ok": True,
+                "result": result,
+            })
+        except Exception as exc:  # noqa: BLE001
+            results.append({
+                "section": section,
+                "index": section_index,
+                "message": message,
+                "ok": False,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+    return {"inputFile": str(path), "results": results}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Generate direct TXT DMF baseline outputs.")
+    parser.add_argument(
+        "--input-file",
+        type=Path,
+        help="A UTF-8 prompt file; headings beginning with # group individual prompts.",
+    )
+    args = parser.parse_args()
+    try:
+        if args.input_file:
+            output = _file_requests(args.input_file)
+            exit_code = 1 if any(not item["ok"] for item in output["results"]) else 0
+        else:
+            output = _single_request(json.load(sys.stdin))
+            exit_code = 0
     except (json.JSONDecodeError, ValueError, RuntimeError) as exc:
         sys.stderr.write(f"{type(exc).__name__}: {exc}\n")
         return 2
@@ -115,7 +179,7 @@ def main() -> int:
         sys.stderr.write(f"{type(exc).__name__}: {exc}\n")
         return 1
     sys.stdout.write(json.dumps(output, ensure_ascii=False))
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":
