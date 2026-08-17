@@ -1,0 +1,67 @@
+====================================================================
+C4: Missing-Parameter Test Set (8 cases, 2 per operation, each created by removing 1 parameter from an existing single case)
+Simulated multi-turn interaction: Turn1 (input with a missing parameter) → system clarification question → Turn2 (user-provided information) → final instruction (= the original correct case, used as the ground truth)
+====================================================================
+
+# squeeze - case 1 (missing: position)
+Turn1: Perform a rightward squeeze operation with squeeze count 1,
+using a 1×1 source droplet.
+System clarification: Please provide the coordinates where the droplet should be generated.
+Turn2: The source droplet is at (30, 30).
+Final (ground truth): At (30, 30), squeeze 1 droplet of size 1×1 to the right
+
+# squeeze - case 3 (missing: direction)
+Turn1: At (108, 30), perform a squeeze operation with squeeze count 1,
+using a 3×3 source droplet.
+System clarification: Please provide the squeeze direction (up/down/left/right).
+Turn2: Squeeze it to the left.
+Final (ground truth): At (108, 30), squeeze 1 droplet of size 3×3 to the left
+
+# merge - case 1 (missing: size of the second droplet)
+Turn1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+System clarification: Please provide the size of the second droplet.
+Turn2: The droplet at (10, 14) has size 1×1.
+Final (ground truth): Merge the droplet at (10, 10) with size 1×1 with the droplet at (10, 14) with size 1×1.
+
+# merge - case 2 (missing: position of the first droplet)
+Turn1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+System clarification: Please provide the coordinates of the first droplet.
+Turn2: The 4×3 droplet is at (15, 100).
+Final (ground truth): Merge the droplet at (15, 100) with size 4×3 with the droplet at (15, 90) with size 4×2.
+
+# mix - case 1 (missing: number of rotations)
+Turn1: Rotationally mix the 2×2 droplet at (44, 44).
+System clarification: Please provide the number of rotations for rotational mixing.
+Turn2: Mix it for 3 rotations.
+Final (ground truth): Rotationally mix 1 droplet of size 2×2 at (44, 44) for 3 rotations
+
+# mix - case 2 (missing: position)
+Turn1: Rotationally mix a 5×5 droplet for 3 rotations.
+System clarification: Please provide the coordinates of the droplet.
+Turn2: The 5×5 droplet is at (60, 60).
+Final (ground truth): Rotationally mix 1 droplet of size 5×5 at (60, 60) for 3 rotations
+
+# move - case 1 (missing: number of grid cells to move)
+Turn1: Move the 1×1 droplet at (15, 15) to the right.
+System clarification: Please provide the number of grid cells to move.
+Turn2: Move it by 20 grid cells.
+Final (ground truth): Move 1 droplet of size 1×1 at (15, 15) 20 grid cells to the right
+
+# move - case 2 (missing: direction)
+Turn1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+System clarification: Please provide the movement direction.
+Turn2: Move it down.
+Final (ground truth): Move 1 droplet of size 4×4 at (48, 40) downward by 12 grid cells
+
+# batch mix - case (missing: gap)
+Turn1: Arrange 16 droplets of size 3×3 in an array starting at (30, 30), and add a mixing step with a duration of 2 to each droplet
+System clarification: Please provide the gap between droplets in the array.
+Turn2: The gap is 5.
+Final (ground truth): Arrange 16 droplets of size 3×3 in an array starting at (30, 30) with a gap of 5, and add a mixing step with a duration of 2 to each droplet
+
+# batch squeeze - case (missing: quantity)
+Turn1: At (20, 24), squeeze droplets of size 1×1 to the right
+System clarification: Please provide the number of droplets to generate.
+Turn2: 16 droplets.
+Final (ground truth): At (20, 24), squeeze 16 droplets of size 1×1 to the right
+====================================================================

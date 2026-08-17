@@ -1,0 +1,45 @@
+{
+  "heading": "move - case 1 (missing: number of grid cells to move)",
+  "turn1": "Move the 1×1 droplet at (15, 15) to the right.",
+  "expectedClarification": "Please provide the number of grid cells to move.",
+  "turn2": "Move it by 20 grid cells.",
+  "final": "Move 1 droplet of size 1×1 at (15, 15) 20 grid cells to the right",
+  "operation": "move",
+  "operationIndex": 1,
+  "stem": "move-case1-1",
+  "ok": true,
+  "turn1Result": {
+    "stepsText": "(16,15)(1,1)-1000",
+    "assistantReply": "已将位于 (15,15) 的 1×1 液滴向右移动一格，到达 (16,15)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 733,
+      "outputTokens": 240,
+      "totalTokens": 973
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "turn2Message": "Continue this conversation using all information from both user turns.\nUser Turn 1: Move the 1×1 droplet at (15, 15) to the right.\nAssistant Turn 1: 已将位于 (15,15) 的 1×1 液滴向右移动一格，到达 (16,15)。\nUser Turn 2: Move it by 20 grid cells.\nNow complete the requested operation.",
+  "turn2Result": {
+    "stepsText": "(16,15)(1,1)-1000\n(17,15)(1,1)-1000\n(18,15)(1,1)-1000\n(19,15)(1,1)-1000\n(20,15)(1,1)-1000\n(21,15)(1,1)-1000\n(22,15)(1,1)-1000\n(23,15)(1,1)-1000\n(24,15)(1,1)-1000\n(25,15)(1,1)-1000\n(26,15)(1,1)-1000\n(27,15)(1,1)-1000\n(28,15)(1,1)-1000\n(29,15)(1,1)-1000\n(30,15)(1,1)-1000\n(31,15)(1,1)-1000\n(32,15)(1,1)-1000\n(33,15)(1,1)-1000\n(34,15)(1,1)-1000\n(35,15)(1,1)-1000",
+    "assistantReply": "已将位于 (15,15) 的 1×1 液滴向右移动 20 格，最终到达 (35,15)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 800,
+      "outputTokens": 522,
+      "totalTokens": 1322
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "detected": false,
+  "expectedStepsFile": "/Users/dyh/Development/LLM-DMF/missing-benchmark/move/move-case1.txt",
+  "taskSuccess": true,
+  "matchType": "exact",
+  "tokenUsageTotal": {
+    "inputTokens": 1533,
+    "outputTokens": 762,
+    "totalTokens": 2295
+  }
+}
