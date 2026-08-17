@@ -13,7 +13,7 @@ class AuditToolCallOutputsTest(unittest.TestCase):
             },
         }])
         self.assertEqual(outputs, [
-            (9, 9, 1, 1), (12, 9, 1, 1), (9, 12, 1, 1), (12, 12, 1, 1),
+            (10, 10, 1, 1), (13, 10, 1, 1), (10, 13, 1, 1), (13, 13, 1, 1),
         ])
 
     def test_initialize_droplets_replays_as_the_initial_frame(self):

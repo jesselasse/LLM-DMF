@@ -135,11 +135,6 @@ def replay_with_outputs(calls: list[dict[str, Any]]) -> tuple[list[Any], List[Re
             sequence.extend(generated)
             generated_outputs = list(generated[-1][1]) if generated else resolved_inputs
         elif tool == "split_to_array":
-            resolved_inputs = [(
-                int(args["x"]), int(args["y"]),
-                int(args["childW"]) * int(args["columns"]),
-                int(args["childH"]) * int(args["rows"]),
-            )]
             generated = SplitToArray(
                 int(args["x"]), int(args["y"]),
                 int(args["childW"]),
@@ -149,6 +144,7 @@ def replay_with_outputs(calls: list[dict[str, Any]]) -> tuple[list[Any], List[Re
                 int(args["gapX"]),
                 int(args["gapY"]),
             )
+            resolved_inputs = list(generated[0][1])
             sequence.extend(generated)
             generated_outputs = list(generated[-1][1]) if generated else []
         elif tool == "merge":

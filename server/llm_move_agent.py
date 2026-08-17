@@ -572,10 +572,10 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         gapY: int,
     ) -> Dict[str, Any]:
         """Create one source droplet and recursively split it into a target grid."""
-        source = [(x, y, childW * columns, childH * rows)]
         operation_sequence = SplitToArray(
             x, y, childW, childH, columns, rows, gapX, gapY,
         )
+        source = list(operation_sequence[0][1])
         return {
             "kind": "sequence",
             "sequence": operation_sequence,
@@ -675,7 +675,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "For movement, call 'move'. To combine nearby droplets, call 'merge' with two equally sized arrays; droplets1[i] merges with droplets2[i]. For circulation mixing, call 'rotate_mix'.\n"
         "When the request starts with an empty workspace and refers to droplets that already exist before the requested operations, call 'initialize_droplets' once before all sequence operations to record their initial frame. Do not initialize a squeeze source. A generated coordinate array must be initialized before another operation consumes it.\n"
         "To split droplets, call 'split'. It divides each droplet across its long side and moves the equal halves apart; the long side must be even. For square droplets use the horizontal axis.\n"
-        "For recursive division into a target grid, call 'split_to_array' with x/y, child size, rows, columns, gapX, and gapY. It derives the source size from child size and grid dimensions; rows and columns must each be powers of two.\n"
+        "For recursive division into a target grid, call 'split_to_array' with x/y, child size, rows, columns, gapX, and gapY. It derives the source size from child size and grid dimensions; rows and columns must each be powers of two. For independent grids, call it multiple times in the same round.\n"
         "For squeeze/extrusion generation, call 'squeeze' directly: source position, size, direction, and count are sufficient, and it internally generates the requested multiple droplets. NEVER ask for or invent an inter-droplet gap, and NEVER call 'generate_array' first for a squeeze/extrusion request.\n"
         "Squeeze is not a generic array operation: each squeeze call describes one source droplet. For multiple sources, call squeeze multiple times, even when their parameters match; the backend combines all squeeze paths by time step. No inter-droplet gap is needed.\n"
         "Use 'generate_array' only when the user explicitly asks for independent droplet positions/layout; after receiving its result, call another operation with a workspaceVariable reference to that name.\n"

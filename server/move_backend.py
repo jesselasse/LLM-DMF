@@ -671,10 +671,11 @@ def SplitToArray(
 ) -> ActivationSequence:
     """Recursively split one derived source droplet into a spaced target grid.
 
-    ``gap_x`` and ``gap_y`` are origin-to-origin distances between final neighbors.
-    The source has top-left origin ``(x, y)`` and derived dimensions
-    ``child_w * columns`` by ``child_h * rows``. Rows and columns must be powers
-    of two so that repeated halving reaches the requested child size.
+    ``(x, y)`` is the first final child position. ``gap_x`` and ``gap_y`` are
+    origin-to-origin distances between final neighbors. The source dimensions are
+    derived from child size and layout; its centered start position is calculated
+    internally. Rows and columns must be powers of two so repeated halving reaches
+    the requested child size.
     """
     if not all(isinstance(value, int) for value in (
         x, y, child_w, child_h, columns, rows, gap_x, gap_y,
@@ -682,7 +683,16 @@ def SplitToArray(
         raise TypeError("split_to_array coordinates, sizes, layout, and gaps must be integers.")
     if child_w <= 0 or child_h <= 0 or columns <= 0 or rows <= 0:
         raise ValueError("split_to_array child dimensions, rows, and columns must be positive.")
-    source = (x, y, child_w * columns, child_h * rows)
+    source_w = child_w * columns
+    source_h = child_h * rows
+    final_w = (columns - 1) * gap_x + child_w
+    final_h = (rows - 1) * gap_y + child_h
+    source = (
+        x - (source_w - final_w) // 2,
+        y - (source_h - final_h) // 2,
+        source_w,
+        source_h,
+    )
     return _split_to_array_one(source, child_w, child_h, columns, rows, gap_x, gap_y)
 
 

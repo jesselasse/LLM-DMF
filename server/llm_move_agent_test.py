@@ -38,10 +38,10 @@ class FakeChatOpenAI:
 class LlmWorkspaceToolTests(unittest.TestCase):
     def test_split_to_array_recursively_divides_into_spaced_children(self):
         result = SplitToArray(10, 10, 1, 1, 4, 2, 3, 3)
-        self.assertEqual(result[0], (0, [(10, 10, 4, 2)]))
+        self.assertEqual(result[0], (0, [(13, 11, 4, 2)]))
         self.assertEqual(result[-1], (4, [
-            (7, 9, 1, 1), (10, 9, 1, 1), (13, 9, 1, 1), (16, 9, 1, 1),
-            (7, 12, 1, 1), (10, 12, 1, 1), (13, 12, 1, 1), (16, 12, 1, 1),
+            (10, 10, 1, 1), (13, 10, 1, 1), (16, 10, 1, 1), (19, 10, 1, 1),
+            (10, 13, 1, 1), (13, 13, 1, 1), (16, 13, 1, 1), (19, 13, 1, 1),
         ]))
         with self.assertRaises(ValueError):
             SplitToArray(0, 0, 1, 1, 3, 2, 3, 3)
@@ -63,9 +63,9 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             )
         self.assertEqual(result["moveCalls"][0]["tool"], "split_to_array")
         self.assertEqual(result["workspaceTransitions"][0]["producedDroplets"], [
-            (9, 9, 1, 1), (12, 9, 1, 1), (9, 12, 1, 1), (12, 12, 1, 1),
+            (10, 10, 1, 1), (13, 10, 1, 1), (10, 13, 1, 1), (13, 13, 1, 1),
         ])
-        self.assertEqual(result["workspaceTransitions"][0]["consumedDroplets"], [(10, 10, 2, 2)])
+        self.assertEqual(result["workspaceTransitions"][0]["consumedDroplets"], [(11, 11, 2, 2)])
 
     def test_initialize_droplets_records_an_initial_frame_before_move(self):
         FakeChatOpenAI.responses = [
@@ -319,6 +319,41 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             )
         self.assertEqual([call["tool"] for call in result["moveCalls"]], ["squeeze", "squeeze"])
         self.assertEqual(len(result["sequenceDelta"]), 16)
+
+    def test_independent_split_to_array_calls_run_in_parallel(self):
+        FakeChatOpenAI.responses = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "split_to_array",
+                        "args": {"x": 10, "y": 10, "childW": 1, "childH": 1,
+                                 "columns": 2, "rows": 2, "gapX": 3, "gapY": 3},
+                        "id": "split-array-1", "type": "tool_call",
+                    },
+                    {
+                        "name": "split_to_array",
+                        "args": {"x": 40, "y": 20, "childW": 1, "childH": 1,
+                                 "columns": 2, "rows": 2, "gapX": 3, "gapY": 3},
+                        "id": "split-array-2", "type": "tool_call",
+                    },
+                ],
+            ),
+            AIMessage(content="已完成并行分裂。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "在两个位置分别递归分裂为阵列",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual([call["tool"] for call in result["moveCalls"]], [
+            "split_to_array", "split_to_array",
+        ])
+        self.assertEqual(len(result["sequenceDelta"]), 3)
+        self.assertEqual(result["sequenceDelta"][-1][1], [
+            (10, 10, 1, 1), (13, 10, 1, 1), (10, 13, 1, 1), (13, 13, 1, 1),
+            (40, 20, 1, 1), (43, 20, 1, 1), (40, 23, 1, 1), (43, 23, 1, 1),
+        ])
 
     def test_all_operations_accept_the_same_droplet_list(self):
         droplets = GenerateDropletArray(2, 0, 0, 1, 1, 2)
