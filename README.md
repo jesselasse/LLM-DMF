@@ -189,9 +189,10 @@ The LLM backend currently exposes these tools:
 
 ### `generate_array`
 
-Generate a reusable near-square, row-major droplet layout and store it under an explicit
-workspace variable name. The tool only creates droplet positions; it does not perform a
-movement, squeeze, or mixing operation.
+Generate a reusable row-major droplet layout and store it under an explicit workspace variable
+name. A compact near-square layout can use `count` and one `gap`; an exact layout can use
+`rows`, `columns`, `gapX`, and `gapY`. The tool only creates droplet positions; it does not
+perform a movement, squeeze, or mixing operation.
 
 Any operation can then consume the result through a workspace reference:
 
@@ -288,6 +289,13 @@ Selected-droplet prompt:
 
 沿液滴的长边将其等分为两个相同尺寸的液滴，并使两个部分沿相反方向移动。长边长度必须
 为偶数；方形液滴默认沿水平方向分裂。支持显式坐标、当前选中液滴和 workspace 变量。
+
+### `split_to_array`
+
+从指定起点创建一个大液滴，并连续对半分裂为相同尺寸的子液滴阵列。输入子液滴尺寸
+`childW × childH`、`rows`、`columns` 与水平、垂直起点间距 `gapX`、`gapY`；初始大液滴尺寸
+自动推导为 `childW × columns` 和 `childH × rows`。行数和列数必须分别为 2 的幂；间距采用
+与阵列生成一致的起点到起点距离，且必须大于对应子液滴尺寸。
 
 #### Array input
 

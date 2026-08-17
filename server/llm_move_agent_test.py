@@ -13,7 +13,7 @@ from langchain_core.messages import AIMessage  # noqa: E402
 
 from llm_connection_test import tool_binding_options  # noqa: E402
 from llm_move_agent import generate_payload  # noqa: E402
-from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, Split, Squeeze  # noqa: E402
+from move_backend import Deform, GenerateDropletArray, Merge, Move, RotateMix, Split, SplitToArray, Squeeze  # noqa: E402
 
 
 class FakeChatOpenAI:
@@ -36,6 +36,37 @@ class FakeChatOpenAI:
 
 
 class LlmWorkspaceToolTests(unittest.TestCase):
+    def test_split_to_array_recursively_divides_into_spaced_children(self):
+        result = SplitToArray(10, 10, 1, 1, 4, 2, 3, 3)
+        self.assertEqual(result[0], (0, [(10, 10, 4, 2)]))
+        self.assertEqual(result[-1], (4, [
+            (7, 9, 1, 1), (10, 9, 1, 1), (13, 9, 1, 1), (16, 9, 1, 1),
+            (7, 12, 1, 1), (10, 12, 1, 1), (13, 12, 1, 1), (16, 12, 1, 1),
+        ]))
+        with self.assertRaises(ValueError):
+            SplitToArray(0, 0, 1, 1, 3, 2, 3, 3)
+
+    def test_split_to_array_tool_derives_its_source_from_the_grid(self):
+        FakeChatOpenAI.responses = [
+            AIMessage(content="", tool_calls=[{
+                "name": "split_to_array",
+                "args": {"x": 10, "y": 10, "childW": 1, "childH": 1,
+                         "columns": 2, "rows": 2, "gapX": 3, "gapY": 3},
+                "id": "split-array", "type": "tool_call",
+            }]),
+            AIMessage(content="已完成分裂。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "将液滴递归分裂为阵列",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual(result["moveCalls"][0]["tool"], "split_to_array")
+        self.assertEqual(result["workspaceTransitions"][0]["producedDroplets"], [
+            (9, 9, 1, 1), (12, 9, 1, 1), (9, 12, 1, 1), (12, 12, 1, 1),
+        ])
+        self.assertEqual(result["workspaceTransitions"][0]["consumedDroplets"], [(10, 10, 2, 2)])
+
     def test_initialize_droplets_records_an_initial_frame_before_move(self):
         FakeChatOpenAI.responses = [
             AIMessage(content="", tool_calls=[{
@@ -67,11 +98,11 @@ class LlmWorkspaceToolTests(unittest.TestCase):
     def test_split_moves_equal_halves_apart_and_supports_long_axis(self):
         self.assertEqual(
             Split([(1, 0, 2, 1)]),
-            [(0, [(1, 0, 2, 1)]), (1, [(0, 0, 1, 1), (2, 0, 1, 1)])],
+            [(0, [(1, 0, 2, 1)]), (1, [(0, 0, 1, 1), (3, 0, 1, 1)])],
         )
         self.assertEqual(
             Split([(4, 5, 2, 4)]),
-            [(0, [(4, 5, 2, 4)]), (1, [(4, 3, 2, 2), (4, 7, 2, 2)])],
+            [(0, [(4, 5, 2, 4)]), (1, [(4, 3, 2, 2), (4, 9, 2, 2)])],
         )
         with self.assertRaises(ValueError):
             Split([(0, 0, 3, 2)])
@@ -302,6 +333,18 @@ class LlmWorkspaceToolTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             GenerateDropletArray(2, 0, 0, 2, 2, 2)
+
+    def test_array_can_use_explicit_rows_columns_and_axis_gaps(self):
+        self.assertEqual(
+            GenerateDropletArray(
+                None, 10, 20, 2, 1, None,
+                rows=2, columns=3, gap_x=5, gap_y=4,
+            ),
+            [
+                (10, 20, 2, 1), (15, 20, 2, 1), (20, 20, 2, 1),
+                (10, 24, 2, 1), (15, 24, 2, 1), (20, 24, 2, 1),
+            ],
+        )
 
     def test_merge_moves_then_deforms_two_horizontal_droplets(self):
         result = Merge([(0, 0, 2, 2)], [(5, 0, 1, 3)])

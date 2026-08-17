@@ -17,6 +17,7 @@ from move_backend import (  # noqa: E402
     Move,
     RotateMix,
     Squeeze,
+    SplitToArray,
     merge_sequences_by_step,
     normalize_droplets_input,
 )
@@ -101,8 +102,13 @@ def replay_with_outputs(calls: list[dict[str, Any]]) -> tuple[list[Any], List[Re
         args = call.get("args") if isinstance(call.get("args"), dict) else {}
         if tool == "generate_array":
             generated_outputs = GenerateDropletArray(
-                int(args["count"]), int(args["x"]), int(args["y"]),
-                int(args["w"]), int(args["h"]), int(args["gap"]),
+                int(args["count"]) if args.get("count") is not None else None,
+                int(args["x"]), int(args["y"]), int(args["w"]), int(args["h"]),
+                int(args["gap"]) if args.get("gap") is not None else None,
+                rows=int(args["rows"]) if args.get("rows") is not None else None,
+                columns=int(args["columns"]) if args.get("columns") is not None else None,
+                gap_x=int(args["gapX"]) if args.get("gapX") is not None else None,
+                gap_y=int(args["gapY"]) if args.get("gapY") is not None else None,
             )
             resolved_inputs: List[Rect] = []
             generated = []
@@ -128,6 +134,23 @@ def replay_with_outputs(calls: list[dict[str, Any]]) -> tuple[list[Any], List[Re
             generated = RotateMix(resolved_inputs, int(args["cycles"]))
             sequence.extend(generated)
             generated_outputs = list(generated[-1][1]) if generated else resolved_inputs
+        elif tool == "split_to_array":
+            resolved_inputs = [(
+                int(args["x"]), int(args["y"]),
+                int(args["childW"]) * int(args["columns"]),
+                int(args["childH"]) * int(args["rows"]),
+            )]
+            generated = SplitToArray(
+                int(args["x"]), int(args["y"]),
+                int(args["childW"]),
+                int(args["childH"]),
+                int(args["columns"]),
+                int(args["rows"]),
+                int(args["gapX"]),
+                int(args["gapY"]),
+            )
+            sequence.extend(generated)
+            generated_outputs = list(generated[-1][1]) if generated else []
         elif tool == "merge":
             resolved_inputs = _resolved(call)
             if len(resolved_inputs) < 2 or len(resolved_inputs) % 2:

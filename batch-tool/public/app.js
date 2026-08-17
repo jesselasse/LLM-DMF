@@ -531,7 +531,7 @@ function applyResultsLayout() {
   renderIcons();
 }
 
-const operationLabels = { squeeze: "挤出生成", move: "移动", rotate_mix: "混匀", merge: "合并", generate_array: "阵列生成" };
+const operationLabels = { squeeze: "挤出生成", move: "移动", rotate_mix: "混匀", merge: "合并", generate_array: "阵列生成", split_to_array: "递归分裂" };
 const statusLabels = {
   zh: { passed: "通过", failed: "失败", review: "待复核", error: "运行错误", stopped: "已停止" },
   en: { passed: "Passed", failed: "Failed", review: "Review", error: "Run error", stopped: "Stopped" },

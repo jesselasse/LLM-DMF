@@ -204,12 +204,15 @@ const FRIENDLY_TOOL_NAMES = new Map([
   ["旋转混匀", "rotate_mix"],
   ["阵列混匀", "rotate_mix"],
   ["合并", "merge"],
+  ["递归分裂", "split_to_array"],
+  ["阵列分裂", "split_to_array"],
   ["阵列生成", "generate_array"],
   ["squeeze", "squeeze"],
   ["move", "move"],
   ["rotate_mix", "rotate_mix"],
   ["merge", "merge"],
   ["generate_array", "generate_array"],
+  ["split_to_array", "split_to_array"],
 ]);
 
 const FRIENDLY_ARG_NAMES = new Map([
@@ -230,6 +233,14 @@ const FRIENDLY_ARG_NAMES = new Map([
   ["cycles", "cycles"],
   ["间距", "gap"],
   ["gap", "gap"],
+  ["子液滴宽", "childW"],
+  ["子液滴高", "childH"],
+  ["横向间距", "gapX"],
+  ["纵向间距", "gapY"],
+  ["列数", "columns"],
+  ["横向数量", "columns"],
+  ["行数", "rows"],
+  ["纵向数量", "rows"],
 ]);
 
 function normalizedDirection(value) {

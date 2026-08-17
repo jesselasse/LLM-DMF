@@ -36,6 +36,7 @@ from move_backend import (
     Move,
     RotateMix,
     Split,
+    SplitToArray,
     Squeeze,
     normalize_droplets_input,
 )
@@ -273,12 +274,16 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
 
     class GenerateArrayArgs(BaseModel):
         outputName: str
-        count: int
         x: int
         y: int
         w: int
         h: int
-        gap: int
+        count: Optional[int] = Field(default=None)
+        gap: Optional[int] = Field(default=None)
+        rows: Optional[int] = Field(default=None)
+        columns: Optional[int] = Field(default=None)
+        gapX: Optional[int] = Field(default=None)
+        gapY: Optional[int] = Field(default=None)
 
     class MoveArgs(BaseModel):
         direction: str
@@ -323,6 +328,16 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         w: Optional[int] = Field(default=None)
         h: Optional[int] = Field(default=None)
 
+    class SplitToArrayArgs(BaseModel):
+        x: int
+        y: int
+        childW: int
+        childH: int
+        columns: int
+        rows: int
+        gapX: int
+        gapY: int
+
     class InitializeDropletsArgs(BaseModel):
         droplets: Optional[Union[List[DropletModel], WorkspaceVariableRef]] = Field(default=None)
         x: Optional[int] = Field(default=None)
@@ -333,12 +348,16 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     @tool("generate_array", args_schema=GenerateArrayArgs)
     def generate_array(
         outputName: str,
-        count: int,
         x: int,
         y: int,
         w: int,
         h: int,
-        gap: int,
+        count: Optional[int] = None,
+        gap: Optional[int] = None,
+        rows: Optional[int] = None,
+        columns: Optional[int] = None,
+        gapX: Optional[int] = None,
+        gapY: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Generate reusable positions; gap is origin spacing and must exceed width."""
         name = str(outputName).strip()
@@ -346,7 +365,10 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             raise ValueError("outputName must be non-empty.")
         if name in {"sequence", "currentFrameDroplets", "selectedDroplets"}:
             raise ValueError("outputName conflicts with a reserved workspace variable.")
-        droplets = GenerateDropletArray(count, x, y, w, h, gap)
+        droplets = GenerateDropletArray(
+            count, x, y, w, h, gap,
+            rows=rows, columns=columns, gap_x=gapX, gap_y=gapY,
+        )
         return {
             "kind": "workspace_update",
             "workspaceUpdates": {name: droplets},
@@ -538,6 +560,30 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             "producedDroplets": _last_rects(operation_sequence, []),
         }
 
+    @tool("split_to_array", args_schema=SplitToArrayArgs)
+    def split_to_array(
+        x: int,
+        y: int,
+        childW: int,
+        childH: int,
+        columns: int,
+        rows: int,
+        gapX: int,
+        gapY: int,
+    ) -> Dict[str, Any]:
+        """Create one source droplet and recursively split it into a target grid."""
+        source = [(x, y, childW * columns, childH * rows)]
+        operation_sequence = SplitToArray(
+            x, y, childW, childH, columns, rows, gapX, gapY,
+        )
+        return {
+            "kind": "sequence",
+            "sequence": operation_sequence,
+            "resolvedDroplets": source,
+            "consumedDroplets": source,
+            "producedDroplets": _last_rects(operation_sequence, []),
+        }
+
     model_name = os.getenv("OPENAI_MODEL") or LLM_MODEL
     llm = ChatOpenAI(
         model=model_name,
@@ -553,6 +599,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "squeeze": squeeze,
         "rotate_mix": rotate_mix,
         "split": split,
+        "split_to_array": split_to_array,
     }
     llm_with_tools = llm.bind_tools(list(tool_registry.values()))
     required_map = _build_required_map(tool_registry)
@@ -628,6 +675,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "For movement, call 'move'. To combine nearby droplets, call 'merge' with two equally sized arrays; droplets1[i] merges with droplets2[i]. For circulation mixing, call 'rotate_mix'.\n"
         "When the request starts with an empty workspace and refers to droplets that already exist before the requested operations, call 'initialize_droplets' once before all sequence operations to record their initial frame. Do not initialize a squeeze source. A generated coordinate array must be initialized before another operation consumes it.\n"
         "To split droplets, call 'split'. It divides each droplet across its long side and moves the equal halves apart; the long side must be even. For square droplets use the horizontal axis.\n"
+        "For recursive division into a target grid, call 'split_to_array' with x/y, child size, rows, columns, gapX, and gapY. It derives the source size from child size and grid dimensions; rows and columns must each be powers of two.\n"
         "For squeeze/extrusion generation, call 'squeeze' directly: source position, size, direction, and count are sufficient, and it internally generates the requested multiple droplets. NEVER ask for or invent an inter-droplet gap, and NEVER call 'generate_array' first for a squeeze/extrusion request.\n"
         "Squeeze is not a generic array operation: each squeeze call describes one source droplet. For multiple sources, call squeeze multiple times, even when their parameters match; the backend combines all squeeze paths by time step. No inter-droplet gap is needed.\n"
         "Use 'generate_array' only when the user explicitly asks for independent droplet positions/layout; after receiving its result, call another operation with a workspaceVariable reference to that name.\n"

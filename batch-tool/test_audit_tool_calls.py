@@ -4,6 +4,18 @@ from audit_tool_calls import replay_with_outputs
 
 
 class AuditToolCallOutputsTest(unittest.TestCase):
+    def test_split_to_array_replay_returns_all_final_children(self):
+        _sequence, outputs = replay_with_outputs([{
+            "tool": "split_to_array",
+            "args": {
+                "x": 10, "y": 10, "childW": 1, "childH": 1,
+                "columns": 2, "rows": 2, "gapX": 3, "gapY": 3,
+            },
+        }])
+        self.assertEqual(outputs, [
+            (9, 9, 1, 1), (12, 9, 1, 1), (9, 12, 1, 1), (12, 12, 1, 1),
+        ])
+
     def test_initialize_droplets_replays_as_the_initial_frame(self):
         sequence, outputs = replay_with_outputs([{
             "tool": "initialize_droplets",

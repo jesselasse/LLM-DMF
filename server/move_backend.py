@@ -485,32 +485,254 @@ def Split(droplets: List[Rect]) -> ActivationSequence:
             if w % 2:
                 raise ValueError("split requires an even long-side length.")
             half = w // 2
-            products = [(x - half, y, half, h), (x + half, y, half, h)]
+            products = [(x - half, y, half, h), (x + w, y, half, h)]
         else:
             half = h // 2
-            products = [(x, y - half, w, half), (x, y + half, w, half)]
+            products = [(x, y - half, w, half), (x, y + h, w, half)]
         sequences.append([(0, [(x, y, w, h)]), (1, products)])
     return merge_sequences_by_step(sequences)
 
 
+def _halving_depth(source_size: int, target_size: int, axis: str) -> int:
+    if target_size <= 0 or source_size < target_size or source_size % target_size:
+        raise ValueError(f"split_to_array requires {axis} to be an exact multiple of the target size.")
+    ratio = source_size // target_size
+    if ratio & (ratio - 1):
+        raise ValueError(f"split_to_array requires the {axis} ratio to be a power of two.")
+    return ratio.bit_length() - 1
+
+
+def _group_origin(
+    target_origin: int,
+    target_size: int,
+    gap: int,
+    group_start: int,
+    group_count: int,
+    rect_size: int,
+) -> int:
+    """Place a split product at the integer center of its final target group."""
+    numerator = (
+        2 * target_origin
+        + (2 * group_start + group_count - 1) * gap
+        + target_size
+        - rect_size
+    )
+    return numerator // 2
+
+
+def _move_rect_toward(start: Rect, target: Rect, step: int) -> Rect:
+    x, y, w, h = start
+    target_x, target_y, _, _ = target
+    move_x = min(step, abs(target_x - x))
+    move_y = min(step, abs(target_y - y))
+    return (
+        x + (move_x if target_x > x else -move_x),
+        y + (move_y if target_y > y else -move_y),
+        w,
+        h,
+    )
+
+
+def _split_to_array_one(
+    droplet: Rect,
+    child_w: int,
+    child_h: int,
+    columns: int,
+    rows: int,
+    gap_x: int,
+    gap_y: int,
+) -> ActivationSequence:
+    x, y, w, h = droplet
+    x_depth = _halving_depth(w, child_w, "width")
+    y_depth = _halving_depth(h, child_h, "height")
+    if not x_depth and not y_depth:
+        raise ValueError("split_to_array requires a source droplet larger than the target droplet.")
+    if gap_x <= child_w or gap_y <= child_h:
+        raise ValueError("split_to_array gaps must exceed the corresponding target dimensions.")
+
+    if columns != 1 << x_depth or rows != 1 << y_depth:
+        raise ValueError("split_to_array layout does not match the derived source dimensions.")
+    target_origin_x = x + (w - ((columns - 1) * gap_x + child_w)) // 2
+    target_origin_y = y + (h - ((rows - 1) * gap_y + child_h)) // 2
+    final_droplets = GenerateDropletArray(
+        None,
+        target_origin_x,
+        target_origin_y,
+        child_w,
+        child_h,
+        None,
+        rows=rows,
+        columns=columns,
+        gap_x=gap_x,
+        gap_y=gap_y,
+    )
+    target_origin_x, target_origin_y, _, _ = final_droplets[0]
+    # rect, target-column start/count, target-row start/count
+    active = [(droplet, 0, columns, 0, rows)]
+    sequence: ActivationSequence = [(0, [droplet])]
+
+    while any(column_count > 1 or row_count > 1 for _, _, column_count, _, row_count in active):
+        plans = []
+        next_active = []
+        for rect, column_start, column_count, row_start, row_count in active:
+            rect_x, rect_y, rect_w, rect_h = rect
+            split_x = column_count > 1 and (row_count == 1 or rect_w >= rect_h)
+            if split_x:
+                half_columns = column_count // 2
+                half_w = rect_w // 2
+                left_target = (
+                    _group_origin(
+                        target_origin_x, child_w, gap_x,
+                        column_start, half_columns, half_w,
+                    ),
+                    rect_y,
+                    half_w,
+                    rect_h,
+                )
+                right_target = (
+                    _group_origin(
+                        target_origin_x, child_w, gap_x,
+                        column_start + half_columns, half_columns, half_w,
+                    ),
+                    rect_y,
+                    half_w,
+                    rect_h,
+                )
+                starts = [
+                    (rect_x, rect_y, half_w, rect_h),
+                    (rect_x + half_w, rect_y, half_w, rect_h),
+                ]
+                targets = [left_target, right_target]
+                next_active.extend([
+                    (left_target, column_start, half_columns, row_start, row_count),
+                    (right_target, column_start + half_columns, half_columns, row_start, row_count),
+                ])
+            else:
+                half_rows = row_count // 2
+                half_h = rect_h // 2
+                top_target = (
+                    rect_x,
+                    _group_origin(
+                        target_origin_y, child_h, gap_y,
+                        row_start, half_rows, half_h,
+                    ),
+                    rect_w,
+                    half_h,
+                )
+                bottom_target = (
+                    rect_x,
+                    _group_origin(
+                        target_origin_y, child_h, gap_y,
+                        row_start + half_rows, half_rows, half_h,
+                    ),
+                    rect_w,
+                    half_h,
+                )
+                starts = [
+                    (rect_x, rect_y, rect_w, half_h),
+                    (rect_x, rect_y + half_h, rect_w, half_h),
+                ]
+                targets = [top_target, bottom_target]
+                next_active.extend([
+                    (top_target, column_start, column_count, row_start, half_rows),
+                    (bottom_target, column_start, column_count, row_start + half_rows, half_rows),
+                ])
+            plans.append((starts, targets))
+
+        step_count = max(
+            max(abs(target[0] - start[0]), abs(target[1] - start[1]))
+            for starts, targets in plans
+            for start, target in zip(starts, targets)
+        )
+        for step in range(1, max(1, step_count) + 1):
+            frame = []
+            for starts, targets in plans:
+                frame.extend(
+                    _move_rect_toward(start, target, step)
+                    for start, target in zip(starts, targets)
+                )
+            sequence.append((len(sequence), frame))
+        active = next_active
+    # The path is grouped by split branch while it is moving. Publish the final
+    # frame in the same row-major order as GenerateDropletArray.
+    sequence[-1] = (sequence[-1][0], final_droplets)
+    return sequence
+
+
+def SplitToArray(
+    x: int,
+    y: int,
+    child_w: int,
+    child_h: int,
+    columns: int,
+    rows: int,
+    gap_x: int,
+    gap_y: int,
+) -> ActivationSequence:
+    """Recursively split one derived source droplet into a spaced target grid.
+
+    ``gap_x`` and ``gap_y`` are origin-to-origin distances between final neighbors.
+    The source has top-left origin ``(x, y)`` and derived dimensions
+    ``child_w * columns`` by ``child_h * rows``. Rows and columns must be powers
+    of two so that repeated halving reaches the requested child size.
+    """
+    if not all(isinstance(value, int) for value in (
+        x, y, child_w, child_h, columns, rows, gap_x, gap_y,
+    )):
+        raise TypeError("split_to_array coordinates, sizes, layout, and gaps must be integers.")
+    if child_w <= 0 or child_h <= 0 or columns <= 0 or rows <= 0:
+        raise ValueError("split_to_array child dimensions, rows, and columns must be positive.")
+    source = (x, y, child_w * columns, child_h * rows)
+    return _split_to_array_one(source, child_w, child_h, columns, rows, gap_x, gap_y)
+
+
 def GenerateDropletArray(
-    count: int,
+    count: int | None,
     x: int,
     y: int,
     w: int,
     h: int,
-    gap: int,
+    gap: int | None,
+    *,
+    rows: int | None = None,
+    columns: int | None = None,
+    gap_x: int | None = None,
+    gap_y: int | None = None,
 ) -> List[Rect]:
-    """Generate a near-square array using ``gap`` as origin-to-origin spacing."""
+    """Generate a row-major layout with compact or explicit grid dimensions.
+
+    ``count`` plus ``gap`` uses the established compact near-square layout.
+    Alternatively, provide all of ``rows``, ``columns``, ``gap_x``, and ``gap_y``
+    for an exact rectangular layout.
+    """
+    _validate_rect((x, y, w, h))
+    exact_values = (rows, columns, gap_x, gap_y)
+    using_exact_layout = any(value is not None for value in exact_values)
+    if using_exact_layout:
+        if any(value is None for value in exact_values):
+            raise ValueError("explicit array layout requires rows, columns, gap_x, and gap_y.")
+        if not all(isinstance(value, int) for value in exact_values):
+            raise TypeError("explicit array rows, columns, and gaps must be integers.")
+        if rows <= 0 or columns <= 0:
+            raise ValueError("array rows and columns must be positive.")
+        if gap_x <= w or gap_y <= h:
+            raise ValueError("array gaps must exceed the corresponding droplet dimensions.")
+        if count is not None and count != rows * columns:
+            raise ValueError("count must equal rows * columns when an explicit layout is used.")
+        return [
+            (x + column * gap_x, y + row * gap_y, w, h)
+            for row in range(rows)
+            for column in range(columns)
+        ]
+
     if not isinstance(count, int):
-        raise TypeError("count must be int.")
+        raise TypeError("count must be int when rows and columns are not provided.")
     if count <= 0:
         raise ValueError("count must be >= 1.")
     if not isinstance(gap, int):
-        raise TypeError("gap must be int.")
-    _validate_rect((x, y, w, h))
-    if gap <= w:
-        raise ValueError("gap must be greater than droplet width.")
+        raise TypeError("gap must be int when separate gaps are not provided.")
+    if gap <= w or gap <= h:
+        raise ValueError("gap must be greater than droplet width and height.")
 
     columns = int(math.ceil(math.sqrt(count)))
     return [
