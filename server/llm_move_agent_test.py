@@ -355,6 +355,43 @@ class LlmWorkspaceToolTests(unittest.TestCase):
             (40, 20, 1, 1), (43, 20, 1, 1), (40, 23, 1, 1), (43, 23, 1, 1),
         ])
 
+    def test_split_to_array_calls_from_successive_rounds_merge_before_move(self):
+        split_args = lambda x, y: {
+            "x": x, "y": y, "childW": 1, "childH": 1,
+            "columns": 2, "rows": 2, "gapX": 3, "gapY": 3,
+        }
+        FakeChatOpenAI.responses = [
+            AIMessage(content="", tool_calls=[{
+                "name": "split_to_array", "args": split_args(10, 10),
+                "id": "split-round-1", "type": "tool_call",
+            }]),
+            AIMessage(content="", tool_calls=[{
+                "name": "split_to_array", "args": split_args(40, 20),
+                "id": "split-round-2", "type": "tool_call",
+            }]),
+            AIMessage(content="", tool_calls=[{
+                "name": "move",
+                "args": {"direction": "up", "t": 1, "droplets": [
+                    {"x": 40, "y": 20, "w": 1, "h": 1},
+                    {"x": 43, "y": 20, "w": 1, "h": 1},
+                    {"x": 40, "y": 23, "w": 1, "h": 1},
+                    {"x": 43, "y": 23, "w": 1, "h": 1},
+                ]},
+                "id": "move-after-splits", "type": "tool_call",
+            }]),
+            AIMessage(content="已完成分裂和移动。"),
+        ]
+        with patch("langchain_openai.ChatOpenAI", FakeChatOpenAI):
+            result = generate_payload(
+                "在两个位置分别递归分裂为阵列，再移动第二组",
+                {"sequence": [], "workspaceVariables": {}, "conversation": [], "selectedDroplets": []},
+            )
+        self.assertEqual(len(result["sequenceDelta"]), 4)
+        self.assertEqual(result["sequenceDelta"][2][1], [
+            (10, 10, 1, 1), (13, 10, 1, 1), (10, 13, 1, 1), (13, 13, 1, 1),
+            (40, 20, 1, 1), (43, 20, 1, 1), (40, 23, 1, 1), (43, 23, 1, 1),
+        ])
+
     def test_all_operations_accept_the_same_droplet_list(self):
         droplets = GenerateDropletArray(2, 0, 0, 1, 1, 2)
         self.assertTrue(Move(droplets, "right", 1))

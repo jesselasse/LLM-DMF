@@ -676,12 +676,13 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         "When the request starts with an empty workspace and refers to droplets that already exist before the requested operations, call 'initialize_droplets' once before all sequence operations to record their initial frame. Do not initialize a squeeze source. A generated coordinate array must be initialized before another operation consumes it.\n"
         "To split droplets, call 'split'. It divides each droplet across its long side and moves the equal halves apart; the long side must be even. For square droplets use the horizontal axis.\n"
         "For array layouts, gap, gapX, and gapY are coordinate step lengths between neighboring droplet origins. When the user instead gives edge-to-edge spacing between droplets, calculate the required step length by adding the droplet width or height.\n"
-        "For recursive division into a target grid, call 'split_to_array' with x/y, child size, rows, columns, gapX, and gapY. It derives the source size from child size and grid dimensions; rows and columns must each be powers of two. For independent grids, call it multiple times in the same round.\n"
+        "All droplet dimensions use width × height order: width is horizontal (x), height is vertical (y).\n"
+        "For recursive division into a target grid, call 'split_to_array' with x/y, child size, rows, columns, gapX, and gapY. It derives the source size from child size and grid dimensions; rows and columns must each be powers of two.\n"
         "For squeeze/extrusion generation, call 'squeeze' directly: source position, size, direction, and count are sufficient, and it internally generates the requested multiple droplets. NEVER ask for or invent an inter-droplet gap, and NEVER call 'generate_array' first for a squeeze/extrusion request.\n"
         "Squeeze is not a generic array operation: each squeeze call describes one source droplet. For multiple sources, call squeeze multiple times, even when their parameters match; the backend combines all squeeze paths by time step. No inter-droplet gap is needed.\n"
         "Use 'generate_array' only when the user explicitly asks for independent droplet positions/layout; after receiving its result, call another operation with a workspaceVariable reference to that name.\n"
         "A coordinate array is only a reusable coordinate collection, not an operation and not current droplets until an operation consumes it.\n"
-        "When one operation depends on the result of another operation, wait for the tool result and make the dependent call in the next round; do not assume two dependent operations can run in parallel in one tool-call batch.\n"
+        "When one request contains multiple source positions or droplet groups for the same operation, issue all calls for that operation together in one tool-call response; their paths are merged by time step. Wait only when a later operation consumes an earlier result.\n"
         "When the UI provides selected droplets, operations may use them directly or explicitly reference the selectedDroplets workspace variable.\n"
         "Tool arguments may explicitly reference an available workspace variable using {\"workspaceVariable\": \"variableName\"}.\n"
         "When information is insufficient, ask a follow-up question instead of calling tools.\n"
@@ -724,6 +725,9 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
     move_calls: List[Dict[str, Any]] = []
     workspace_updates: Dict[str, Any] = {}
     workspace_transitions: List[Dict[str, Any]] = []
+    pending_generation_tool: Optional[str] = None
+    pending_generation_sequences: List[List[Any]] = []
+    pending_generation_outputs: List[Any] = []
     try:
         current_droplets = normalize_droplets_input(
             workspace_variables.get("currentFrameDroplets", [])
@@ -732,6 +736,21 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
         current_droplets = []
     if not selected_droplets:
         selected_droplets = list(current_droplets)
+
+    def flush_pending_generations() -> None:
+        nonlocal pending_generation_tool
+        if not pending_generation_sequences:
+            return
+        static_droplets = _remove_consumed(current_droplets, pending_generation_outputs)
+        composed = _merge_parallel_sequences(pending_generation_sequences)
+        for step_index, rects in composed:
+            sequence_delta.append(
+                (step_index, rects + [rect for rect in static_droplets if rect not in rects])
+            )
+        pending_generation_tool = None
+        pending_generation_sequences.clear()
+        pending_generation_outputs.clear()
+
     agent_messages: List[Any] = list(messages)
     assistant_reply = ""
     had_tool_calls = False
@@ -744,8 +763,14 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             assistant_reply = (getattr(ai_msg, "content", "") or "").strip()
             break
 
+        if pending_generation_tool and any(
+            call.get("name") != pending_generation_tool for call in tool_calls
+        ):
+            flush_pending_generations()
+
         had_tool_calls = True
         round_sequences: List[List[Any]] = []
+        round_sequence_tools: List[str] = []
         round_consumed: List[Any] = []
         round_produced: List[Any] = []
         for call in tool_calls:
@@ -783,6 +808,7 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                     tool_result.get("producedDroplets", [])
                 ) if tool_result.get("producedDroplets") else []
                 round_sequences.append(tool_sequence)
+                round_sequence_tools.append(name)
                 round_consumed.extend(consumed)
                 round_produced.extend(produced)
                 workspace_transitions.append(
@@ -809,6 +835,33 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
             )
 
         if round_sequences:
+            is_same_generation_round = (
+                len(set(round_sequence_tools)) == 1
+                and round_sequence_tools[0] in {"squeeze", "split_to_array"}
+            )
+            pending_keys = Counter(tuple(rect) for rect in pending_generation_outputs)
+            consumes_pending_output = any(
+                pending_keys[tuple(rect)] > 0 for rect in round_consumed
+            )
+            if (
+                is_same_generation_round
+                and not consumes_pending_output
+                and pending_generation_tool in (None, round_sequence_tools[0])
+            ):
+                pending_generation_tool = round_sequence_tools[0]
+                pending_generation_sequences.extend(round_sequences)
+                pending_generation_outputs.extend(round_produced)
+                static_droplets = _remove_consumed(current_droplets, round_consumed)
+                current_droplets = static_droplets + round_produced
+                workspace_variables["currentFrameDroplets"] = current_droplets
+                selected_after = _remove_consumed(selected_droplets, round_consumed)
+                if len(selected_after) != len(selected_droplets):
+                    selected_droplets = selected_after + round_produced
+                elif not selected_droplets:
+                    selected_droplets = list(current_droplets)
+                continue
+
+            flush_pending_generations()
             static_droplets = _remove_consumed(current_droplets, round_consumed)
             composed = _merge_parallel_sequences(round_sequences)
             for step_index, rects in composed:
@@ -824,6 +877,8 @@ def _run_with_langchain(message: str, context: Dict[str, Any]) -> Dict[str, Any]
                 selected_droplets = list(current_droplets)
     else:
         raise RuntimeError("LLM tool loop exceeded the maximum number of rounds.")
+
+    flush_pending_generations()
 
     if not assistant_reply:
         if not had_tool_calls:
