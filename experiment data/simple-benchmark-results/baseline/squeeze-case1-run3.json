@@ -1,0 +1,19 @@
+{
+  "index": 1,
+  "category": "squeeze",
+  "categoryCase": 1,
+  "message": "Generate 1 1×1 droplet at (30, 30) by squeezing to the right.",
+  "repeatIndex": 3,
+  "ok": true,
+  "result": {
+    "stepsText": "(30,30)(1,1)-1000",
+    "assistantReply": "已在(30,30)位置生成一个1×1的液滴。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 664,
+      "outputTokens": 82,
+      "totalTokens": 746
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

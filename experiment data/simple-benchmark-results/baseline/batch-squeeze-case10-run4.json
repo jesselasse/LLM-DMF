@@ -1,0 +1,19 @@
+{
+  "index": 10,
+  "category": "batch squeeze",
+  "categoryCase": 5,
+  "message": "Generate 2 5×5 droplets at (100, 85) by squeezing to the left.",
+  "repeatIndex": 4,
+  "ok": true,
+  "result": {
+    "stepsText": "(100,85)(5,5);(100,80)(5,5)-1000\n(99,85)(5,5);(99,80)(5,5)-1000\n(98,85)(5,5);(98,80)(5,5)-1000",
+    "assistantReply": "生成两个5×5液滴，初始位于(100,85)和(100,80)，每一步向左移动一格，共3步挤压至左侧。3帧完成。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 664,
+      "outputTokens": 154,
+      "totalTokens": 818
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

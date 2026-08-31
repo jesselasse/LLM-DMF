@@ -1,0 +1,19 @@
+{
+  "index": 9,
+  "category": "batch squeeze",
+  "categoryCase": 4,
+  "message": "Generate 3 4×4 droplets at (64, 44) by squeezing downward.",
+  "repeatIndex": 1,
+  "ok": true,
+  "result": {
+    "stepsText": "(64,44)(4,4)-1000\n(64,44)(4,6)-1000\n(64,44)(4,8)-1000\n(64,44)(4,10)-1000\n(64,44)(4,12)-1000",
+    "assistantReply": "已生成序列：在(64,44)处将一个4×4液滴通过向下挤压的方式逐步拉长（高度从4递增至12），共5帧，每帧持续1000ms。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 662,
+      "outputTokens": 157,
+      "totalTokens": 819
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

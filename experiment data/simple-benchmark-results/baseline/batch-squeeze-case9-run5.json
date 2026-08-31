@@ -1,0 +1,19 @@
+{
+  "index": 9,
+  "category": "batch squeeze",
+  "categoryCase": 4,
+  "message": "Generate 3 4×4 droplets at (64, 44) by squeezing downward.",
+  "repeatIndex": 5,
+  "ok": true,
+  "result": {
+    "stepsText": "(64,44)(4,4)-1000\n(63,45)(4,4)-1000\n(62,46)(4,4)-1000\n(61,47)(2,8);(64,47)(2,8)-1000",
+    "assistantReply": "一次向下挤压分离，将一个4×4液滴沿水平方向拆分为两个2×8的子液滴，历时3帧完成。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 662,
+      "outputTokens": 140,
+      "totalTokens": 802
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

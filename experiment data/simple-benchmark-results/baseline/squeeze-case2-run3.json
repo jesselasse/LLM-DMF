@@ -1,0 +1,19 @@
+{
+  "index": 2,
+  "category": "squeeze",
+  "categoryCase": 2,
+  "message": "Generate 1 2×2 droplet at (40, 90) by squeezing upward.",
+  "repeatIndex": 3,
+  "ok": true,
+  "result": {
+    "stepsText": "(40,90)(2,2)-1000",
+    "assistantReply": "已在 (40,90) 处生成一个 2×2 方形液滴。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 662,
+      "outputTokens": 85,
+      "totalTokens": 747
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

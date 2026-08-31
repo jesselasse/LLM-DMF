@@ -1,0 +1,19 @@
+{
+  "index": 14,
+  "category": "merge",
+  "categoryCase": 4,
+  "message": "Merge the 2×4 droplet located at (60, 90) with the 3×4 droplet located at (67, 90).",
+  "repeatIndex": 1,
+  "ok": true,
+  "result": {
+    "stepsText": "(60,90)(2,4);(67,90)(3,4)-1000",
+    "assistantReply": "两个液滴初始位置已就绪，等待后续合并操作。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 673,
+      "outputTokens": 89,
+      "totalTokens": 762
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

@@ -11,6 +11,7 @@
 # production
 /build
 /.local/
+/outputs/
 
 # misc
 .DS_Store

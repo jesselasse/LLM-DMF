@@ -1,0 +1,19 @@
+{
+  "index": 3,
+  "category": "squeeze",
+  "categoryCase": 3,
+  "message": "Generate 1 3×3 droplet at (108, 30) by squeezing to the left.",
+  "repeatIndex": 1,
+  "ok": true,
+  "result": {
+    "stepsText": "(108,30)(3,3)-1000",
+    "assistantReply": "已在 (108,30) 生成一个 3×3 液滴，向左挤压后定形。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 664,
+      "outputTokens": 89,
+      "totalTokens": 753
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

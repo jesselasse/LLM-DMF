@@ -1,0 +1,484 @@
+{
+  "format": "llm-dmf-batch-run-v1",
+  "experiment": {
+    "category": "未分组",
+    "id": "E004",
+    "type": "多流程",
+    "repeatIndex": 1,
+    "notes": ""
+  },
+  "runtime": {
+    "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a",
+    "backendUrl": "http://127.0.0.1:3001",
+    "backendVersion": "llm-move-v5-generic-array-tools",
+    "profile": {
+      "id": "e99e2f6d-c127-43d8-a107-42d689dc2420",
+      "name": "OpenCode Go",
+      "baseUrl": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "thinkingMode": "enabled",
+      "hasApiKey": true
+    },
+    "provenance": {
+      "gitCommit": "f3acdecda589c44392dc9975e4251cf8e21c4ca0",
+      "gitDirty": true,
+      "codeFingerprint": "6dfe2b275401283e3f79c7ab87a00de31299ab924363289f6d8f24388e63ac0b"
+    },
+    "defaultFollowupReply": "请使用默认参数并生成",
+    "startedAt": "2026-08-14T06:37:02.674Z",
+    "finishedAt": "2026-08-14T06:37:27.387Z"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "Merge the 4×3 droplet with the 4×2 droplet at (15, 90).",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\n\n请补充以下信息：\n\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\n\n确认后我就可以为您生成合并步骤。"
+    },
+    {
+      "role": "user",
+      "content": "The 4×3 droplet is at (15, 100).",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。"
+    }
+  ],
+  "exchanges": [
+    {
+      "requestRaw": "{\"message\":\"Merge the 4×3 droplet with the 4×2 droplet at (15, 90).\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\\n\\n请补充以下信息：\\n\\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\\n\\n确认后我就可以为您生成合并步骤。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":2839,\"outputTokens\":381,\"totalTokens\":3220},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":2839,\"outputTokens\":381,\"totalTokens\":3220},\"stepsTextDelta\":\"\",\"stepsTextDeltaRaw\":\"\",\"stepsText\":\"\",\"moveCalls\":[],\"selectedDroplets\":[],\"currentFrameRects\":[],\"dropletRecords\":[]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a",
+        "turnIndex": 0,
+        "baseStepCount": 0,
+        "assistantReply": "当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\n\n请补充以下信息：\n\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\n\n确认后我就可以为您生成合并步骤。",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 2839,
+          "outputTokens": 381,
+          "totalTokens": 3220
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 2839,
+          "outputTokens": 381,
+          "totalTokens": 3220
+        },
+        "stepsTextDelta": "",
+        "stepsTextDeltaRaw": "",
+        "stepsText": "",
+        "moveCalls": [],
+        "selectedDroplets": [],
+        "currentFrameRects": [],
+        "dropletRecords": []
+      },
+      "requestedAt": "2026-08-14T06:37:02.684Z",
+      "respondedAt": "2026-08-14T06:37:10.849Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    },
+    {
+      "requestRaw": "{\"message\":\"The 4×3 droplet is at (15, 100).\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"turnIndex\":1,\"baseStepCount\":0,\"assistantReply\":\"已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":6981,\"outputTokens\":910,\"totalTokens\":7891},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":9820,\"outputTokens\":1291,\"totalTokens\":11111},\"stepsTextDelta\":\"(15,91)(4,2);(15,99)(4,3)-1000\\n(15,92)(4,2);(15,98)(4,3)-1000\\n(15,93)(4,2);(15,97)(4,3)-1000\\n(15,94)(4,2);(15,96)(4,3)-1000\\n(15,94)(4,5)-1000\",\"stepsTextDeltaRaw\":\"(15,91)(4,2);(15,99)(4,3)-1000\\n(15,92)(4,2);(15,98)(4,3)-1000\\n(15,93)(4,2);(15,97)(4,3)-1000\\n(15,94)(4,2);(15,96)(4,3)-1000\\n(15,94)(4,5)-1000\",\"stepsText\":\"(15,91)(4,2);(15,99)(4,3)-1000\\n(15,92)(4,2);(15,98)(4,3)-1000\\n(15,93)(4,2);(15,97)(4,3)-1000\\n(15,94)(4,2);(15,96)(4,3)-1000\\n(15,94)(4,5)-1000\",\"moveCalls\":[{\"tool\":\"merge\",\"args\":{\"droplets1\":[{\"x\":15,\"y\":100,\"w\":4,\"h\":3}],\"droplets2\":[{\"x\":15,\"y\":90,\"w\":4,\"h\":2}]},\"resolvedDroplets\":[[15,100,4,3],[15,90,4,2]]}],\"selectedDroplets\":[{\"x\":15,\"y\":94,\"w\":4,\"h\":5}],\"currentFrameRects\":[{\"x\":15,\"y\":94,\"w\":4,\"h\":5}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":15,\"y\":94,\"w\":4,\"h\":5}]}]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a",
+        "turnIndex": 1,
+        "baseStepCount": 0,
+        "assistantReply": "已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 6981,
+          "outputTokens": 910,
+          "totalTokens": 7891
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 9820,
+          "outputTokens": 1291,
+          "totalTokens": 11111
+        },
+        "stepsTextDelta": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+        "stepsTextDeltaRaw": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+        "stepsText": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+        "moveCalls": [
+          {
+            "tool": "merge",
+            "args": {
+              "droplets1": [
+                {
+                  "x": 15,
+                  "y": 100,
+                  "w": 4,
+                  "h": 3
+                }
+              ],
+              "droplets2": [
+                {
+                  "x": 15,
+                  "y": 90,
+                  "w": 4,
+                  "h": 2
+                }
+              ]
+            },
+            "resolvedDroplets": [
+              [
+                15,
+                100,
+                4,
+                3
+              ],
+              [
+                15,
+                90,
+                4,
+                2
+              ]
+            ]
+          }
+        ],
+        "selectedDroplets": [
+          {
+            "x": 15,
+            "y": 94,
+            "w": 4,
+            "h": 5
+          }
+        ],
+        "currentFrameRects": [
+          {
+            "x": 15,
+            "y": 94,
+            "w": 4,
+            "h": 5
+          }
+        ],
+        "dropletRecords": [
+          {
+            "id": "droplet-1",
+            "rects": [
+              {
+                "x": 15,
+                "y": 94,
+                "w": 4,
+                "h": 5
+              }
+            ]
+          }
+        ]
+      },
+      "requestedAt": "2026-08-14T06:37:10.852Z",
+      "respondedAt": "2026-08-14T06:37:27.350Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    }
+  ],
+  "stepResults": [
+    {
+      "order": 1,
+      "prompt": "Merge the 4×3 droplet with the 4×2 droplet at (15, 90).",
+      "expectedCalls": [],
+      "actualCalls": [],
+      "status": "failed",
+      "reason": "模型未执行任何工具，也未生成激活步骤",
+      "autoReplyCount": 0,
+      "deltaSteps": 0,
+      "assistantReply": "当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\n\n请补充以下信息：\n\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\n\n确认后我就可以为您生成合并步骤。",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 2839,
+        "outputTokens": 381,
+        "totalTokens": 3220
+      },
+      "elapsedSeconds": 8.167,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Merge the 4×3 droplet with the 4×2 droplet at (15, 90).",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\n\n请补充以下信息：\n\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\n\n确认后我就可以为您生成合并步骤。"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"Merge the 4×3 droplet with the 4×2 droplet at (15, 90).\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\\n\\n请补充以下信息：\\n\\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\\n\\n确认后我就可以为您生成合并步骤。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":2839,\"outputTokens\":381,\"totalTokens\":3220},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":2839,\"outputTokens\":381,\"totalTokens\":3220},\"stepsTextDelta\":\"\",\"stepsTextDeltaRaw\":\"\",\"stepsText\":\"\",\"moveCalls\":[],\"selectedDroplets\":[],\"currentFrameRects\":[],\"dropletRecords\":[]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a",
+            "turnIndex": 0,
+            "baseStepCount": 0,
+            "assistantReply": "当前工作区里没有已存储的液滴（序列、当前液滴和选中液滴均为空），因此我无法直接执行合并。\n\n请补充以下信息：\n\n1. 位于 (15, 90) 的是 **4×2** 液滴，对吗？\n2. 需要合并的 **4×3** 液滴的具体位置（x, y）是多少？\n\n确认后我就可以为您生成合并步骤。",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 2839,
+              "outputTokens": 381,
+              "totalTokens": 3220
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 2839,
+              "outputTokens": 381,
+              "totalTokens": 3220
+            },
+            "stepsTextDelta": "",
+            "stepsTextDeltaRaw": "",
+            "stepsText": "",
+            "moveCalls": [],
+            "selectedDroplets": [],
+            "currentFrameRects": [],
+            "dropletRecords": []
+          },
+          "requestedAt": "2026-08-14T06:37:02.684Z",
+          "respondedAt": "2026-08-14T06:37:10.849Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ],
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": null,
+        "boundsCorrect": null
+      }
+    },
+    {
+      "order": 2,
+      "prompt": "The 4×3 droplet is at (15, 100).",
+      "expectedCalls": [],
+      "actualCalls": [
+        {
+          "args": {
+            "droplets1": [
+              {
+                "h": 3,
+                "w": 4,
+                "x": 15,
+                "y": 100
+              }
+            ],
+            "droplets2": [
+              {
+                "h": 2,
+                "w": 4,
+                "x": 15,
+                "y": 90
+              }
+            ]
+          },
+          "resolvedDroplets": [
+            [
+              15,
+              100,
+              4,
+              3
+            ],
+            [
+              15,
+              90,
+              4,
+              2
+            ]
+          ],
+          "tool": "merge"
+        }
+      ],
+      "status": "review",
+      "reason": "未填写预期操作，需人工复核",
+      "autoReplyCount": 0,
+      "deltaSteps": 5,
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": true,
+        "boundsCorrect": true
+      },
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "projectAudit": {
+        "checked": true,
+        "required": true,
+        "matches": true,
+        "reason": "激活序列与项目操作重放一致",
+        "expectedSteps": 5,
+        "actualSteps": 5,
+        "outputDroplets": [
+          {
+            "x": 15,
+            "y": 94,
+            "w": 4,
+            "h": 5
+          }
+        ]
+      },
+      "observedInputDroplets": [],
+      "observedOutputDroplets": [
+        {
+          "x": 15,
+          "y": 94,
+          "w": 4,
+          "h": 5
+        }
+      ],
+      "assistantReply": "已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 6981,
+        "outputTokens": 910,
+        "totalTokens": 7891
+      },
+      "elapsedSeconds": 16.538,
+      "messages": [
+        {
+          "role": "user",
+          "content": "The 4×3 droplet is at (15, 100).",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"The 4×3 droplet is at (15, 100).\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a\",\"turnIndex\":1,\"baseStepCount\":0,\"assistantReply\":\"已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":6981,\"outputTokens\":910,\"totalTokens\":7891},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":9820,\"outputTokens\":1291,\"totalTokens\":11111},\"stepsTextDelta\":\"(15,91)(4,2);(15,99)(4,3)-1000\\n(15,92)(4,2);(15,98)(4,3)-1000\\n(15,93)(4,2);(15,97)(4,3)-1000\\n(15,94)(4,2);(15,96)(4,3)-1000\\n(15,94)(4,5)-1000\",\"stepsTextDeltaRaw\":\"(15,91)(4,2);(15,99)(4,3)-1000\\n(15,92)(4,2);(15,98)(4,3)-1000\\n(15,93)(4,2);(15,97)(4,3)-1000\\n(15,94)(4,2);(15,96)(4,3)-1000\\n(15,94)(4,5)-1000\",\"stepsText\":\"(15,91)(4,2);(15,99)(4,3)-1000\\n(15,92)(4,2);(15,98)(4,3)-1000\\n(15,93)(4,2);(15,97)(4,3)-1000\\n(15,94)(4,2);(15,96)(4,3)-1000\\n(15,94)(4,5)-1000\",\"moveCalls\":[{\"tool\":\"merge\",\"args\":{\"droplets1\":[{\"x\":15,\"y\":100,\"w\":4,\"h\":3}],\"droplets2\":[{\"x\":15,\"y\":90,\"w\":4,\"h\":2}]},\"resolvedDroplets\":[[15,100,4,3],[15,90,4,2]]}],\"selectedDroplets\":[{\"x\":15,\"y\":94,\"w\":4,\"h\":5}],\"currentFrameRects\":[{\"x\":15,\"y\":94,\"w\":4,\"h\":5}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":15,\"y\":94,\"w\":4,\"h\":5}]}]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E004-1-370d19de-8295-4991-9d68-901436cec22a",
+            "turnIndex": 1,
+            "baseStepCount": 0,
+            "assistantReply": "已完成合并。两个液滴相向靠近并融合为一个 **4×5** 的新液滴，位于 **(15, 94)**。",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 6981,
+              "outputTokens": 910,
+              "totalTokens": 7891
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 9820,
+              "outputTokens": 1291,
+              "totalTokens": 11111
+            },
+            "stepsTextDelta": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+            "stepsTextDeltaRaw": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+            "stepsText": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+            "moveCalls": [
+              {
+                "tool": "merge",
+                "args": {
+                  "droplets1": [
+                    {
+                      "x": 15,
+                      "y": 100,
+                      "w": 4,
+                      "h": 3
+                    }
+                  ],
+                  "droplets2": [
+                    {
+                      "x": 15,
+                      "y": 90,
+                      "w": 4,
+                      "h": 2
+                    }
+                  ]
+                },
+                "resolvedDroplets": [
+                  [
+                    15,
+                    100,
+                    4,
+                    3
+                  ],
+                  [
+                    15,
+                    90,
+                    4,
+                    2
+                  ]
+                ]
+              }
+            ],
+            "selectedDroplets": [
+              {
+                "x": 15,
+                "y": 94,
+                "w": 4,
+                "h": 5
+              }
+            ],
+            "currentFrameRects": [
+              {
+                "x": 15,
+                "y": 94,
+                "w": 4,
+                "h": 5
+              }
+            ],
+            "dropletRecords": [
+              {
+                "id": "droplet-1",
+                "rects": [
+                  {
+                    "x": 15,
+                    "y": 94,
+                    "w": 4,
+                    "h": 5
+                  }
+                ]
+              }
+            ]
+          },
+          "requestedAt": "2026-08-14T06:37:10.852Z",
+          "respondedAt": "2026-08-14T06:37:27.350Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "status": "review",
+    "automaticAuditStatus": "failed",
+    "reason": "多流程实验不自动判定，需人工复核；自动审计：模型未执行任何工具，也未生成激活步骤",
+    "failedStep": null,
+    "stepsText": "(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+    "finalDroplets": [
+      {
+        "x": 15,
+        "y": 94,
+        "w": 4,
+        "h": 5
+      }
+    ],
+    "sequenceSteps": 5,
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 9820,
+      "outputTokens": 1291,
+      "totalTokens": 11111
+    }
+  }
+}

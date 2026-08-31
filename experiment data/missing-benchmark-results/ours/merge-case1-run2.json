@@ -1,0 +1,484 @@
+{
+  "format": "llm-dmf-batch-run-v1",
+  "experiment": {
+    "category": "未分组",
+    "id": "E003",
+    "type": "多流程",
+    "repeatIndex": 2,
+    "notes": ""
+  },
+  "runtime": {
+    "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350",
+    "backendUrl": "http://127.0.0.1:3001",
+    "backendVersion": "llm-move-v5-generic-array-tools",
+    "profile": {
+      "id": "e99e2f6d-c127-43d8-a107-42d689dc2420",
+      "name": "OpenCode Go",
+      "baseUrl": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "thinkingMode": "enabled",
+      "hasApiKey": true
+    },
+    "provenance": {
+      "gitCommit": "f3acdecda589c44392dc9975e4251cf8e21c4ca0",
+      "gitDirty": true,
+      "codeFingerprint": "6dfe2b275401283e3f79c7ab87a00de31299ab924363289f6d8f24388e63ac0b"
+    },
+    "defaultFollowupReply": "请使用默认参数并生成",
+    "startedAt": "2026-08-14T06:37:01.359Z",
+    "finishedAt": "2026-08-14T06:37:14.245Z"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）"
+    },
+    {
+      "role": "user",
+      "content": "The droplet at (10, 14) has size 1×1.",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。"
+    }
+  ],
+  "exchanges": [
+    {
+      "requestRaw": "{\"message\":\"Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）\",\"tokenUsage\":{\"available\":true,\"inputTokens\":2842,\"outputTokens\":294,\"totalTokens\":3136},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":2842,\"outputTokens\":294,\"totalTokens\":3136},\"stepsTextDelta\":\"\",\"stepsTextDeltaRaw\":\"\",\"stepsText\":\"\",\"moveCalls\":[],\"selectedDroplets\":[],\"currentFrameRects\":[],\"dropletRecords\":[]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350",
+        "turnIndex": 0,
+        "baseStepCount": 0,
+        "assistantReply": "我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 2842,
+          "outputTokens": 294,
+          "totalTokens": 3136
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 2842,
+          "outputTokens": 294,
+          "totalTokens": 3136
+        },
+        "stepsTextDelta": "",
+        "stepsTextDeltaRaw": "",
+        "stepsText": "",
+        "moveCalls": [],
+        "selectedDroplets": [],
+        "currentFrameRects": [],
+        "dropletRecords": []
+      },
+      "requestedAt": "2026-08-14T06:37:01.366Z",
+      "respondedAt": "2026-08-14T06:37:07.658Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    },
+    {
+      "requestRaw": "{\"message\":\"The droplet at (10, 14) has size 1×1.\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"turnIndex\":1,\"baseStepCount\":0,\"assistantReply\":\"已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":6142,\"outputTokens\":213,\"totalTokens\":6355},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":8984,\"outputTokens\":507,\"totalTokens\":9491},\"stepsTextDelta\":\"(10,11)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,2)-1000\",\"stepsTextDeltaRaw\":\"(10,11)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,2)-1000\",\"stepsText\":\"(10,11)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,2)-1000\",\"moveCalls\":[{\"tool\":\"merge\",\"args\":{\"droplets1\":[{\"x\":10,\"y\":10,\"w\":1,\"h\":1}],\"droplets2\":[{\"x\":10,\"y\":14,\"w\":1,\"h\":1}]},\"resolvedDroplets\":[[10,10,1,1],[10,14,1,1]]}],\"selectedDroplets\":[{\"x\":10,\"y\":12,\"w\":1,\"h\":2}],\"currentFrameRects\":[{\"x\":10,\"y\":12,\"w\":1,\"h\":2}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":10,\"y\":12,\"w\":1,\"h\":2}]}]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350",
+        "turnIndex": 1,
+        "baseStepCount": 0,
+        "assistantReply": "已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 6142,
+          "outputTokens": 213,
+          "totalTokens": 6355
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 8984,
+          "outputTokens": 507,
+          "totalTokens": 9491
+        },
+        "stepsTextDelta": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+        "stepsTextDeltaRaw": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+        "stepsText": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+        "moveCalls": [
+          {
+            "tool": "merge",
+            "args": {
+              "droplets1": [
+                {
+                  "x": 10,
+                  "y": 10,
+                  "w": 1,
+                  "h": 1
+                }
+              ],
+              "droplets2": [
+                {
+                  "x": 10,
+                  "y": 14,
+                  "w": 1,
+                  "h": 1
+                }
+              ]
+            },
+            "resolvedDroplets": [
+              [
+                10,
+                10,
+                1,
+                1
+              ],
+              [
+                10,
+                14,
+                1,
+                1
+              ]
+            ]
+          }
+        ],
+        "selectedDroplets": [
+          {
+            "x": 10,
+            "y": 12,
+            "w": 1,
+            "h": 2
+          }
+        ],
+        "currentFrameRects": [
+          {
+            "x": 10,
+            "y": 12,
+            "w": 1,
+            "h": 2
+          }
+        ],
+        "dropletRecords": [
+          {
+            "id": "droplet-1",
+            "rects": [
+              {
+                "x": 10,
+                "y": 12,
+                "w": 1,
+                "h": 2
+              }
+            ]
+          }
+        ]
+      },
+      "requestedAt": "2026-08-14T06:37:07.660Z",
+      "respondedAt": "2026-08-14T06:37:14.210Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    }
+  ],
+  "stepResults": [
+    {
+      "order": 1,
+      "prompt": "Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).",
+      "expectedCalls": [],
+      "actualCalls": [],
+      "status": "failed",
+      "reason": "模型未执行任何工具，也未生成激活步骤",
+      "autoReplyCount": 0,
+      "deltaSteps": 0,
+      "assistantReply": "我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 2842,
+        "outputTokens": 294,
+        "totalTokens": 3136
+      },
+      "elapsedSeconds": 6.295,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）\",\"tokenUsage\":{\"available\":true,\"inputTokens\":2842,\"outputTokens\":294,\"totalTokens\":3136},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":2842,\"outputTokens\":294,\"totalTokens\":3136},\"stepsTextDelta\":\"\",\"stepsTextDeltaRaw\":\"\",\"stepsText\":\"\",\"moveCalls\":[],\"selectedDroplets\":[],\"currentFrameRects\":[],\"dropletRecords\":[]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350",
+            "turnIndex": 0,
+            "baseStepCount": 0,
+            "assistantReply": "我需要确认第二个液滴的尺寸才能执行合并操作。请问 (10, 14) 处液滴的宽和高分别是多少？（例如是否也是 1×1）",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 2842,
+              "outputTokens": 294,
+              "totalTokens": 3136
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 2842,
+              "outputTokens": 294,
+              "totalTokens": 3136
+            },
+            "stepsTextDelta": "",
+            "stepsTextDeltaRaw": "",
+            "stepsText": "",
+            "moveCalls": [],
+            "selectedDroplets": [],
+            "currentFrameRects": [],
+            "dropletRecords": []
+          },
+          "requestedAt": "2026-08-14T06:37:01.366Z",
+          "respondedAt": "2026-08-14T06:37:07.658Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ],
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": null,
+        "boundsCorrect": null
+      }
+    },
+    {
+      "order": 2,
+      "prompt": "The droplet at (10, 14) has size 1×1.",
+      "expectedCalls": [],
+      "actualCalls": [
+        {
+          "args": {
+            "droplets1": [
+              {
+                "h": 1,
+                "w": 1,
+                "x": 10,
+                "y": 10
+              }
+            ],
+            "droplets2": [
+              {
+                "h": 1,
+                "w": 1,
+                "x": 10,
+                "y": 14
+              }
+            ]
+          },
+          "resolvedDroplets": [
+            [
+              10,
+              10,
+              1,
+              1
+            ],
+            [
+              10,
+              14,
+              1,
+              1
+            ]
+          ],
+          "tool": "merge"
+        }
+      ],
+      "status": "review",
+      "reason": "未填写预期操作，需人工复核",
+      "autoReplyCount": 0,
+      "deltaSteps": 3,
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": true,
+        "boundsCorrect": true
+      },
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "projectAudit": {
+        "checked": true,
+        "required": true,
+        "matches": true,
+        "reason": "激活序列与项目操作重放一致",
+        "expectedSteps": 3,
+        "actualSteps": 3,
+        "outputDroplets": [
+          {
+            "x": 10,
+            "y": 12,
+            "w": 1,
+            "h": 2
+          }
+        ]
+      },
+      "observedInputDroplets": [],
+      "observedOutputDroplets": [
+        {
+          "x": 10,
+          "y": 12,
+          "w": 1,
+          "h": 2
+        }
+      ],
+      "assistantReply": "已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 6142,
+        "outputTokens": 213,
+        "totalTokens": 6355
+      },
+      "elapsedSeconds": 6.587,
+      "messages": [
+        {
+          "role": "user",
+          "content": "The droplet at (10, 14) has size 1×1.",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"The droplet at (10, 14) has size 1×1.\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350\",\"turnIndex\":1,\"baseStepCount\":0,\"assistantReply\":\"已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":6142,\"outputTokens\":213,\"totalTokens\":6355},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":8984,\"outputTokens\":507,\"totalTokens\":9491},\"stepsTextDelta\":\"(10,11)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,2)-1000\",\"stepsTextDeltaRaw\":\"(10,11)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,2)-1000\",\"stepsText\":\"(10,11)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,1);(10,13)(1,1)-1000\\n(10,12)(1,2)-1000\",\"moveCalls\":[{\"tool\":\"merge\",\"args\":{\"droplets1\":[{\"x\":10,\"y\":10,\"w\":1,\"h\":1}],\"droplets2\":[{\"x\":10,\"y\":14,\"w\":1,\"h\":1}]},\"resolvedDroplets\":[[10,10,1,1],[10,14,1,1]]}],\"selectedDroplets\":[{\"x\":10,\"y\":12,\"w\":1,\"h\":2}],\"currentFrameRects\":[{\"x\":10,\"y\":12,\"w\":1,\"h\":2}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":10,\"y\":12,\"w\":1,\"h\":2}]}]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E003-2-c9bd1046-7efa-4307-a995-4d2cdd565350",
+            "turnIndex": 1,
+            "baseStepCount": 0,
+            "assistantReply": "已完成合并：两个 1×1 液滴（(10,10) 和 (10,14)）已合并为一个位于 (10,12) 的 1×2 液滴。",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 6142,
+              "outputTokens": 213,
+              "totalTokens": 6355
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 8984,
+              "outputTokens": 507,
+              "totalTokens": 9491
+            },
+            "stepsTextDelta": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+            "stepsTextDeltaRaw": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+            "stepsText": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+            "moveCalls": [
+              {
+                "tool": "merge",
+                "args": {
+                  "droplets1": [
+                    {
+                      "x": 10,
+                      "y": 10,
+                      "w": 1,
+                      "h": 1
+                    }
+                  ],
+                  "droplets2": [
+                    {
+                      "x": 10,
+                      "y": 14,
+                      "w": 1,
+                      "h": 1
+                    }
+                  ]
+                },
+                "resolvedDroplets": [
+                  [
+                    10,
+                    10,
+                    1,
+                    1
+                  ],
+                  [
+                    10,
+                    14,
+                    1,
+                    1
+                  ]
+                ]
+              }
+            ],
+            "selectedDroplets": [
+              {
+                "x": 10,
+                "y": 12,
+                "w": 1,
+                "h": 2
+              }
+            ],
+            "currentFrameRects": [
+              {
+                "x": 10,
+                "y": 12,
+                "w": 1,
+                "h": 2
+              }
+            ],
+            "dropletRecords": [
+              {
+                "id": "droplet-1",
+                "rects": [
+                  {
+                    "x": 10,
+                    "y": 12,
+                    "w": 1,
+                    "h": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "requestedAt": "2026-08-14T06:37:07.660Z",
+          "respondedAt": "2026-08-14T06:37:14.210Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "status": "review",
+    "automaticAuditStatus": "failed",
+    "reason": "多流程实验不自动判定，需人工复核；自动审计：模型未执行任何工具，也未生成激活步骤",
+    "failedStep": null,
+    "stepsText": "(10,11)(1,1);(10,13)(1,1)-1000\n(10,12)(1,1);(10,13)(1,1)-1000\n(10,12)(1,2)-1000",
+    "finalDroplets": [
+      {
+        "x": 10,
+        "y": 12,
+        "w": 1,
+        "h": 2
+      }
+    ],
+    "sequenceSteps": 3,
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 8984,
+      "outputTokens": 507,
+      "totalTokens": 9491
+    }
+  }
+}

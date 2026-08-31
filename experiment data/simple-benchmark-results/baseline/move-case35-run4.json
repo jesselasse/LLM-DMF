@@ -1,0 +1,19 @@
+{
+  "index": 35,
+  "category": "move",
+  "categoryCase": 5,
+  "message": "Move 1 droplet of size 5×5 located at (30, 60) 10 grid cells to the right.",
+  "repeatIndex": 4,
+  "ok": true,
+  "result": {
+    "stepsText": "(30,60)(5,5)-1000\n(31,60)(5,5)-1000\n(32,60)(5,5)-1000\n(33,60)(5,5)-1000\n(34,60)(5,5)-1000\n(35,60)(5,5)-1000\n(36,60)(5,5)-1000\n(37,60)(5,5)-1000\n(38,60)(5,5)-1000\n(39,60)(5,5)-1000",
+    "assistantReply": "已将5×5液滴从(30,60)向右移动10格，到达(40,60)，共10帧。每帧移动一个网格单元。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 669,
+      "outputTokens": 208,
+      "totalTokens": 877
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

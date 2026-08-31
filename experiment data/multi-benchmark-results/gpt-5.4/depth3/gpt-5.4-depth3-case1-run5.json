@@ -1,0 +1,420 @@
+{
+  "format": "llm-dmf-batch-run-v1",
+  "experiment": {
+    "category": "未分组",
+    "id": "E006",
+    "type": "完整",
+    "repeatIndex": 5,
+    "notes": ""
+  },
+  "runtime": {
+    "sessionId": "batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48",
+    "backendUrl": "http://127.0.0.1:3001",
+    "backendVersion": "llm-move-v5-generic-array-tools",
+    "profile": {
+      "id": "30a3e3cd-b6d8-4b69-902b-e23f9b1be4ae",
+      "name": "默认配置",
+      "baseUrl": "https://api.univibe.cc/openai/v1",
+      "model": "gpt-5.4",
+      "thinkingMode": "enabled",
+      "hasApiKey": true
+    },
+    "provenance": {
+      "gitCommit": "05755de83813db6368b36f10a91abae72c2e0d3a",
+      "gitDirty": true,
+      "codeFingerprint": "fc2120092904eec77d62210d14deaf89dcd186a069e8e61567e0333492bb68e6"
+    },
+    "defaultFollowupReply": "请使用默认参数并生成",
+    "startedAt": "2026-08-14T14:59:38.742Z",
+    "finishedAt": "2026-08-14T15:00:09.283Z"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "At (20, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the squeezed droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 3 rotations.",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "已完成第一步右向挤出。\n\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\n\n请确认要继续作用的对象。"
+    }
+  ],
+  "exchanges": [
+    {
+      "requestRaw": "{\"message\":\"At (20, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the squeezed droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 3 rotations.\",\"sessionId\":\"batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"已完成第一步右向挤出。\\n\\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \\n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\\n\\n请确认要继续作用的对象。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":12784,\"outputTokens\":1214,\"totalTokens\":13998},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":12784,\"outputTokens\":1214,\"totalTokens\":13998},\"stepsTextDelta\":\"(8,22)(10,10)-1000\\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000\",\"stepsTextDeltaRaw\":\"(8,22)(10,10)-1000\\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000\",\"stepsText\":\"(8,22)(10,10)-1000\\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000\",\"moveCalls\":[{\"tool\":\"squeeze\",\"args\":{\"x\":20,\"y\":20,\"w\":2,\"h\":2,\"direction\":\"right\",\"count\":1},\"resolvedDroplets\":[[20,20,2,2]]}],\"selectedDroplets\":[{\"x\":24,\"y\":26,\"w\":2,\"h\":2},{\"x\":10,\"y\":22,\"w\":8,\"h\":10},{\"x\":8,\"y\":22,\"w\":2,\"h\":8}],\"currentFrameRects\":[{\"x\":24,\"y\":26,\"w\":2,\"h\":2},{\"x\":10,\"y\":22,\"w\":8,\"h\":10},{\"x\":8,\"y\":22,\"w\":2,\"h\":8}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":24,\"y\":26,\"w\":2,\"h\":2}]},{\"id\":\"droplet-2\",\"rects\":[{\"x\":10,\"y\":22,\"w\":8,\"h\":10}]},{\"id\":\"droplet-3\",\"rects\":[{\"x\":8,\"y\":22,\"w\":2,\"h\":8}]}]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48",
+        "turnIndex": 0,
+        "baseStepCount": 0,
+        "assistantReply": "已完成第一步右向挤出。\n\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\n\n请确认要继续作用的对象。",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 12784,
+          "outputTokens": 1214,
+          "totalTokens": 13998
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 12784,
+          "outputTokens": 1214,
+          "totalTokens": 13998
+        },
+        "stepsTextDelta": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+        "stepsTextDeltaRaw": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+        "stepsText": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+        "moveCalls": [
+          {
+            "tool": "squeeze",
+            "args": {
+              "x": 20,
+              "y": 20,
+              "w": 2,
+              "h": 2,
+              "direction": "right",
+              "count": 1
+            },
+            "resolvedDroplets": [
+              [
+                20,
+                20,
+                2,
+                2
+              ]
+            ]
+          }
+        ],
+        "selectedDroplets": [
+          {
+            "x": 24,
+            "y": 26,
+            "w": 2,
+            "h": 2
+          },
+          {
+            "x": 10,
+            "y": 22,
+            "w": 8,
+            "h": 10
+          },
+          {
+            "x": 8,
+            "y": 22,
+            "w": 2,
+            "h": 8
+          }
+        ],
+        "currentFrameRects": [
+          {
+            "x": 24,
+            "y": 26,
+            "w": 2,
+            "h": 2
+          },
+          {
+            "x": 10,
+            "y": 22,
+            "w": 8,
+            "h": 10
+          },
+          {
+            "x": 8,
+            "y": 22,
+            "w": 2,
+            "h": 8
+          }
+        ],
+        "dropletRecords": [
+          {
+            "id": "droplet-1",
+            "rects": [
+              {
+                "x": 24,
+                "y": 26,
+                "w": 2,
+                "h": 2
+              }
+            ]
+          },
+          {
+            "id": "droplet-2",
+            "rects": [
+              {
+                "x": 10,
+                "y": 22,
+                "w": 8,
+                "h": 10
+              }
+            ]
+          },
+          {
+            "id": "droplet-3",
+            "rects": [
+              {
+                "x": 8,
+                "y": 22,
+                "w": 2,
+                "h": 8
+              }
+            ]
+          }
+        ]
+      },
+      "requestedAt": "2026-08-14T14:59:38.748Z",
+      "respondedAt": "2026-08-14T15:00:09.243Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    }
+  ],
+  "stepResults": [
+    {
+      "order": 1,
+      "prompt": "At (20, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the squeezed droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 3 rotations.",
+      "expectedCalls": [],
+      "actualCalls": [
+        {
+          "args": {
+            "count": 1,
+            "direction": "right",
+            "h": 2,
+            "w": 2,
+            "x": 20,
+            "y": 20
+          },
+          "resolvedDroplets": [
+            [
+              20,
+              20,
+              2,
+              2
+            ]
+          ],
+          "tool": "squeeze"
+        }
+      ],
+      "status": "review",
+      "reason": "未填写预期操作，需人工复核",
+      "autoReplyCount": 0,
+      "deltaSteps": 6,
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": true,
+        "boundsCorrect": true
+      },
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "projectAudit": {
+        "checked": true,
+        "required": true,
+        "matches": true,
+        "reason": "激活序列与项目操作重放一致",
+        "expectedSteps": 6,
+        "actualSteps": 6,
+        "outputDroplets": [
+          {
+            "x": 24,
+            "y": 26,
+            "w": 2,
+            "h": 2
+          }
+        ]
+      },
+      "observedInputDroplets": [],
+      "observedOutputDroplets": [
+        {
+          "x": 24,
+          "y": 26,
+          "w": 2,
+          "h": 2
+        }
+      ],
+      "assistantReply": "已完成第一步右向挤出。\n\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\n\n请确认要继续作用的对象。",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 12784,
+        "outputTokens": 1214,
+        "totalTokens": 13998
+      },
+      "elapsedSeconds": 30.536,
+      "messages": [
+        {
+          "role": "user",
+          "content": "At (20, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the squeezed droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 3 rotations.",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "已完成第一步右向挤出。\n\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\n\n请确认要继续作用的对象。"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"At (20, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the squeezed droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 3 rotations.\",\"sessionId\":\"batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"已完成第一步右向挤出。\\n\\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \\n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\\n\\n请确认要继续作用的对象。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":12784,\"outputTokens\":1214,\"totalTokens\":13998},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":12784,\"outputTokens\":1214,\"totalTokens\":13998},\"stepsTextDelta\":\"(8,22)(10,10)-1000\\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000\",\"stepsTextDeltaRaw\":\"(8,22)(10,10)-1000\\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000\",\"stepsText\":\"(8,22)(10,10)-1000\\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000\",\"moveCalls\":[{\"tool\":\"squeeze\",\"args\":{\"x\":20,\"y\":20,\"w\":2,\"h\":2,\"direction\":\"right\",\"count\":1},\"resolvedDroplets\":[[20,20,2,2]]}],\"selectedDroplets\":[{\"x\":24,\"y\":26,\"w\":2,\"h\":2},{\"x\":10,\"y\":22,\"w\":8,\"h\":10},{\"x\":8,\"y\":22,\"w\":2,\"h\":8}],\"currentFrameRects\":[{\"x\":24,\"y\":26,\"w\":2,\"h\":2},{\"x\":10,\"y\":22,\"w\":8,\"h\":10},{\"x\":8,\"y\":22,\"w\":2,\"h\":8}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":24,\"y\":26,\"w\":2,\"h\":2}]},{\"id\":\"droplet-2\",\"rects\":[{\"x\":10,\"y\":22,\"w\":8,\"h\":10}]},{\"id\":\"droplet-3\",\"rects\":[{\"x\":8,\"y\":22,\"w\":2,\"h\":8}]}]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-3bb632b4-89ca-4349-a75f-35295f45de02-E006-5-2eda12b0-ef61-4ec4-b80c-efa1977f0f48",
+            "turnIndex": 0,
+            "baseStepCount": 0,
+            "assistantReply": "已完成第一步右向挤出。\n\n该操作当前产生了 3 个结果液滴，其中末端新的 `2×2` 液滴位于 `(24, 26)`。你说“将挤出的液滴下移并继续旋转混合”，这里有歧义：  \n是只移动并混合这个新的 `2×2` 液滴，还是对挤出后得到的全部结果液滴继续操作？\n\n请确认要继续作用的对象。",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 12784,
+              "outputTokens": 1214,
+              "totalTokens": 13998
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 12784,
+              "outputTokens": 1214,
+              "totalTokens": 13998
+            },
+            "stepsTextDelta": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+            "stepsTextDeltaRaw": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+            "stepsText": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+            "moveCalls": [
+              {
+                "tool": "squeeze",
+                "args": {
+                  "x": 20,
+                  "y": 20,
+                  "w": 2,
+                  "h": 2,
+                  "direction": "right",
+                  "count": 1
+                },
+                "resolvedDroplets": [
+                  [
+                    20,
+                    20,
+                    2,
+                    2
+                  ]
+                ]
+              }
+            ],
+            "selectedDroplets": [
+              {
+                "x": 24,
+                "y": 26,
+                "w": 2,
+                "h": 2
+              },
+              {
+                "x": 10,
+                "y": 22,
+                "w": 8,
+                "h": 10
+              },
+              {
+                "x": 8,
+                "y": 22,
+                "w": 2,
+                "h": 8
+              }
+            ],
+            "currentFrameRects": [
+              {
+                "x": 24,
+                "y": 26,
+                "w": 2,
+                "h": 2
+              },
+              {
+                "x": 10,
+                "y": 22,
+                "w": 8,
+                "h": 10
+              },
+              {
+                "x": 8,
+                "y": 22,
+                "w": 2,
+                "h": 8
+              }
+            ],
+            "dropletRecords": [
+              {
+                "id": "droplet-1",
+                "rects": [
+                  {
+                    "x": 24,
+                    "y": 26,
+                    "w": 2,
+                    "h": 2
+                  }
+                ]
+              },
+              {
+                "id": "droplet-2",
+                "rects": [
+                  {
+                    "x": 10,
+                    "y": 22,
+                    "w": 8,
+                    "h": 10
+                  }
+                ]
+              },
+              {
+                "id": "droplet-3",
+                "rects": [
+                  {
+                    "x": 8,
+                    "y": 22,
+                    "w": 2,
+                    "h": 8
+                  }
+                ]
+              }
+            ]
+          },
+          "requestedAt": "2026-08-14T14:59:38.748Z",
+          "respondedAt": "2026-08-14T15:00:09.243Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "status": "review",
+    "automaticAuditStatus": "review",
+    "reason": "未填写预期操作，需人工复核",
+    "failedStep": null,
+    "stepsText": "(8,22)(10,10)-1000\n(10,22)(8,10);(18,26)(2,2);(8,22)(2,8)-1000\n(10,22)(8,10);(18,26)(2,2);(20,26)(2,2);(8,24)(2,6)-1000\n(18,26)(6,2);(8,24)(2,6);(10,22)(2,8);(12,22)(6,10)-1000\n(22,26)(2,2);(10,22)(8,10);(8,22)(2,8);(8,30)(2,2);(6,26)(2,2)-1000\n(24,26)(2,2);(10,22)(8,10);(8,22)(2,8)-1000",
+    "finalDroplets": [
+      {
+        "x": 8,
+        "y": 22,
+        "w": 2,
+        "h": 8
+      },
+      {
+        "x": 10,
+        "y": 22,
+        "w": 8,
+        "h": 10
+      },
+      {
+        "x": 24,
+        "y": 26,
+        "w": 2,
+        "h": 2
+      }
+    ],
+    "sequenceSteps": 6,
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 12784,
+      "outputTokens": 1214,
+      "totalTokens": 13998
+    }
+  }
+}

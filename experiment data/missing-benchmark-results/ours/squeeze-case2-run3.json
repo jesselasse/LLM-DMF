@@ -1,0 +1,540 @@
+{
+  "format": "llm-dmf-batch-run-v1",
+  "experiment": {
+    "category": "未分组",
+    "id": "E002",
+    "type": "多流程",
+    "repeatIndex": 3,
+    "notes": ""
+  },
+  "runtime": {
+    "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829",
+    "backendUrl": "http://127.0.0.1:3001",
+    "backendVersion": "llm-move-v5-generic-array-tools",
+    "profile": {
+      "id": "e99e2f6d-c127-43d8-a107-42d689dc2420",
+      "name": "OpenCode Go",
+      "baseUrl": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "thinkingMode": "enabled",
+      "hasApiKey": true
+    },
+    "provenance": {
+      "gitCommit": "f3acdecda589c44392dc9975e4251cf8e21c4ca0",
+      "gitDirty": true,
+      "codeFingerprint": "6dfe2b275401283e3f79c7ab87a00de31299ab924363289f6d8f24388e63ac0b"
+    },
+    "defaultFollowupReply": "请使用默认参数并生成",
+    "startedAt": "2026-08-14T06:36:47.652Z",
+    "finishedAt": "2026-08-14T06:37:02.607Z"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。"
+    },
+    {
+      "role": "user",
+      "content": "Squeeze it to the left.",
+      "automatedDefaultConfirmation": false
+    },
+    {
+      "role": "assistant",
+      "content": "已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。"
+    }
+  ],
+  "exchanges": [
+    {
+      "requestRaw": "{\"message\":\"At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":2844,\"outputTokens\":222,\"totalTokens\":3066},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":2844,\"outputTokens\":222,\"totalTokens\":3066},\"stepsTextDelta\":\"\",\"stepsTextDeltaRaw\":\"\",\"stepsText\":\"\",\"moveCalls\":[],\"selectedDroplets\":[],\"currentFrameRects\":[],\"dropletRecords\":[]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829",
+        "turnIndex": 0,
+        "baseStepCount": 0,
+        "assistantReply": "当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 2844,
+          "outputTokens": 222,
+          "totalTokens": 3066
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 2844,
+          "outputTokens": 222,
+          "totalTokens": 3066
+        },
+        "stepsTextDelta": "",
+        "stepsTextDeltaRaw": "",
+        "stepsText": "",
+        "moveCalls": [],
+        "selectedDroplets": [],
+        "currentFrameRects": [],
+        "dropletRecords": []
+      },
+      "requestedAt": "2026-08-14T06:36:47.678Z",
+      "respondedAt": "2026-08-14T06:36:54.964Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    },
+    {
+      "requestRaw": "{\"message\":\"Squeeze it to the left.\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"selectedDroplets\":[]}",
+      "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"turnIndex\":1,\"baseStepCount\":0,\"assistantReply\":\"已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":6325,\"outputTokens\":233,\"totalTokens\":6558},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":9169,\"outputTokens\":455,\"totalTokens\":9624},\"stepsTextDelta\":\"(111,18)(15,15)-1000\\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000\",\"stepsTextDeltaRaw\":\"(111,18)(15,15)-1000\\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000\",\"stepsText\":\"(111,18)(15,15)-1000\\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000\",\"moveCalls\":[{\"tool\":\"squeeze\",\"args\":{\"count\":1,\"direction\":\"left\",\"x\":108,\"y\":30,\"w\":3,\"h\":3},\"resolvedDroplets\":[[108,30,3,3]]}],\"selectedDroplets\":[{\"x\":99,\"y\":24,\"w\":3,\"h\":3},{\"x\":111,\"y\":18,\"w\":12,\"h\":15},{\"x\":123,\"y\":21,\"w\":3,\"h\":12}],\"currentFrameRects\":[{\"x\":99,\"y\":24,\"w\":3,\"h\":3},{\"x\":111,\"y\":18,\"w\":12,\"h\":15},{\"x\":123,\"y\":21,\"w\":3,\"h\":12}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":99,\"y\":24,\"w\":3,\"h\":3}]},{\"id\":\"droplet-2\",\"rects\":[{\"x\":111,\"y\":18,\"w\":12,\"h\":15}]},{\"id\":\"droplet-3\",\"rects\":[{\"x\":123,\"y\":21,\"w\":3,\"h\":12}]}]}",
+      "status": 200,
+      "payload": {
+        "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829",
+        "turnIndex": 1,
+        "baseStepCount": 0,
+        "assistantReply": "已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。",
+        "tokenUsage": {
+          "available": true,
+          "inputTokens": 6325,
+          "outputTokens": 233,
+          "totalTokens": 6558
+        },
+        "sessionTokenUsage": {
+          "available": true,
+          "inputTokens": 9169,
+          "outputTokens": 455,
+          "totalTokens": 9624
+        },
+        "stepsTextDelta": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+        "stepsTextDeltaRaw": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+        "stepsText": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+        "moveCalls": [
+          {
+            "tool": "squeeze",
+            "args": {
+              "count": 1,
+              "direction": "left",
+              "x": 108,
+              "y": 30,
+              "w": 3,
+              "h": 3
+            },
+            "resolvedDroplets": [
+              [
+                108,
+                30,
+                3,
+                3
+              ]
+            ]
+          }
+        ],
+        "selectedDroplets": [
+          {
+            "x": 99,
+            "y": 24,
+            "w": 3,
+            "h": 3
+          },
+          {
+            "x": 111,
+            "y": 18,
+            "w": 12,
+            "h": 15
+          },
+          {
+            "x": 123,
+            "y": 21,
+            "w": 3,
+            "h": 12
+          }
+        ],
+        "currentFrameRects": [
+          {
+            "x": 99,
+            "y": 24,
+            "w": 3,
+            "h": 3
+          },
+          {
+            "x": 111,
+            "y": 18,
+            "w": 12,
+            "h": 15
+          },
+          {
+            "x": 123,
+            "y": 21,
+            "w": 3,
+            "h": 12
+          }
+        ],
+        "dropletRecords": [
+          {
+            "id": "droplet-1",
+            "rects": [
+              {
+                "x": 99,
+                "y": 24,
+                "w": 3,
+                "h": 3
+              }
+            ]
+          },
+          {
+            "id": "droplet-2",
+            "rects": [
+              {
+                "x": 111,
+                "y": 18,
+                "w": 12,
+                "h": 15
+              }
+            ]
+          },
+          {
+            "id": "droplet-3",
+            "rects": [
+              {
+                "x": 123,
+                "y": 21,
+                "w": 3,
+                "h": 12
+              }
+            ]
+          }
+        ]
+      },
+      "requestedAt": "2026-08-14T06:36:54.970Z",
+      "respondedAt": "2026-08-14T06:37:02.553Z",
+      "backendVersion": "llm-move-v5-generic-array-tools"
+    }
+  ],
+  "stepResults": [
+    {
+      "order": 1,
+      "prompt": "At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.",
+      "expectedCalls": [],
+      "actualCalls": [],
+      "status": "failed",
+      "reason": "模型未执行任何工具，也未生成激活步骤",
+      "autoReplyCount": 0,
+      "deltaSteps": 0,
+      "assistantReply": "当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 2844,
+        "outputTokens": 222,
+        "totalTokens": 3066
+      },
+      "elapsedSeconds": 7.291,
+      "messages": [
+        {
+          "role": "user",
+          "content": "At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"turnIndex\":0,\"baseStepCount\":0,\"assistantReply\":\"当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":2844,\"outputTokens\":222,\"totalTokens\":3066},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":2844,\"outputTokens\":222,\"totalTokens\":3066},\"stepsTextDelta\":\"\",\"stepsTextDeltaRaw\":\"\",\"stepsText\":\"\",\"moveCalls\":[],\"selectedDroplets\":[],\"currentFrameRects\":[],\"dropletRecords\":[]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829",
+            "turnIndex": 0,
+            "baseStepCount": 0,
+            "assistantReply": "当前请求缺少挤压方向。请确认挤压方向（向上 / 向下 / 向左 / 向右），我才能生成对应步骤。",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 2844,
+              "outputTokens": 222,
+              "totalTokens": 3066
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 2844,
+              "outputTokens": 222,
+              "totalTokens": 3066
+            },
+            "stepsTextDelta": "",
+            "stepsTextDeltaRaw": "",
+            "stepsText": "",
+            "moveCalls": [],
+            "selectedDroplets": [],
+            "currentFrameRects": [],
+            "dropletRecords": []
+          },
+          "requestedAt": "2026-08-14T06:36:47.678Z",
+          "respondedAt": "2026-08-14T06:36:54.964Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ],
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": null,
+        "boundsCorrect": null
+      }
+    },
+    {
+      "order": 2,
+      "prompt": "Squeeze it to the left.",
+      "expectedCalls": [],
+      "actualCalls": [
+        {
+          "args": {
+            "count": 1,
+            "direction": "left",
+            "h": 3,
+            "w": 3,
+            "x": 108,
+            "y": 30
+          },
+          "resolvedDroplets": [
+            [
+              108,
+              30,
+              3,
+              3
+            ]
+          ],
+          "tool": "squeeze"
+        }
+      ],
+      "status": "review",
+      "reason": "未填写预期操作，需人工复核",
+      "autoReplyCount": 0,
+      "deltaSteps": 6,
+      "checks": {
+        "operationCorrect": null,
+        "parametersCorrect": null,
+        "expectedSequenceCorrect": null,
+        "projectSequenceCorrect": true,
+        "boundsCorrect": true
+      },
+      "expectedSequenceAudit": {
+        "checked": false,
+        "required": false,
+        "matches": null,
+        "reason": "未填写预期操作",
+        "outputDroplets": []
+      },
+      "projectAudit": {
+        "checked": true,
+        "required": true,
+        "matches": true,
+        "reason": "激活序列与项目操作重放一致",
+        "expectedSteps": 6,
+        "actualSteps": 6,
+        "outputDroplets": [
+          {
+            "x": 99,
+            "y": 24,
+            "w": 3,
+            "h": 3
+          }
+        ]
+      },
+      "observedInputDroplets": [],
+      "observedOutputDroplets": [
+        {
+          "x": 99,
+          "y": 24,
+          "w": 3,
+          "h": 3
+        }
+      ],
+      "assistantReply": "已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。",
+      "tokenUsage": {
+        "available": true,
+        "inputTokens": 6325,
+        "outputTokens": 233,
+        "totalTokens": 6558
+      },
+      "elapsedSeconds": 7.642,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Squeeze it to the left.",
+          "automatedDefaultConfirmation": false
+        },
+        {
+          "role": "assistant",
+          "content": "已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。"
+        }
+      ],
+      "exchanges": [
+        {
+          "requestRaw": "{\"message\":\"Squeeze it to the left.\",\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"selectedDroplets\":[]}",
+          "responseRaw": "{\"sessionId\":\"batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829\",\"turnIndex\":1,\"baseStepCount\":0,\"assistantReply\":\"已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。\",\"tokenUsage\":{\"available\":true,\"inputTokens\":6325,\"outputTokens\":233,\"totalTokens\":6558},\"sessionTokenUsage\":{\"available\":true,\"inputTokens\":9169,\"outputTokens\":455,\"totalTokens\":9624},\"stepsTextDelta\":\"(111,18)(15,15)-1000\\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000\",\"stepsTextDeltaRaw\":\"(111,18)(15,15)-1000\\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000\",\"stepsText\":\"(111,18)(15,15)-1000\\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000\",\"moveCalls\":[{\"tool\":\"squeeze\",\"args\":{\"count\":1,\"direction\":\"left\",\"x\":108,\"y\":30,\"w\":3,\"h\":3},\"resolvedDroplets\":[[108,30,3,3]]}],\"selectedDroplets\":[{\"x\":99,\"y\":24,\"w\":3,\"h\":3},{\"x\":111,\"y\":18,\"w\":12,\"h\":15},{\"x\":123,\"y\":21,\"w\":3,\"h\":12}],\"currentFrameRects\":[{\"x\":99,\"y\":24,\"w\":3,\"h\":3},{\"x\":111,\"y\":18,\"w\":12,\"h\":15},{\"x\":123,\"y\":21,\"w\":3,\"h\":12}],\"dropletRecords\":[{\"id\":\"droplet-1\",\"rects\":[{\"x\":99,\"y\":24,\"w\":3,\"h\":3}]},{\"id\":\"droplet-2\",\"rects\":[{\"x\":111,\"y\":18,\"w\":12,\"h\":15}]},{\"id\":\"droplet-3\",\"rects\":[{\"x\":123,\"y\":21,\"w\":3,\"h\":12}]}]}",
+          "status": 200,
+          "payload": {
+            "sessionId": "batch-7cfe42ed-4179-4cca-b17d-7cf33a0de627-E002-3-10b707bd-fb7e-46b7-b07c-04d3c267b829",
+            "turnIndex": 1,
+            "baseStepCount": 0,
+            "assistantReply": "已生成向左挤压（挤压次数 1）的步骤，源液滴为 (108, 30) 的 3×3 液滴。操作完成后产生 3 个液滴。",
+            "tokenUsage": {
+              "available": true,
+              "inputTokens": 6325,
+              "outputTokens": 233,
+              "totalTokens": 6558
+            },
+            "sessionTokenUsage": {
+              "available": true,
+              "inputTokens": 9169,
+              "outputTokens": 455,
+              "totalTokens": 9624
+            },
+            "stepsTextDelta": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+            "stepsTextDeltaRaw": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+            "stepsText": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+            "moveCalls": [
+              {
+                "tool": "squeeze",
+                "args": {
+                  "count": 1,
+                  "direction": "left",
+                  "x": 108,
+                  "y": 30,
+                  "w": 3,
+                  "h": 3
+                },
+                "resolvedDroplets": [
+                  [
+                    108,
+                    30,
+                    3,
+                    3
+                  ]
+                ]
+              }
+            ],
+            "selectedDroplets": [
+              {
+                "x": 99,
+                "y": 24,
+                "w": 3,
+                "h": 3
+              },
+              {
+                "x": 111,
+                "y": 18,
+                "w": 12,
+                "h": 15
+              },
+              {
+                "x": 123,
+                "y": 21,
+                "w": 3,
+                "h": 12
+              }
+            ],
+            "currentFrameRects": [
+              {
+                "x": 99,
+                "y": 24,
+                "w": 3,
+                "h": 3
+              },
+              {
+                "x": 111,
+                "y": 18,
+                "w": 12,
+                "h": 15
+              },
+              {
+                "x": 123,
+                "y": 21,
+                "w": 3,
+                "h": 12
+              }
+            ],
+            "dropletRecords": [
+              {
+                "id": "droplet-1",
+                "rects": [
+                  {
+                    "x": 99,
+                    "y": 24,
+                    "w": 3,
+                    "h": 3
+                  }
+                ]
+              },
+              {
+                "id": "droplet-2",
+                "rects": [
+                  {
+                    "x": 111,
+                    "y": 18,
+                    "w": 12,
+                    "h": 15
+                  }
+                ]
+              },
+              {
+                "id": "droplet-3",
+                "rects": [
+                  {
+                    "x": 123,
+                    "y": 21,
+                    "w": 3,
+                    "h": 12
+                  }
+                ]
+              }
+            ]
+          },
+          "requestedAt": "2026-08-14T06:36:54.970Z",
+          "respondedAt": "2026-08-14T06:37:02.553Z",
+          "backendVersion": "llm-move-v5-generic-array-tools"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "status": "review",
+    "automaticAuditStatus": "failed",
+    "reason": "多流程实验不自动判定，需人工复核；自动审计：模型未执行任何工具，也未生成激活步骤",
+    "failedStep": null,
+    "stepsText": "(111,18)(15,15)-1000\n(111,18)(12,15);(108,24)(3,3);(123,21)(3,12)-1000\n(111,18)(12,15);(108,24)(3,3);(105,24)(3,3);(123,21)(3,9)-1000\n(102,24)(9,3);(123,21)(3,9);(120,21)(3,12);(111,18)(9,15)-1000\n(102,24)(3,3);(111,18)(12,15);(123,21)(3,12);(123,18)(3,3);(126,24)(3,3)-1000\n(99,24)(3,3);(111,18)(12,15);(123,21)(3,12)-1000",
+    "finalDroplets": [
+      {
+        "x": 99,
+        "y": 24,
+        "w": 3,
+        "h": 3
+      },
+      {
+        "x": 111,
+        "y": 18,
+        "w": 12,
+        "h": 15
+      },
+      {
+        "x": 123,
+        "y": 21,
+        "w": 3,
+        "h": 12
+      }
+    ],
+    "sequenceSteps": 6,
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 9169,
+      "outputTokens": 455,
+      "totalTokens": 9624
+    }
+  }
+}

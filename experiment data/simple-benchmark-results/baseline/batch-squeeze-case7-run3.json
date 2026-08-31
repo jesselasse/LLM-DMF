@@ -1,0 +1,19 @@
+{
+  "index": 7,
+  "category": "batch squeeze",
+  "categoryCase": 2,
+  "message": "Generate 6 2×2 droplets at (44, 100) by squeezing upward.",
+  "repeatIndex": 3,
+  "ok": true,
+  "result": {
+    "stepsText": "(44,100)(2,2)-1000\n(44,98)(2,2)-1000\n(44,96)(2,2)-1000\n(44,94)(2,2)-1000\n(44,92)(2,2)-1000\n(44,90)(2,2)-1000",
+    "assistantReply": "已生成6个2×2微滴，从(44,100)开始逐帧向上移动，每帧上移一格，共6帧。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 662,
+      "outputTokens": 158,
+      "totalTokens": 820
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

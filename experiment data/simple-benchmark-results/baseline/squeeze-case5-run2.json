@@ -1,0 +1,19 @@
+{
+  "index": 5,
+  "category": "squeeze",
+  "categoryCase": 5,
+  "message": "Generate 1 5×5 droplet at (100, 85) by squeezing to the left.",
+  "repeatIndex": 2,
+  "ok": true,
+  "result": {
+    "stepsText": "(100,85)(5,5)-1000",
+    "assistantReply": "已生成一个 5×5 液滴，位置为 (100, 85)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 664,
+      "outputTokens": 86,
+      "totalTokens": 750
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

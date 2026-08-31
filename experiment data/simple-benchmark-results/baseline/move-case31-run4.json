@@ -1,0 +1,19 @@
+{
+  "index": 31,
+  "category": "move",
+  "categoryCase": 1,
+  "message": "Move 1 droplet of size 1×1 located at (15, 15) 20 grid cells to the right.",
+  "repeatIndex": 4,
+  "ok": true,
+  "result": {
+    "stepsText": "(15,15)(1,1)-1000",
+    "assistantReply": "需要澄清：要求是将1×1的液滴从(15,15)向右移动20格，但未指定最终是否需要在每一帧显示移动路径，还是仅显示移动后的位置。按标准DMF格式，每帧代表一个位置变化，因此需要20帧来逐格向右移动。我将生成20帧序列。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 669,
+      "outputTokens": 136,
+      "totalTokens": 805
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

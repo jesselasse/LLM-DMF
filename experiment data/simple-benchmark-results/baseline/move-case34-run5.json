@@ -1,0 +1,19 @@
+{
+  "index": 34,
+  "category": "move",
+  "categoryCase": 4,
+  "message": "Move 1 droplet of size 4×4 located at (48, 40) 12 grid cells downward.",
+  "repeatIndex": 5,
+  "ok": true,
+  "result": {
+    "stepsText": "(48,40)(4,4)-1000\n(48,41)(4,4)-1000\n(48,42)(4,4)-1000\n(48,43)(4,4)-1000\n(48,44)(4,4)-1000\n(48,45)(4,4)-1000\n(48,46)(4,4)-1000\n(48,47)(4,4)-1000\n(48,48)(4,4)-1000\n(48,49)(4,4)-1000\n(48,50)(4,4)-1000\n(48,51)(4,4)-1000\n(48,52)(4,4)-1000",
+    "assistantReply": "4×4液滴从(48,40)向下移动12个网格单元，每次移动1格，共12帧，最终到达(48,52)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 667,
+      "outputTokens": 245,
+      "totalTokens": 912
+    },
+    "model": "deepseek-v4-flash"
+  }
+}

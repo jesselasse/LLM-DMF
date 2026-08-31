@@ -1,0 +1,401 @@
+﻿file,prompt
+baseline/merge-case1-run1.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run1.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run2.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run2.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run3.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run3.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run4.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run4.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run5.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case1-run5.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+baseline/merge-case2-run1.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run1.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run2.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run2.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run3.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run3.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run4.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run4.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run5.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/merge-case2-run5.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+baseline/mix-case1-run1.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run1.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run2.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run2.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run3.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run3.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run4.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run4.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run5.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case1-run5.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+baseline/mix-case2-run1.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run1.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run2.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run2.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run3.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run3.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run4.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run4.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run5.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/mix-case2-run5.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+baseline/move-case1-run1.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run1.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run2.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run2.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run3.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run3.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run4.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run4.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run5.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case1-run5.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+baseline/move-case2-run1.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run1.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run2.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run2.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run3.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run3.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run4.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run4.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run5.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/move-case2-run5.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+baseline/squeeze-case1-run1.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run1.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run2.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run2.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run3.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run3.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run4.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run4.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run5.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case1-run5.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+baseline/squeeze-case2-run1.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run1.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run2.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run2.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run3.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run3.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run4.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run4.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run5.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+baseline/squeeze-case2-run5.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/merge-case1-run1.gif,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run1.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run1.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run2.gif,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run2.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run2.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run3.gif,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run3.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run3.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run4.gif,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run4.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run4.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run5.gif,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run5.json,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case1-run5.txt,"Turn 1: Merge the 1×1 droplet at (10, 10) with the droplet at (10, 14).
+Turn 2: The droplet at (10, 14) has size 1×1."
+ours/merge-case2-run1.gif,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run1.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run1.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run2.gif,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run2.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run2.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run3.gif,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run3.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run3.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run4.gif,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run4.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run4.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run5.gif,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run5.json,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/merge-case2-run5.txt,"Turn 1: Merge the 4×3 droplet with the 4×2 droplet at (15, 90).
+Turn 2: The 4×3 droplet is at (15, 100)."
+ours/mix-case1-run1.gif,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run1.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run1.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run2.gif,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run2.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run2.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run3.gif,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run3.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run3.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run4.gif,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run4.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run4.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run5.gif,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run5.json,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case1-run5.txt,"Turn 1: Rotationally mix the 2×2 droplet at (44, 44).
+Turn 2: Mix it for 3 rotations."
+ours/mix-case2-run1.gif,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run1.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run1.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run2.gif,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run2.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run2.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run3.gif,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run3.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run3.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run4.gif,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run4.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run4.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run5.gif,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run5.json,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/mix-case2-run5.txt,"Turn 1: Rotationally mix a 5×5 droplet for 3 rotations.
+Turn 2: The 5×5 droplet is at (60, 60)."
+ours/move-case1-run1.gif,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run1.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run1.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run2.gif,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run2.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run2.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run3.gif,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run3.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run3.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run4.gif,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run4.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run4.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run5.gif,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run5.json,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case1-run5.txt,"Turn 1: Move the 1×1 droplet at (15, 15) to the right.
+Turn 2: Move it by 20 grid cells."
+ours/move-case2-run1.gif,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run1.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run1.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run2.gif,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run2.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run2.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run3.gif,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run3.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run3.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run4.gif,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run4.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run4.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run5.gif,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run5.json,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/move-case2-run5.txt,"Turn 1: Move the 4×4 droplet at (48, 40) by 12 grid cells.
+Turn 2: Move it down."
+ours/squeeze-case1-run1.gif,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run1.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run1.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run2.gif,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run2.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run2.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run3.gif,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run3.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run3.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run4.gif,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run4.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run4.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run5.gif,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run5.json,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case1-run5.txt,"Turn 1: Perform a rightward squeeze operation with squeeze count 1, using a 1×1 source droplet.
+Turn 2: The source droplet is at (30, 30)."
+ours/squeeze-case2-run1.gif,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run1.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run1.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run2.gif,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run2.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run2.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run3.gif,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run3.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run3.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run4.gif,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run4.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run4.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run5.gif,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run5.json,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
+ours/squeeze-case2-run5.txt,"Turn 1: At (108, 30), perform a squeeze operation with squeeze count 1, using a 3×3 source droplet.
+Turn 2: Squeeze it to the left."
