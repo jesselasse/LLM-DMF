@@ -1,0 +1,31 @@
+====================================================================
+C5：组合深度测试集（15 个 case，深度 2/3/4 各 5 个，v4 修订）
+深度 1 复用 Table 2（single-scale 组）结果，不重复构造。
+====================================================================
+# depth 1
+Generate 1 1×1 droplet at (30, 30) by squeezing to the right. This is a single-operation test. Includes the initial frame.
+Generate 2 1×1 droplets at (10, 10) by squeezing to the right. This is a single-operation test. Includes the initial frame.
+Directly merge the 1×1 droplet located at (10, 10) with the 1×1 droplet located at (15, 10). This is a single-operation test. Includes the initial frame.
+Perform 2 cycles of rotational mixing on 1 droplet of size 1×1 located at (25, 25). This is a single-operation test. Includes the initial frame.
+Move 1 droplet of size 1×1 located at (15, 15) 20 grid cells to the right. This is a single-operation test. Includes the initial frame.
+
+# depth 2（两步链式，5 case）
+1. 在（30，30）向右挤出式生成 1 个 2×2 的液滴，然后将其向上移动 10 格
+2. 在（50，50）向下挤出式生成 1 个 3×3 的液滴，然后对其做 3 圈旋转混匀
+3. 位于（10，10）和（10，16）处分别已有一个尺寸 2×2 的液滴。将两个液滴合并，然后做 2 圈旋转混匀
+4. 场景初始时，位于（40，40）处已有一个尺寸 3×3 的液滴。将其向左移动 12 格，然后做 4 圈旋转混匀
+5. 在（90，20）向左挤出式生成 4 个 4×4 的液滴，然后将挤出的液滴们向下移动 20 格
+
+# depth 3（三步链式，5 case）
+1. 在（20，20）向右挤出式生成 1 个 2×2 的液滴，将其向下移动 10 格，然后做 3 圈旋转混匀
+2. 场景初始时，位于（13，21）处已有一个尺寸 1×2 的液滴。在（15，15）向下挤出式生成 1 个 2×2 的液滴，与该液滴合并，然后做 3 圈旋转混匀
+3. 场景初始时，位于（30，30）和（36，30）处分别已有一个尺寸 2×2 的液滴。将两个液滴合并，然后向下移动 10 格，再做 2 圈旋转混匀
+4. 场景初始时，位于（50，50）处已有一个尺寸 3×3 的液滴。将其向左移动 10 格，做 2 圈旋转混匀，再向下移动 5 格
+5. 在（60，60）向下挤出式生成 1 个 3×3 的液滴，对其做 4 圈旋转混匀，然后向右移动 15 格
+
+# depth 4（四步链式，5 case）
+1. 在（30，20）和（30，40）分别向右挤出式生成 1 个 2×2 的液滴，将第二个液滴向上移动 10 格，然后与第一个液滴合并
+2. 在（50，53）向上挤出式生成 1 个 3×3 的液滴，将其向右移动 10 格，做 3 圈旋转混匀，然后向下移动 5 格
+3. 场景初始时，位于（44，40）处已有一个尺寸 2×2 的液滴。然后在（40，40）向右挤出式生成 1 个 2×2 的液滴，再与第一个液滴合并，然后做 2 圈旋转混匀，再向左移动 12 格
+4. 场景初始时，位于（60，66）处已有一个尺寸 1×2 的液滴。在（70，70）向左挤出式生成 1 个 2×2 的液滴，将其与初始液滴合并，然后做 2 圈旋转混匀，再向下移动5步
+5. 在（20，20）和（20，40）分别向右挤出式生成 4 个 2×2 的液滴，将上方挤出的液滴向下移动 10 格，然后挤出的两组液滴每对合并，对合并后的液滴们做 3 圈旋转混匀

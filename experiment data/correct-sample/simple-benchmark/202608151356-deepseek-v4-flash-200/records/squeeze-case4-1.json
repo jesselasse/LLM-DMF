@@ -1,0 +1,23 @@
+{
+  "group": "squeeze",
+  "case": 4,
+  "repeat": 1,
+  "stem": "squeeze-case4-1",
+  "message": "Generate 1 4×4 droplet at (60, 48) by squeezing downward.",
+  "status": "ok",
+  "startedAt": "2026-08-15T05:59:43.849895+00:00",
+  "finishedAt": "2026-08-15T06:00:59.225389+00:00",
+  "result": {
+    "stepsText": "(60,44)(4,8)-1000\n(60,44)(4,4);(60,48)(4,4)-1000",
+    "assistantReply": "已生成挤压向下分裂序列：先激活 (60,44) 处 4×8 液滴作为上游储液源，随后沿长边（纵向）挤压分裂，分离出位于 (60,48) 的 4×4 目标液滴，上方保留 4×4 剩余储液。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 734,
+      "outputTokens": 7747,
+      "totalTokens": 8481
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

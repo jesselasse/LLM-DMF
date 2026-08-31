@@ -1,0 +1,21 @@
+{
+  "group": "move",
+  "case": 2,
+  "repeat": 1,
+  "stem": "move-case2-1",
+  "message": "Move 1 droplet of size 2×2 located at (44, 100) 15 grid cells upward.",
+  "status": "ok",
+  "result": {
+    "stepsText": "(44,100)(2,2)-1000\n(44,99)(2,2)-1000\n(44,98)(2,2)-1000\n(44,97)(2,2)-1000\n(44,96)(2,2)-1000\n(44,95)(2,2)-1000\n(44,94)(2,2)-1000\n(44,93)(2,2)-1000\n(44,92)(2,2)-1000\n(44,91)(2,2)-1000\n(44,90)(2,2)-1000\n(44,89)(2,2)-1000\n(44,88)(2,2)-1000\n(44,87)(2,2)-1000\n(44,86)(2,2)-1000\n(44,85)(2,2)-1000",
+    "assistantReply": "已将 2×2 液滴从 (44,100) 向上移动 15 格至 (44,85)，共 16 帧，每帧移动一格。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 739,
+      "outputTokens": 600,
+      "totalTokens": 1339
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

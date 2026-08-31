@@ -1,0 +1,10 @@
+{
+  "group": "batch squeeze",
+  "case": 4,
+  "repeat": 1,
+  "stem": "batch-squeeze-case4-1",
+  "message": "Generate 3 4×4 droplets at (64, 44) by squeezing downward.",
+  "status": "timeout",
+  "result": null,
+  "error": "timeout after 240 seconds"
+}

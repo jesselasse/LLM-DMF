@@ -1,0 +1,19 @@
+{
+  "records": 40,
+  "stepFiles": 40,
+  "emptyStepFiles": 3,
+  "model": "deepseek-v4-flash",
+  "thinking": "enabled",
+  "baselineSha256": "3b89b1090c4069fad0b1714c7ec1e0473394f3f3a129d58c621f85c1b3c8eee8",
+  "inputSha256": "0ceb18480ae8638b1a64a22805b53c8b419dfa69cfa79bd116e30a6c545158c7",
+  "hashesMatchRecordedInputs": true,
+  "comparisonDisagreements": 0,
+  "storedVsReturnedStepDisagreements": 0,
+  "detectionRatePct": 55.0,
+  "clarificationAccuracyPct": 50.0,
+  "clarificationAccuracyDenominator": "detected sessions",
+  "taskSuccessPct": 15.0,
+  "tokenSum": 205033,
+  "tokenAveragePerTwoTurnSession": 5126,
+  "conversationMode": "transcript replay through unchanged single-message baseline"
+}

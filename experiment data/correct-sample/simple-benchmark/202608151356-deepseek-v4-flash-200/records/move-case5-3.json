@@ -1,0 +1,23 @@
+{
+  "group": "move",
+  "case": 5,
+  "repeat": 3,
+  "stem": "move-case5-3",
+  "message": "Move 1 droplet of size 5×5 located at (30, 60) 10 grid cells to the right.",
+  "status": "ok",
+  "startedAt": "2026-08-15T05:58:48.963443+00:00",
+  "finishedAt": "2026-08-15T05:58:52.618629+00:00",
+  "result": {
+    "stepsText": "(30,60)(5,5)-1000\n(31,60)(5,5)-1000\n(32,60)(5,5)-1000\n(33,60)(5,5)-1000\n(34,60)(5,5)-1000\n(35,60)(5,5)-1000\n(36,60)(5,5)-1000\n(37,60)(5,5)-1000\n(38,60)(5,5)-1000\n(39,60)(5,5)-1000\n(40,60)(5,5)-1000",
+    "assistantReply": "已将 5×5 液滴从 (30,60) 向右移动 10 格，共 11 帧，最终位置为 (40,60)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 741,
+      "outputTokens": 362,
+      "totalTokens": 1103
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

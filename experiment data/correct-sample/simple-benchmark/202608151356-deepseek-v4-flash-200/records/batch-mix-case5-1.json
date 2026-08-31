@@ -1,0 +1,23 @@
+{
+  "group": "batch mix",
+  "case": 5,
+  "repeat": 1,
+  "stem": "batch-mix-case5-1",
+  "message": "Arrange 8 4×4 droplets in an array starting at (30, 30), with a gap of 8, and add a mixing step with a duration of 3 to each droplet.",
+  "status": "ok",
+  "startedAt": "2026-08-15T06:00:31.555804+00:00",
+  "finishedAt": "2026-08-15T06:00:58.451787+00:00",
+  "result": {
+    "stepsText": "(30,30)(4,4);(42,30)(4,4);(54,30)(4,4);(66,30)(4,4);(30,42)(4,4);(42,42)(4,4);(54,42)(4,4);(66,42)(4,4)-1000\n(30,30)(4,4);(42,30)(4,4);(54,30)(4,4);(66,30)(4,4);(30,42)(4,4);(42,42)(4,4);(54,42)(4,4);(66,42)(4,4)-3",
+    "assistantReply": "已生成8个4×4液滴的2行4列阵列，起点(30,30)，间距8；并在原位为每个液滴添加时长3的混合步骤。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 757,
+      "outputTokens": 2732,
+      "totalTokens": 3489
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

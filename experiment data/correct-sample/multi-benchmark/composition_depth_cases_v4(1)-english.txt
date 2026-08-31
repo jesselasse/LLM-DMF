@@ -1,0 +1,25 @@
+====================================================================
+C5: Composition-Depth Test Set (15 cases: 5 cases each at depths 2, 3, and 4; v4 revision)
+For depth 1, reuse the results from Table 2 (the single-scale group); do not construct duplicate cases.
+====================================================================
+
+# depth 2 (two-operation chains, 5 cases)
+1. At (30, 30), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Then move the squeezed droplet upward by 10 grid cells.
+2. At (50, 50), perform a downward squeeze operation with squeeze count 1, using a 3×3 source droplet. Then rotationally mix the squeezed droplet for 3 rotations.
+3. Initially, there is one 2×2 droplet at (10, 10) and another 2×2 droplet at (10, 16). Merge these two droplets. Then rotationally mix the merged droplet for 2 rotations.
+4. Initially, there is one 3×3 droplet at (40, 40). Move this droplet to the left by 12 grid cells. Then rotationally mix the moved droplet for 4 rotations.
+5. At (90, 20), perform a leftward squeeze operation with squeeze count 4, using a 4×4 source droplet. Then move all four squeezed droplets downward by 20 grid cells.
+
+# depth 3 (three-operation chains, 5 cases)
+1. At (20, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the squeezed droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 3 rotations.
+2. Initially, there is one 1×2 droplet at (13, 21). At (15, 15), perform a downward squeeze operation with squeeze count 1, using a 2×2 source droplet. Merge the squeezed droplet with the pre-existing 1×2 droplet at (13, 21). Then rotationally mix the merged droplet for 3 rotations.
+3. Initially, there is one 2×2 droplet at (30, 30) and another 2×2 droplet at (36, 30). Merge these two droplets. Move the merged droplet downward by 10 grid cells. Then rotationally mix the moved droplet for 2 rotations.
+4. Initially, there is one 3×3 droplet at (50, 50). Move this droplet to the left by 10 grid cells. Rotationally mix the moved droplet for 2 rotations. Then move the mixed droplet downward by 5 grid cells.
+5. At (60, 60), perform a downward squeeze operation with squeeze count 1, using a 3×3 source droplet. Rotationally mix the squeezed droplet for 4 rotations. Then move the mixed droplet to the right by 15 grid cells.
+
+# depth 4 (four-operation chains, 5 cases)
+1. At (30, 20), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. At (30, 40), perform another rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Move the droplet squeezed from (30, 40) upward by 10 grid cells. Then merge it with the droplet squeezed from (30, 20).
+2. At (50, 53), perform an upward squeeze operation with squeeze count 1, using a 3×3 source droplet. Move the squeezed droplet to the right by 10 grid cells. Rotationally mix the moved droplet for 3 rotations. Then move the mixed droplet downward by 5 grid cells.
+3. Initially, there is one 2×2 droplet at (44, 40). At (40, 40), perform a rightward squeeze operation with squeeze count 1, using a 2×2 source droplet. Merge the squeezed droplet with the pre-existing 2×2 droplet at (44, 40). Rotationally mix the merged droplet for 2 rotations. Then move the mixed droplet to the left by 12 grid cells.
+4. Initially, there is one 1×2 droplet at (60, 66). At (70, 70), perform a leftward squeeze operation with squeeze count 1, using a 2×2 source droplet. Merge the squeezed droplet with the pre-existing 1×2 droplet at (60, 66). Rotationally mix the merged droplet for 2 rotations. Then move the mixed droplet downward by 5 grid cells.
+5. At (20, 20), perform a rightward squeeze operation with squeeze count 4, using a 2×2 source droplet. At (20, 40), perform another rightward squeeze operation with squeeze count 4, using a 2×2 source droplet. Move all four droplets squeezed from (20, 20) downward by 10 grid cells. Pairwise merge each of these four moved droplets with the corresponding droplet squeezed from (20, 40), producing four merged droplets. Then rotationally mix each of the four merged droplets for 3 rotations.

@@ -1,0 +1,37 @@
+{
+  "assessment": "ready-with-version-caveat",
+  "checks": {
+    "benchmarkCases": 40,
+    "expectedRuns": 200,
+    "recordFiles": 200,
+    "uniqueRecords": 200,
+    "stepFiles": 184,
+    "unexpectedStepFiles": [],
+    "promptMismatches": [],
+    "invalidFiles": [],
+    "knownModelRows": 193,
+    "wrongModelRows": [],
+    "knownThinkingRows": 193,
+    "wrongThinkingRows": [],
+    "inputHashMatchesRunSummary": true,
+    "baselineHashMatchesRunSummary": true,
+    "tokenKnownMatchesRunSummary": true,
+    "tokenSumMatchesRunSummary": true,
+    "stepCountMatchesRunSummary": true
+  },
+  "sequenceResult": {
+    "runs": 200,
+    "passed": 12,
+    "exact": 12,
+    "firstFrame": 0,
+    "sequenceMatchPct": 6,
+    "wrong": 172,
+    "missing": 16,
+    "invalid": 0,
+    "empty": 9,
+    "timeout": 7,
+    "tokenKnown": 193,
+    "tokenSum": 1131458,
+    "tokenAverage": 5862
+  }
+}

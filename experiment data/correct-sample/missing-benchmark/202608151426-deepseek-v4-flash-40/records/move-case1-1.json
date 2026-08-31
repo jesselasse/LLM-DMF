@@ -1,0 +1,49 @@
+{
+  "sourceIndex": 7,
+  "heading": "move - case 1 (missing: number of grid cells to move)",
+  "operation": "move",
+  "operationIndex": 1,
+  "turn1": "Move the 1×1 droplet at (15, 15) to the right.",
+  "expectedClarification": "Please provide the number of grid cells to move.",
+  "turn2": "Move it by 20 grid cells.",
+  "finalGroundTruth": "Move 1 droplet of size 1×1 at (15, 15) 20 grid cells to the right",
+  "expectedStepsFile": "/Users/dyh/Development/LLM-DMF/missing-benchmark/move/move-case1.txt",
+  "repeatIndex": 1,
+  "stem": "move-case1-1",
+  "ok": true,
+  "turn1Result": {
+    "stepsText": "(16,15)(1,1)-1000",
+    "assistantReply": "已将 (15,15) 处的 1×1 液滴向右移动一格至 (16,15)，持续 1000ms。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 733,
+      "outputTokens": 447,
+      "totalTokens": 1180
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "turn2Message": "Continue this conversation using all information from both user turns.\nUser Turn 1: Move the 1×1 droplet at (15, 15) to the right.\nAssistant Turn 1: 已将 (15,15) 处的 1×1 液滴向右移动一格至 (16,15)，持续 1000ms。\nUser Turn 2: Move it by 20 grid cells.\nNow complete the requested operation.",
+  "turn2Result": {
+    "stepsText": "(17,15)(1,1)-1000\n(18,15)(1,1)-1000\n(19,15)(1,1)-1000\n(20,15)(1,1)-1000\n(21,15)(1,1)-1000\n(22,15)(1,1)-1000\n(23,15)(1,1)-1000\n(24,15)(1,1)-1000\n(25,15)(1,1)-1000\n(26,15)(1,1)-1000\n(27,15)(1,1)-1000\n(28,15)(1,1)-1000\n(29,15)(1,1)-1000\n(30,15)(1,1)-1000\n(31,15)(1,1)-1000\n(32,15)(1,1)-1000\n(33,15)(1,1)-1000\n(34,15)(1,1)-1000\n(35,15)(1,1)-1000\n(36,15)(1,1)-1000",
+    "assistantReply": "已将当前位于 (16,15) 的 1×1 液滴继续向右移动 20 格，最终到达 (36,15)，每格 1000ms。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 804,
+      "outputTokens": 624,
+      "totalTokens": 1428
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "detected": false,
+  "taskSuccess": false,
+  "matchType": "different",
+  "actualFrameCount": 20,
+  "expectedFrameCount": 20,
+  "tokenUsageTotal": {
+    "inputTokens": 1537,
+    "outputTokens": 1071,
+    "totalTokens": 2608
+  }
+}

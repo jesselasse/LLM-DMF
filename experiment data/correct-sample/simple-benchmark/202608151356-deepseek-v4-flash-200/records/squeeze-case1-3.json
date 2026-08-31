@@ -1,0 +1,23 @@
+{
+  "group": "squeeze",
+  "case": 1,
+  "repeat": 3,
+  "stem": "squeeze-case1-3",
+  "message": "Generate 1 1×1 droplet at (30, 30) by squeezing to the right.",
+  "status": "empty",
+  "startedAt": "2026-08-15T06:00:39.761455+00:00",
+  "finishedAt": "2026-08-15T06:01:04.506052+00:00",
+  "result": {
+    "stepsText": "",
+    "assistantReply": "缺少初始源液滴（储液池）的位置和尺寸信息，无法确定“向右挤压”生成 1×1 液滴的具体过程，请补充源液滴的初始坐标与尺寸。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 736,
+      "outputTokens": 2577,
+      "totalTokens": 3313
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

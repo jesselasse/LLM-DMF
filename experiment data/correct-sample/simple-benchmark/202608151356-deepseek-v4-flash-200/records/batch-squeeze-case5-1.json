@@ -1,0 +1,23 @@
+{
+  "group": "batch squeeze",
+  "case": 5,
+  "repeat": 1,
+  "stem": "batch-squeeze-case5-1",
+  "message": "Generate 2 5×5 droplets at (100, 85) by squeezing to the left.",
+  "status": "ok",
+  "startedAt": "2026-08-15T05:57:33.763497+00:00",
+  "finishedAt": "2026-08-15T05:59:19.134537+00:00",
+  "result": {
+    "stepsText": "(100,85)(10,5)-1000\n(100,85)(5,5);(105,85)(5,5)-1000",
+    "assistantReply": "已在 (100,85) 处将 10×5 液滴沿长边向左挤压分裂，生成两个 5×5 液滴，分别位于 (100,85) 与 (105,85)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 736,
+      "outputTokens": 12573,
+      "totalTokens": 13309
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

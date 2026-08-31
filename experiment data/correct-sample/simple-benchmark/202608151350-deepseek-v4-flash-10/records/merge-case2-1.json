@@ -1,0 +1,21 @@
+{
+  "group": "merge",
+  "case": 2,
+  "repeat": 1,
+  "stem": "merge-case2-1",
+  "message": "Merge the 2×3 droplet located at (90, 15) with the 3×3 droplet located at (97, 15).",
+  "status": "ok",
+  "result": {
+    "stepsText": "(90,15)(2,3);(97,15)(3,3)-1000\n(90,15)(2,3);(96,15)(3,3)-1000\n(90,15)(2,3);(95,15)(3,3)-1000\n(90,15)(2,3);(94,15)(3,3)-1000\n(90,15)(2,3);(93,15)(3,3)-1000\n(90,15)(2,3);(92,15)(3,3)-1000\n(90,15)(5,3)-1000",
+    "assistantReply": "已生成合并序列：将右侧3×3液滴左移5格，与位于(90,15)的2×3液滴相接，合并为一个5×3液滴，最终位置为(90,15)(5,3)。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 745,
+      "outputTokens": 1763,
+      "totalTokens": 2508
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

@@ -1,0 +1,11 @@
+filename,group,case,repeat,status,input_tokens,output_tokens,total_tokens,model,thinking
+batch-merge-case3-1.txt,batch merge,3,1,ok,774,4695,5469,deepseek-v4-flash,enabled
+batch-merge-case5-1.txt,batch merge,5,1,ok,774,15468,16242,deepseek-v4-flash,enabled
+batch-mix-case5-1.txt,batch mix,5,1,ok,757,1023,1780,deepseek-v4-flash,enabled
+batch-move-case3-1.txt,batch move,3,1,ok,755,3069,3824,deepseek-v4-flash,enabled
+batch-squeeze-case1-1.txt,batch squeeze,1,1,ok,736,27346,28082,deepseek-v4-flash,enabled
+batch-squeeze-case4-1.txt,batch squeeze,4,1,timeout,,,,,
+merge-case2-1.txt,merge,2,1,ok,745,1763,2508,deepseek-v4-flash,enabled
+move-case1-1.txt,move,1,1,ok,741,439,1180,deepseek-v4-flash,enabled
+move-case2-1.txt,move,2,1,ok,739,600,1339,deepseek-v4-flash,enabled
+squeeze-case5-1.txt,squeeze,5,1,ok,736,10031,10767,deepseek-v4-flash,enabled

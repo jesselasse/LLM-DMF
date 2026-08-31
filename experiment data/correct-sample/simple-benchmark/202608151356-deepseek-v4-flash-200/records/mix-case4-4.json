@@ -1,0 +1,23 @@
+{
+  "group": "mix",
+  "case": 4,
+  "repeat": 4,
+  "stem": "mix-case4-4",
+  "message": "Perform 4 cycles of rotational mixing on 1 droplet of size 4×4 located at (100, 84).",
+  "status": "ok",
+  "startedAt": "2026-08-15T05:59:19.706358+00:00",
+  "finishedAt": "2026-08-15T05:59:50.750092+00:00",
+  "result": {
+    "stepsText": "(101,84)(4,4)-1000\n(101,85)(4,4)-1000\n(100,85)(4,4)-1000\n(100,84)(4,4)-1000\n(101,84)(4,4)-1000\n(101,85)(4,4)-1000\n(100,85)(4,4)-1000\n(100,84)(4,4)-1000\n(101,84)(4,4)-1000\n(101,85)(4,4)-1000\n(100,85)(4,4)-1000\n(100,84)(4,4)-1000\n(101,84)(4,4)-1000\n(101,85)(4,4)-1000\n(100,85)(4,4)-1000\n(100,84)(4,4)-1000",
+    "assistantReply": "已在 (100,84) 的 4×4 液滴上执行 4 次旋转混合循环：每个循环按右→下→左→上各移动一格（共 16 帧），液滴最终回到起始位置。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 740,
+      "outputTokens": 3300,
+      "totalTokens": 4040
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-08-15T06:27:16.580211+00:00",
+  "finishedAt": "2026-08-15T06:29:40.788541+00:00",
+  "inputFile": "/Users/dyh/Development/LLM-DMF/missing-benchmark/missing-sample-english.txt",
+  "inputSha256": "0ceb18480ae8638b1a64a22805b53c8b419dfa69cfa79bd116e30a6c545158c7",
+  "baselineFile": "/Users/dyh/Development/LLM-DMF/llm_txt_baseline.py",
+  "baselineSha256": "3b89b1090c4069fad0b1714c7ec1e0473394f3f3a129d58c621f85c1b3c8eee8",
+  "model": "deepseek-v4-flash",
+  "baseUrl": "https://api.deepseek.com/",
+  "thinking": "enabled",
+  "caseCount": 8,
+  "repeats": 5,
+  "requestedSessions": 40,
+  "requestedCalls": 80,
+  "workers": 20,
+  "timeoutSeconds": 240,
+  "conversationMode": "transcript replay through unchanged single-message baseline"
+}

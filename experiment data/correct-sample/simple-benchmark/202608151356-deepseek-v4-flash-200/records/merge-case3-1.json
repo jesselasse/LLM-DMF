@@ -1,0 +1,23 @@
+{
+  "group": "merge",
+  "case": 3,
+  "repeat": 1,
+  "stem": "merge-case3-1",
+  "message": "Merge the 4×3 droplet located at (15, 100) with the 4×2 droplet located at (15, 90).",
+  "status": "ok",
+  "startedAt": "2026-08-15T05:59:46.044203+00:00",
+  "finishedAt": "2026-08-15T06:00:10.011109+00:00",
+  "result": {
+    "stepsText": "(15,90)(4,2);(15,100)(4,3)-1000\n(15,91)(4,2);(15,99)(4,3)-1000\n(15,92)(4,2);(15,98)(4,3)-1000\n(15,93)(4,2);(15,97)(4,3)-1000\n(15,94)(4,2);(15,96)(4,3)-1000\n(15,94)(4,5)-1000",
+    "assistantReply": "已将两个液滴相向移动4格，在第5帧接触后合并，最终得到位于(15,94)的4×5合并液滴。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 745,
+      "outputTokens": 2429,
+      "totalTokens": 3174
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}

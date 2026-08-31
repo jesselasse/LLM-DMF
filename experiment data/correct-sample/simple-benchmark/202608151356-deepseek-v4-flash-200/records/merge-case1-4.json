@@ -1,0 +1,23 @@
+{
+  "group": "merge",
+  "case": 1,
+  "repeat": 4,
+  "stem": "merge-case1-4",
+  "message": "Merge the 1×1 droplet located at (10, 10) with the 1×1 droplet located at (10, 15).",
+  "status": "ok",
+  "startedAt": "2026-08-15T05:59:52.792689+00:00",
+  "finishedAt": "2026-08-15T06:00:29.830935+00:00",
+  "result": {
+    "stepsText": "(10,10)(1,1);(10,14)(1,1)-1000\n(10,10)(1,1);(10,13)(1,1)-1000\n(10,10)(1,1);(10,12)(1,1)-1000\n(10,10)(1,2)-1000",
+    "assistantReply": "已生成合并序列：将(10,15)处的1×1液滴向上移动4步至(10,11)，与(10,10)处液滴接触后合并为一个(10,10)(1,2)的液滴，共4帧，每帧1000ms。",
+    "tokenUsage": {
+      "available": true,
+      "inputTokens": 745,
+      "outputTokens": 3841,
+      "totalTokens": 4586
+    },
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled"
+  },
+  "error": ""
+}
