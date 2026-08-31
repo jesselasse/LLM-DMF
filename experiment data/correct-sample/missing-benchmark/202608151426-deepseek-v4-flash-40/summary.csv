@@ -1,6 +1,0 @@
-operation,sessions,detected,detectionRatePct,correctClarifications,clarificationAccuracyPct,taskSuccesses,taskSuccessPct,tokenSum,tokenAverage
-squeeze,10,6,60.0,0,0.0,0,0.0,56076,5608
-merge,10,10,100.0,6,60.0,0,0.0,51834,5183
-mix,10,1,10.0,0,0.0,0,0.0,69689,6969
-move,10,5,50.0,5,100.0,6,60.0,27434,2743
-overall,40,22,55.0,11,50.0,6,15.0,205033,5126
